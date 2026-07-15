@@ -437,6 +437,30 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  # mt5-connector corre en WINDOWS host (donde vive MT5)
+  # En dev Linux se incluye solo para mostrar el Dockerfile; descomentar si se quiere testear
+  # mt5-connector:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/broker/mt5-connector/Dockerfile.linux
+  #   container_name: tnsvt-mt5-connector
+  #   hostname: mt5-connector
+  #   environment:
+  #     MT5_CONNECTOR_PORT: "8007"
+  #     MT5_PATH: ${MT5_PATH:-}
+  #     MT5_LOGIN: ${MT5_LOGIN:-}
+  #     MT5_PASSWORD: ${MT5_PASSWORD:-}
+  #     MT5_SERVER: ${MT5_SERVER:-}
+  #     MT5_SYMBOL_SUFFIX: ${MT5_SYMBOL_SUFFIX:-}
+  #     MT5_MAGIC_NUMBER: "123456"
+  #   networks:
+  #     - tnsvt-network
+  #   # En Windows: descomentar y remover profiles
+  #   # volumes:
+  #   #   - "C:\\Program Files\\FTMO MetaTrader 5:C:\\Program Files\\FTMO MetaTrader 5:ro"
+  #   profiles: ["windows"]
+  #   restart: unless-stopped
+
 # ═══════════════════════════════════════════════════════════════
 # NOTAS
 # ═══════════════════════════════════════════════════════════════

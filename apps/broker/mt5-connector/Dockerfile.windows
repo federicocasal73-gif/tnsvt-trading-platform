@@ -1,0 +1,52 @@
+# TNSVT V2 - MT5 Connector (Windows)
+# Este servicio SOLO corre en Windows donde está instalado MT5
+# Multi-stage build usando golang image con soporte cgo
+
+# ─── Stage 1: Build ───────────────────────────────────────────
+FROM golang:1.22-windowsservercore-ltsc2022 AS builder
+
+WORKDIR C:\\build
+
+# Copiar shared-go
+COPY shared/go-common C:\\build\\shared\\go-common
+COPY shared/proto C:\\build\\shared\\proto
+
+# Deps
+COPY apps/broker/mt5-connector/go.mod apps/broker/mt5-connector/go.sum* ./
+RUN go mod download
+
+# Build
+COPY apps/broker/mt5-connector/ ./
+RUN go build -ldflags="-w -s" -o C:\\build\\bin\\mt5-connector.exe .
+
+# ─── Stage 2: Runtime ─────────────────────────────────────────
+# Usamos la imagen base de Windows para tener PowerShell y las APIs de Windows
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+WORKDIR C:\\app
+
+# Instalar Python (requerido para MetaTrader5 library)
+# Nota: en producción, tener Python pre-instalado en el host
+ADD https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe C:\\python-installer.exe
+RUN C:\\python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_doc=0 Include_launcher=0 && \
+    del C:\\python-installer.exe
+
+# Copiar binario Go + bridge Python + requirements
+COPY --from=builder C:\\build\\bin\\mt5-connector.exe C:\\app\\mt5-connector.exe
+COPY apps/broker/mt5-connector/mt5_bridge.py C:\\app\\
+COPY apps/broker/mt5-connector/requirements.txt C:\\app\\
+
+# Instalar MetaTrader5 library
+RUN pip install --no-cache-dir -r C:\\app\\requirements.txt
+
+# Variables de entorno (configurar en docker run o .env)
+ENV MT5_PATH="C:\\Program Files\\FTMO MetaTrader 5\\terminal64.exe"
+ENV MT5_CONNECTOR_PORT=8007
+
+EXPOSE 8007
+
+# Healthcheck (Windows)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD powershell -Command "try { Invoke-WebRequest -Uri http://localhost:8007/health -UseBasicParsing | Out-Null; exit 0 } catch { exit 1 }"
+
+ENTRYPOINT ["C:\\app\\mt5-connector.exe"]

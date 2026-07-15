@@ -1,0 +1,42 @@
+# TNSVT V2 - MT5 Connector (Linux/Dev - Stub)
+# Esta versión es solo para desarrollo/testing sin MT5 real
+# En producción, usar Dockerfile.windows
+
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /build
+
+RUN apk add --no-cache git ca-certificates python3 py3-pip
+
+COPY shared/go-common /build/shared/go-common
+COPY shared/proto /build/shared/proto
+
+COPY apps/broker/mt5-connector/go.mod apps/broker/mt5-connector/go.sum* ./
+RUN go mod download
+
+COPY apps/broker/mt5-connector/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s" \
+    -o /build/bin/mt5-connector .
+
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates tzdata curl python3 py3-pip
+RUN pip3 install --break-system-packages --no-cache-dir MetaTrader5
+
+RUN adduser -D -u 1000 tnsvt && addgroup -g 1000 tnsvt tnsvt
+
+WORKDIR /app
+
+COPY --from=builder /build/bin/mt5-connector /app/mt5-connector
+COPY mt5_bridge.py /app/
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
+    CMD curl -fsS http://localhost:8007/health || exit 1
+
+USER tnsvt
+
+EXPOSE 8007
+
+# En dev: usa el bridge Python pero sin MT5 real (los comandos fallarán hasta conectar)
+ENTRYPOINT ["/app/mt5-connector"]
