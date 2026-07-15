@@ -282,8 +282,35 @@ services:
       - "traefik.http.services.auth-service.loadbalancer.server.port=8001"
 
   # api-gateway:
-  #   build: ./apps/gateway/api-gateway
-  #   ...
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/api-gateway/Dockerfile
+    container_name: tnsvt-api-gateway
+    hostname: api-gateway
+    environment:
+      API_GATEWAY_PORT: "8000"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me_min_32_chars_abc}
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-gateway.rule=Host(`api.localhost`) || Host(`localhost`)"
+      - "traefik.http.services.api-gateway.loadbalancer.server.port=8000"
 
 # ═══════════════════════════════════════════════════════════════
 # NOTAS

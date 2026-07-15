@@ -1,0 +1,113 @@
+{
+  "_comment": "Configuración de servicios destino del API Gateway. Cada servicio tiene un path prefix que determina a dónde se enrutan las requests.",
+  "services": [
+    {
+      "name": "auth-service",
+      "path_prefix": "/api/v1/auth",
+      "instances": ["http://auth-service:8001"],
+      "timeout_ms": 5000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "user-service",
+      "path_prefix": "/api/v1/users",
+      "instances": ["http://user-service:8002"],
+      "timeout_ms": 5000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "signal-engine",
+      "path_prefix": "/api/v1/signals",
+      "instances": ["http://signal-engine:8003"],
+      "timeout_ms": 10000,
+      "rate_limit": 200,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "execution-engine",
+      "path_prefix": "/api/v1/executions",
+      "instances": ["http://execution-engine:8004"],
+      "timeout_ms": 30000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "copy-trading",
+      "path_prefix": "/api/v1/copy",
+      "instances": ["http://copy-trading:8005"],
+      "timeout_ms": 15000,
+      "rate_limit": 50,
+      "health_path": "/health",
+      "required": false
+    },
+    {
+      "name": "risk-engine",
+      "path_prefix": "/api/v1/risk",
+      "instances": ["http://risk-engine:8006"],
+      "timeout_ms": 5000,
+      "rate_limit": 200,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "mt5-connector",
+      "path_prefix": "/api/v1/brokers",
+      "instances": ["http://mt5-connector:8007"],
+      "timeout_ms": 15000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": false
+    },
+    {
+      "name": "audit-engine",
+      "path_prefix": "/api/v1/audit",
+      "instances": ["http://audit-engine:8008"],
+      "timeout_ms": 5000,
+      "rate_limit": 200,
+      "health_path": "/health",
+      "required": true
+    },
+    {
+      "name": "ai-core",
+      "path_prefix": "/api/v1/ai",
+      "instances": ["http://ai-core:8010"],
+      "timeout_ms": 30000,
+      "rate_limit": 50,
+      "health_path": "/health",
+      "required": false
+    },
+    {
+      "name": "regime-detector",
+      "path_prefix": "/api/v1/regime",
+      "instances": ["http://regime-detector:8011"],
+      "timeout_ms": 10000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": false
+    },
+    {
+      "name": "price-feed",
+      "path_prefix": "/api/v1/prices",
+      "instances": ["http://price-feed:8012"],
+      "timeout_ms": 5000,
+      "rate_limit": 300,
+      "health_path": "/health",
+      "required": false
+    },
+    {
+      "name": "telegram-notifier",
+      "path_prefix": "/api/v1/notify",
+      "instances": ["http://telegram-notifier:8013"],
+      "timeout_ms": 10000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": false
+    }
+  ]
+}
