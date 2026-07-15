@@ -400,6 +400,43 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  execution-engine:
+    build:
+      context: .
+      dockerfile: apps/trading/execution-engine/Dockerfile
+    container_name: tnsvt-execution-engine
+    hostname: execution-engine
+    environment:
+      EXECUTION_ENGINE_PORT: "8004"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+      DEFAULT_BROKER: "mt5"
+      DEFAULT_ACCOUNT_ID: "default"
+      EXECUTION_TIMEOUT_SECONDS: "30"
+      EXECUTION_RETRY_MAX: "3"
+      EXECUTION_RETRY_BACKOFF: "2"
+      MT5_CONNECTOR_URL: http://mt5-connector:8007
+      RISK_ENGINE_URL: http://risk-engine:8006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
 # ═══════════════════════════════════════════════════════════════
 # NOTAS
 # ═══════════════════════════════════════════════════════════════
