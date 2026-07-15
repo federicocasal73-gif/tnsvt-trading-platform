@@ -363,6 +363,43 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  risk-engine:
+    build:
+      context: .
+      dockerfile: apps/risk/risk-engine/Dockerfile
+    container_name: tnsvt-risk-engine
+    hostname: risk-engine
+    environment:
+      RISK_ENGINE_PORT: "8006"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+      RISK_DAILY_LOSS_LIMIT: "500"
+      RISK_DAILY_PROFIT_TARGET: "1000"
+      RISK_WEEKLY_LOSS_LIMIT: "1500"
+      RISK_MAX_OPEN_POSITIONS: "5"
+      RISK_TRAILING_STOP: "true"
+      RISK_TRAILING_STEP: "10"
+      RISK_TRAILING_START: "20"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
 # ═══════════════════════════════════════════════════════════════
 # NOTAS
 # ═══════════════════════════════════════════════════════════════
