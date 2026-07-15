@@ -312,6 +312,57 @@ services:
       - "traefik.http.routers.api-gateway.rule=Host(`api.localhost`) || Host(`localhost`)"
       - "traefik.http.services.api-gateway.loadbalancer.server.port=8000"
 
+  signal-engine:
+    build:
+      context: .
+      dockerfile: apps/trading/signal-engine/Dockerfile
+    container_name: tnsvt-signal-engine
+    hostname: signal-engine
+    environment:
+      SIGNAL_ENGINE_PORT: "8003"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+      SIGNAL_DEDUP_TTL_MINUTES: "10"
+      SIGNAL_INGEST_API_KEY: ${SIGNAL_INGEST_API_KEY:-dev_ingest_key_change_me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  telegram-bridge:
+    build:
+      context: .
+      dockerfile: apps/trading/signal-engine/telegram-bridge/Dockerfile
+    container_name: tnsvt-telegram-bridge
+    hostname: telegram-bridge
+    environment:
+      TELETHON_API_ID: ${TELETHON_API_ID:-}
+      TELETHON_API_HASH: ${TELETHON_API_HASH:-}
+      TELETHON_PHONE: ${TELETHON_PHONE:-}
+      CHANNELS: ${CHANNELS:-}
+      SIGNAL_ENGINE_URL: http://signal-engine:8003
+      SIGNAL_INGEST_API_KEY: ${SIGNAL_INGEST_API_KEY:-dev_ingest_key_change_me}
+    depends_on:
+      - signal-engine
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
 # ═══════════════════════════════════════════════════════════════
 # NOTAS
 # ═══════════════════════════════════════════════════════════════
