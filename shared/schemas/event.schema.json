@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tnsvt.io/schemas/event.json",
+  "title": "CloudEvent",
+  "description": "CloudEvents v1.0 spec para eventos en NATS",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "source", "specversion", "type", "time"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único del evento"
+    },
+    "source": {
+      "type": "string",
+      "description": "Servicio que emitió el evento (ej: signal-engine, risk-engine)"
+    },
+    "specversion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z]+\\.[a-z]+\\.(created|updated|deleted|executed|failed|completed)$",
+      "description": "Tipo de evento (ej: trading.signal.received, risk.check.failed)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Recurso afectado (ej: signal/abc123, trade/xyz789)"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO-8601"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "default": "application/json"
+    },
+    "dataschema": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI al schema del payload"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant propietario del evento"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "ID para correlación entre eventos"
+    },
+    "causation_id": {
+      "type": "string",
+      "description": "ID del evento que causó este"
+    },
+    "data": {
+      "type": "object",
+      "description": "Payload del evento (varía según type)"
+    }
+  }
+}

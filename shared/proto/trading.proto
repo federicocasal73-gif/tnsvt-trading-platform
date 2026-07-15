@@ -1,0 +1,342 @@
+syntax = "proto3";
+
+package tnsvt.trading.v1;
+
+option go_package = "github.com/tnsvt/shared/proto/trading";
+option java_multiple_files = true;
+option java_package = "io.tnsvt.trading.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ═══════════════════════════════════════════════════════════════
+// SERVICIOS
+// ═══════════════════════════════════════════════════════════════
+
+// SignalEngine - Recibe y valida señales
+service SignalEngine {
+  rpc SubmitSignal(SignalRequest) returns (SignalResponse);
+  rpc GetSignal(SignalByIdRequest) returns (SignalResponse);
+  rpc StreamSignals(SignalStreamRequest) returns (stream SignalEvent);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// ExecutionEngine - Ejecuta señales aprobadas
+service ExecutionEngine {
+  rpc ExecuteTrade(ExecuteTradeRequest) returns (ExecuteTradeResponse);
+  rpc GetExecution(ExecutionByIdRequest) returns (ExecutionResponse);
+  rpc CancelExecution(CancelRequest) returns (CancelResponse);
+  rpc StreamExecutions(ExecutionStreamRequest) returns (stream ExecutionEvent);
+}
+
+// RiskEngine - Evalúa riesgo
+service RiskEngine {
+  rpc EvaluateRisk(RiskEvaluationRequest) returns (RiskEvaluationResponse);
+  rpc GetCurrentExposure(ExposureRequest) returns (ExposureResponse);
+  rpc UpdateLimits(UpdateLimitsRequest) returns (UpdateLimitsResponse);
+}
+
+// BrokerConnector - Interfaz con brokers
+service BrokerConnector {
+  rpc PlaceOrder(OrderRequest) returns (OrderResponse);
+  rpc ClosePosition(ClosePositionRequest) returns (ClosePositionResponse);
+  rpc GetAccountInfo(AccountInfoRequest) returns (AccountInfoResponse);
+  rpc GetPositions(PositionsRequest) returns (PositionsResponse);
+  rpc SubscribeMarketData(MarketDataRequest) returns (stream MarketDataEvent);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MENSAJES
+// ═══════════════════════════════════════════════════════════════
+
+enum Action {
+  ACTION_UNSPECIFIED = 0;
+  ACTION_BUY = 1;
+  ACTION_SELL = 2;
+  ACTION_CLOSE = 3;
+  ACTION_MODIFY = 4;
+}
+
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_MARKET = 1;
+  ORDER_TYPE_LIMIT = 2;
+  ORDER_TYPE_STOP = 3;
+  ORDER_TYPE_STOP_LIMIT = 4;
+}
+
+enum Broker {
+  BROKER_UNSPECIFIED = 0;
+  BROKER_MT5 = 1;
+  BROKER_CTRADER = 2;
+  BROKER_BINANCE = 3;
+  BROKER_BYBIT = 4;
+  BROKER_IBKR = 5;
+}
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+  RISK_LEVEL_CRITICAL = 4;
+}
+
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  EXECUTION_STATUS_PENDING = 1;
+  EXECUTION_STATUS_APPROVED = 2;
+  EXECUTION_STATUS_REJECTED = 3;
+  EXECUTION_STATUS_EXECUTED = 4;
+  EXECUTION_STATUS_FAILED = 5;
+  EXECUTION_STATUS_CANCELLED = 6;
+}
+
+message Signal {
+  string id = 1;
+  string source = 2;
+  string symbol = 3;
+  Action action = 4;
+  double entry_price = 5;
+  double stop_loss = 6;
+  repeated double take_profits = 7;
+  double lot_size = 8;
+  string comment = 9;
+  google.protobuf.Timestamp timestamp = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  string tenant_id = 12;
+  string user_id = 13;
+  map<string, string> metadata = 14;
+}
+
+message SignalRequest {
+  Signal signal = 1;
+}
+
+message SignalResponse {
+  bool accepted = 1;
+  string message = 2;
+  string signal_id = 3;
+  RiskEvaluationResponse risk_evaluation = 4;
+}
+
+message SignalByIdRequest {
+  string id = 1;
+}
+
+message SignalStreamRequest {
+  repeated string symbols = 1;
+  repeated string sources = 2;
+}
+
+message SignalEvent {
+  string event_type = 1; // created, validated, rejected
+  Signal signal = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message ExecuteTradeRequest {
+  string signal_id = 1;
+  string broker = 2;
+  string account_id = 3;
+  string symbol = 4;
+  Action action = 5;
+  double quantity = 6;
+  OrderType order_type = 7;
+  double price = 8;
+  double stop_loss = 9;
+  double take_profit = 10;
+  int32 deviation = 11;
+  int64 magic_number = 12;
+}
+
+message ExecuteTradeResponse {
+  string execution_id = 1;
+  ExecutionStatus status = 2;
+  string broker_order_id = 3;
+  string message = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message ExecutionByIdRequest {
+  string id = 1;
+}
+
+message ExecutionResponse {
+  string id = 1;
+  string signal_id = 2;
+  ExecutionStatus status = 3;
+  string broker_order_id = 4;
+  string message = 5;
+  google.protobuf.Timestamp executed_at = 6;
+}
+
+message CancelRequest {
+  string execution_id = 1;
+  string reason = 2;
+}
+
+message CancelResponse {
+  bool cancelled = 1;
+  string message = 2;
+}
+
+message ExecutionStreamRequest {
+  string account_id = 1;
+}
+
+message ExecutionEvent {
+  string event_type = 1;
+  string execution_id = 2;
+  ExecutionStatus status = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message RiskEvaluationRequest {
+  string signal_id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  string symbol = 4;
+  double lot_size = 5;
+  double entry_price = 6;
+  double stop_loss = 7;
+  double take_profit = 8;
+}
+
+message RiskEvaluationResponse {
+  string signal_id = 1;
+  bool approved = 2;
+  RiskLevel risk_level = 3;
+  string reason = 4;
+  double recommended_lot_size = 5;
+  double current_exposure = 6;
+  double daily_pnl = 7;
+  double weekly_pnl = 8;
+  int32 open_positions = 9;
+  repeated string warnings = 10;
+}
+
+message ExposureRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string account_id = 3;
+}
+
+message ExposureResponse {
+  double total_exposure = 1;
+  double margin_used = 2;
+  double margin_available = 3;
+  int32 total_positions = 4;
+  map<string, double> by_symbol = 5;
+}
+
+message UpdateLimitsRequest {
+  string tenant_id = 1;
+  double daily_loss_limit = 2;
+  double daily_profit_target = 3;
+  double weekly_loss_limit = 4;
+  int32 max_open_positions = 5;
+  bool trailing_stop = 6;
+}
+
+message UpdateLimitsResponse {
+  bool updated = 1;
+  string message = 2;
+}
+
+message OrderRequest {
+  string broker = 1;
+  string account_id = 2;
+  string symbol = 3;
+  Action action = 4;
+  OrderType order_type = 5;
+  double quantity = 6;
+  double price = 7;
+  double stop_loss = 8;
+  double take_profit = 9;
+  int32 deviation = 10;
+  int64 magic_number = 11;
+  string comment = 12;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  bool accepted = 2;
+  string message = 3;
+  double filled_price = 4;
+  double filled_quantity = 5;
+}
+
+message ClosePositionRequest {
+  string broker = 1;
+  string account_id = 2;
+  string ticket = 3;
+}
+
+message ClosePositionResponse {
+  bool closed = 1;
+  string message = 2;
+  double pnl = 3;
+}
+
+message AccountInfoRequest {
+  string broker = 1;
+  string account_id = 2;
+}
+
+message AccountInfoResponse {
+  string broker = 1;
+  string account_id = 2;
+  double balance = 3;
+  double equity = 4;
+  double margin = 5;
+  double free_margin = 6;
+  string currency = 7;
+  int32 leverage = 8;
+  int32 open_positions = 9;
+}
+
+message PositionsRequest {
+  string broker = 1;
+  string account_id = 2;
+}
+
+message PositionsResponse {
+  repeated Position positions = 1;
+}
+
+message Position {
+  string ticket = 1;
+  string symbol = 2;
+  Action action = 3;
+  double quantity = 4;
+  double open_price = 5;
+  double current_price = 6;
+  double stop_loss = 7;
+  double take_profit = 8;
+  double pnl = 9;
+  google.protobuf.Timestamp opened_at = 10;
+}
+
+message MarketDataRequest {
+  repeated string symbols = 1;
+}
+
+message MarketDataEvent {
+  string symbol = 1;
+  double bid = 2;
+  double ask = 3;
+  double last = 4;
+  double volume = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+message HealthRequest {
+  string service = 1;
+}
+
+message HealthResponse {
+  bool healthy = 1;
+  string status = 2;
+  map<string, string> details = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}

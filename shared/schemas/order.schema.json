@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tnsvt.io/schemas/order.json",
+  "title": "Order",
+  "description": "Schema para órdenes enviadas al broker",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["order_id", "signal_id", "broker", "account_id", "symbol", "side", "quantity", "timestamp"],
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID único de la orden"
+    },
+    "signal_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID de la señal que originó esta orden"
+    },
+    "broker": {
+      "type": "string",
+      "enum": ["mt5", "ctrader", "binance", "bybit", "ibkr"],
+      "description": "Broker destino"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "ID de la cuenta en el broker"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+(\\.(m|M|r|R|pro|raw|Raw))?$"
+    },
+    "side": {
+      "type": "string",
+      "enum": ["buy", "sell"],
+      "description": "Lado de la orden"
+    },
+    "order_type": {
+      "type": "string",
+      "enum": ["market", "limit", "stop", "stop_limit"],
+      "default": "market"
+    },
+    "quantity": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10000
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Precio límite (solo para limit/stop_limit)"
+    },
+    "stop_loss": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "take_profit": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "time_in_force": {
+      "type": "string",
+      "enum": ["GTC", "IOC", "FOK", "DAY"],
+      "default": "GTC"
+    },
+    "deviation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 20,
+      "description": "Desviación máxima permitida en puntos"
+    },
+    "magic_number": {
+      "type": "integer",
+      "description": "Magic number para identificar órdenes del copier"
+    },
+    "comment": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp en milisegundos"
+    },
+    "expires_at": {
+      "type": ["integer", "null"],
+      "description": "Expiración en unix timestamp ms"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

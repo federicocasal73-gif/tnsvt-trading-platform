@@ -1,0 +1,137 @@
+# ─── Python ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+.python-version
+
+# pyright / mypy
+.mypy_cache/
+.pyright_cache/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# ─── Go ──────────────────────────────────────────────────────────
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# ─── Node / TypeScript / Next.js ───────────────────────────────
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.next/
+.swc/
+
+# ─── Tauri ──────────────────────────────────────────────────────
+src-tauri/target/
+src-tauri/gen/
+
+# ─── Docker ─────────────────────────────────────────────────────
+.docker/
+
+# ─── IDE ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ─── Secrets / Keys ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+*.p12
+secrets/
+
+# ─── Logs ───────────────────────────────────────────────────────
+*.log
+*.log.*
+logs/
+*.out
+*.err
+
+# ─── Database ───────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+postgres-data/
+redis-data/
+nats-data/
+ollama-data/
+
+# ─── OS ─────────────────────────────────────────────────────────
+Thumbs.db
+.DS_Store
+Desktop.ini
+ehthumbs.db
+ehthumbs_vista.db
+
+# ─── Build artifacts ────────────────────────────────────────────
+artifacts/
+dist/
+build/
+target/
+*.tar.gz
+*.zip
+
+# ─── Backups ────────────────────────────────────────────────────
+backups/*.sql
+backups/*.dump
+
+# ─── Specific to TNSVT V2 ──────────────────────────────────────
+# Sesiones de Telegram
+*.session
+*.session-session
+*.session-journal
+qr_login.png
+code_hash.txt
+
+# State files
+risk_state.json
+bot_state.json
+config/reload.trigger
+var/
+
+# Account credentials
+config/accounts.json
+
+# Generated docs (regenerables)
+word/*.docx
+pdf/*.pdf

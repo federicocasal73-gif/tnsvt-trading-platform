@@ -1,0 +1,72 @@
+# Prometheus configuration for TNSVT V2
+# Monitorea: Traefik, servicios Go/Python via exporters
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: tnsvt-v2-dev
+    environment: development
+
+# Alertmanager (Fase 2)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Load rules
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configs
+scrape_configs:
+  # Prometheus itself
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Traefik (API Gateway metrics)
+  - job_name: traefik
+    static_configs:
+      - targets: ['traefik:8080']
+    metrics_path: /metrics
+
+  # NATS monitoring
+  - job_name: nats
+    static_configs:
+      - targets: ['nats:8222']
+    metrics_path: /metrics
+
+  # PostgreSQL exporter (Fase 2)
+  # - job_name: postgres
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+
+  # Redis exporter (Fase 2)
+  # - job_name: redis
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # Ollama metrics (Fase 2 - requiere exporter custom)
+  # - job_name: ollama
+  #   static_configs:
+  #     - targets: ['ollama-exporter:8000']
+
+  # Servicios de aplicación Go (Fase 1+)
+  # Cada servicio expone /metrics en su propio puerto
+  # - job_name: signal-engine
+  #   static_configs:
+  #     - targets: ['signal-engine:8003']
+  # - job_name: execution-engine
+  #   static_configs:
+  #     - targets: ['execution-engine:8004']
+
+  # Servicios Python (Fase 1+)
+  # - job_name: ai-core
+  #   static_configs:
+  #     - targets: ['ai-core:8010']
+
+  # Node exporter (Fase 3 - métricas de host)
+  # - job_name: node
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']

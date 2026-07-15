@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tnsvt.io/schemas/signal.json",
+  "title": "TradingSignal",
+  "description": "Schema para validar señales de trading recibidas de Telegram, TNSVT, APIs externas",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "source", "symbol", "action", "timestamp"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único de la señal"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["telegram", "tnsvt", "api", "manual", "ai"],
+      "description": "Origen de la señal"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+(\\.(m|M|r|R|pro|raw|Raw))?$",
+      "minLength": 3,
+      "maxLength": 20,
+      "description": "Símbolo del instrumento (ej: EURUSD, XAUUSD.m)"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["BUY", "SELL", "CLOSE", "MODIFY"],
+      "description": "Acción a ejecutar"
+    },
+    "entry_price": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Precio de entrada (opcional para CLOSE)"
+    },
+    "stop_loss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Stop Loss en precio absoluto"
+    },
+    "take_profit": {
+      "type": ["number", "array"],
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "description": "Take Profit (puede ser único o múltiples TP)"
+    },
+    "lot_size": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 100,
+      "description": "Tamaño del lote"
+    },
+    "lot_mode": {
+      "type": "string",
+      "enum": ["fixed", "percent", "risk_based"],
+      "default": "fixed",
+      "description": "Modo de cálculo del lote"
+    },
+    "risk_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Porcentaje de riesgo si lot_mode es risk_based"
+    },
+    "comment": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Comentario libre sobre la señal"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix timestamp en milisegundos"
+    },
+    "expires_at": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix timestamp de expiración (opcional)"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"]
+      },
+      "description": "Metadata adicional específica del origen"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant al que pertenece la señal"
+    },
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Usuario que originó la señal"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "action": { "const": "BUY" } },
+        "required": ["action"]
+      },
+      "then": {
+        "required": ["symbol", "entry_price", "stop_loss", "take_profit", "lot_size"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "action": { "const": "SELL" } },
+        "required": ["action"]
+      },
+      "then": {
+        "required": ["symbol", "entry_price", "stop_loss", "take_profit", "lot_size"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "action": { "const": "CLOSE" } },
+        "required": ["action"]
+      },
+      "then": {
+        "required": ["symbol"]
+      }
+    }
+  ]
+}
