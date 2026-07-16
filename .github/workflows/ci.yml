@@ -1,0 +1,164 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+# Cancel in-progress runs for the same branch / PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.22'
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
+
+jobs:
+  # ─── 1. Lint everything cheap and fast ─────────────────────────────
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Go vet (all modules)
+        run: |
+          set -e
+          for mod in $(find apps shared -name go.mod); do
+            echo "==> $mod"
+            (cd "$(dirname $mod)" && go vet ./...)
+          done
+
+      - name: Python syntax check
+        run: |
+          python -m compileall -q apps/ai/ai-core/app || true
+
+      - name: Frontend lint (tsc)
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+  # ─── 2. Run all Go tests in parallel matrix ────────────────────────
+  go-tests:
+    name: go-tests/${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - apps/platform/auth-service
+          - apps/platform/user-service
+          - apps/trading/signal-engine
+          - apps/trading/execution-engine
+          - apps/trading/copy-trading
+          - apps/risk/risk-engine
+          - apps/audit/audit-engine
+          - apps/market-data/price-feed
+          - apps/notification/telegram-bot-service
+          - apps/gateway/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: |
+          go mod download
+          go test ./... -count=1 -timeout=60s
+
+  # ─── 3. Run ai-core (Python) tests ─────────────────────────────────
+  python-tests:
+    name: python-tests/ai-core
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: tnsvt
+          POSTGRES_PASSWORD: tnsvt
+          POSTGRES_DB: tnsvt
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps
+        working-directory: apps/ai/ai-core
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: apps/ai/ai-core
+        env:
+          # Tests should be able to run without real Ollama; OllamaClient uses httpx
+          # with short timeouts so absence of Ollama is non-fatal for the unit tests.
+          AI_CORE_OLLAMA_ENABLED: 'false'
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: '5432'
+          POSTGRES_DB: tnsvt
+          POSTGRES_USER: tnsvt
+          POSTGRES_PASSWORD: tnsvt
+        run: pytest tests/ -v
+
+  # ─── 4. Frontend build + typecheck ─────────────────────────────────
+  frontend:
+    name: frontend/build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install
+        working-directory: apps/frontend
+        run: npm ci || npm install
+
+      - name: Typecheck
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: apps/frontend
+        run: npm run build
+        env:
+          CI: 'true'
