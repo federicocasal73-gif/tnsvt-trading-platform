@@ -1,0 +1,94 @@
+MIT License
+
+Copyright (c) 2026 TNSVT V2 Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+═══════════════════════════════════════════════════════════════════════════════
+THIRD-PARTY COMPONENTS AND THEIR LICENSES
+═══════════════════════════════════════════════════════════════════════════════
+
+This project uses several third-party open-source components. Below is a
+non-exhaustive list of major dependencies and their licenses. The full list
+with exact versions is available via each module's `go.mod` or
+`requirements.txt`.
+
+Backend (Go 1.22+):
+  - github.com/gin-gonic/gin               MIT
+  - github.com/nats-io/nats.go            Apache-2.0
+  - github.com/redis/go-redis             BSD-2-Clause
+  - github.com/jackc/pgx/v5               MIT
+  - github.com/golang-jwt/jwt/v5          MIT
+  - github.com/google/uuid                BSD-3-Clause
+  - github.com/gorilla/websocket          BSD-2-Clause
+  - github.com/prometheus/client_golang   Apache-2.0
+  - golang.org/x/crypto                   BSD-3-Clause
+  - google.golang.org/protobuf            BSD-3-Clause
+
+AI/ML (Python 3.12+):
+  - fastapi                               MIT
+  - uvicorn                               BSD-3-Clause
+  - pydantic                              MIT
+  - nats-py                               Apache-2.0
+  - redis-py                              MIT
+  - asyncpg                               Apache-2.0
+  - httpx                                 BSD-3-Clause
+  - structlog                             Apache-2.0 / MIT
+  - numpy                                 BSD-3-Clause
+  - pandas                                BSD-3-Clause
+
+Frontend (TypeScript):
+  - react, react-dom                      MIT
+  - lucide-react                          ISC
+  - recharts                              MIT
+  - vite                                  MIT
+
+Infrastructure (Docker images):
+  - postgres / timescale/timescaledb      PostgreSQL License (BSD-style)
+  - redis                                 BSD-3-Clause
+  - nats                                  Apache-2.0
+  - ollama                                MIT
+  - traefik                               MIT
+  - prometheus, node-exporter, postgres-exporter  Apache-2.0
+  - redis_exporter                        MIT
+  - grafana                               AGPL-3.0 (only the Grafana image, not the dashboards)
+
+═══════════════════════════════════════════════════════════════════════════════
+TRADEMARK NOTICE
+═══════════════════════════════════════════════════════════════════════════════
+
+"TNSVT" and any associated logos are trademarks of the TNSVT V2 project
+contributors. Use of these trademarks is governed by our trademark policy,
+available on request.
+
+═══════════════════════════════════════════════════════════════════════════════
+DISCLAIMER
+═══════════════════════════════════════════════════════════════════════════════
+
+THIS SOFTWARE IS PROVIDED FOR EDUCATIONAL AND INFORMATIONAL PURPOSES ONLY.
+IT IS NOT FINANCIAL ADVICE AND SHOULD NOT BE RELIED UPON FOR TRADING
+DECISIONS. TRADING INVOLVES SUBSTANTIAL RISK OF LOSS AND IS NOT SUITABLE FOR
+ALL INVESTORS. PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE RESULTS.
+
+THE AUTHORS AND COPYRIGHT HOLDERS OF THIS SOFTWARE ARE NOT REGISTERED
+INVESTMENT ADVISORS, BROKER-DEALERS, OR FINANCIAL PROFESSIONALS. NOTHING IN
+THIS SOFTWARE CONSTITUTES A SOLICITATION, RECOMMENDATION, OR ENDORSEMENT TO
+BUY OR SELL ANY FINANCIAL INSTRUMENT.
+
+USE AT YOUR OWN RISK.
