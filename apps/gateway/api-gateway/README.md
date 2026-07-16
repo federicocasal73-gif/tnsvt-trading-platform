@@ -17,17 +17,16 @@ Punto de entrada único para todos los microservicios. Actúa como reverse proxy
 
 ```
 /api/v1/auth/*          → auth-service:8001
-/api/v1/users/*         → user-service:8002
+/api/v1/users/*         → user-service:8401
 /api/v1/signals/*       → signal-engine:8003
 /api/v1/executions/*    → execution-engine:8004
 /api/v1/copy/*          → copy-trading:8005
 /api/v1/risk/*          → risk-engine:8006
 /api/v1/brokers/*       → mt5-connector:8007
-/api/v1/audit/*         → audit-engine:8008
-/api/v1/ai/*            → ai-core:8010
-/api/v1/regime/*        → regime-detector:8011
-/api/v1/prices/*        → price-feed:8012
-/api/v1/notify/*        → telegram-notifier:8013
+/api/v1/audit/*         → audit-engine:8600
+/api/v1/ai/*            → ai-core:8200
+/api/v1/prices/*        → price-feed:8300
+/api/v1/notify/*        → telegram-bot-service:8503
 
 Endpoints propios:
 GET  /health          → Health check básico

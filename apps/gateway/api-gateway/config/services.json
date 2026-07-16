@@ -67,7 +67,7 @@
     {
       "name": "audit-engine",
       "path_prefix": "/api/v1/audit",
-      "instances": ["http://audit-engine:8008"],
+      "instances": ["http://audit-engine:8600"],
       "timeout_ms": 5000,
       "rate_limit": 200,
       "health_path": "/health",
@@ -83,15 +83,6 @@
       "required": false
     },
     {
-      "name": "regime-detector",
-      "path_prefix": "/api/v1/regime",
-      "instances": ["http://regime-detector:8011"],
-      "timeout_ms": 10000,
-      "rate_limit": 100,
-      "health_path": "/health",
-      "required": false
-    },
-    {
       "name": "price-feed",
       "path_prefix": "/api/v1/prices",
       "instances": ["http://price-feed:8300"],
@@ -101,9 +92,9 @@
       "required": false
     },
     {
-      "name": "telegram-notifier",
+      "name": "telegram-bot-service",
       "path_prefix": "/api/v1/notify",
-      "instances": ["http://telegram-notifier:8013"],
+      "instances": ["http://telegram-bot-service:8503"],
       "timeout_ms": 10000,
       "rate_limit": 100,
       "health_path": "/health",

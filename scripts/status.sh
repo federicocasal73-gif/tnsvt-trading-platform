@@ -55,21 +55,20 @@ check_service "Prometheus" "http://localhost:9090/-/healthy"
 check_service "Grafana" "http://localhost:3001/api/health"
 
 echo ""
-echo -e "${BLUE}─── Servicios de aplicación (próximamente) ───${NC}"
+echo -e "${BLUE}─── Servicios de aplicación ───${NC}"
 SERVICES=(
     "api-gateway:8000"
     "auth-service:8001"
-    "user-service:8002"
+    "user-service:8401"
     "signal-engine:8003"
     "execution-engine:8004"
     "copy-trading:8005"
     "risk-engine:8006"
     "mt5-connector:8007"
-    "audit-engine:8008"
-    "ai-core:8010"
-    "regime-detector:8011"
-    "price-feed:8012"
-    "telegram-notifier:8013"
+    "audit-engine:8600"
+    "telegram-bot-service:8503"
+    "ai-core:8200"
+    "price-feed:8300"
 )
 
 for svc in "${SERVICES[@]}"; do
