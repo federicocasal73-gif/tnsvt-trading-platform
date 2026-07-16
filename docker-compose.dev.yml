@@ -500,6 +500,28 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  telegram-bot-service:
+    build:
+      context: .
+      dockerfile: apps/notification/telegram-bot-service/Dockerfile
+    container_name: tnsvt-telegram-bot
+    hostname: telegram-bot-service
+    environment:
+      TELEGRAM_BOT_PORT: "8503"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+    ports:
+      - "${TELEGRAM_BOT_PORT:-8503}:8503"
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
   # mt5-connector corre en WINDOWS host (donde vive MT5)
   # En dev Linux se incluye solo para mostrar el Dockerfile; descomentar si se quiere testear
   # mt5-connector:
