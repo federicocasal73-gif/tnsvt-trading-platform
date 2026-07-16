@@ -72,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem('tnsvt_token');
     setState({ user: null, loading: false, error: null });
+    // Hard redirect so the router unmounts the protected shell.
+    window.location.href = '/login';
   }, []);
 
   return (

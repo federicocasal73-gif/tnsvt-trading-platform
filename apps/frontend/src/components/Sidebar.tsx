@@ -1,19 +1,30 @@
 import { memo } from 'react';
-import { Activity, BarChart3, LayoutDashboard, ListChecks, Settings, LogOut } from 'lucide-react';
+import { Activity, BarChart3, History, LayoutDashboard, ListChecks, Radio, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { cls } from '../utils/format';
 
-interface SidebarProps { page: string; setPage: (p: string) => void; }
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: string; // lucide-react icon name (mapped below)
+}
 
-const NAV: { id: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'positions', label: 'Positions', icon: Activity },
-  { id: 'signals', label: 'Signals', icon: BarChart3 },
-  { id: 'history', label: 'History', icon: ListChecks },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
+interface SidebarProps {
+  page: string;
+  setPage: (id: string) => void;
+  items: NavItem[];
+}
 
-export const Sidebar = memo(function Sidebar({ page, setPage }: SidebarProps) {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  dashboard: LayoutDashboard,
+  activity: Activity,
+  signals: BarChart3,
+  live: Radio,
+  history: ListChecks,
+  settings: Settings,
+};
+
+export const Sidebar = memo(function Sidebar({ page, setPage, items }: SidebarProps) {
   const { logout } = useAuth();
 
   return (
@@ -31,13 +42,19 @@ export const Sidebar = memo(function Sidebar({ page, setPage }: SidebarProps) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-2">
-        {NAV.map(({ id, label, icon: Icon }) => {
+        {items.map(({ id, label, icon }) => {
+          const Icon = ICON_MAP[icon] ?? Activity;
           const active = page === id;
           return (
-            <button key={id} onClick={() => setPage(id)}
+            <button
+              key={id}
+              onClick={() => setPage(id)}
+              data-testid={`nav-${id}`}
               className={cls(
                 'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                active ? 'bg-white/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]' : 'text-tnvs-muted hover:bg-white/[0.03] hover:text-white',
+                active
+                  ? 'bg-white/[0.06] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                  : 'text-tnvs-muted hover:bg-white/[0.03] hover:text-white',
               )}
             >
               <Icon className={cls('h-4 w-4', active && 'text-tnvs-purple')} />
@@ -49,7 +66,11 @@ export const Sidebar = memo(function Sidebar({ page, setPage }: SidebarProps) {
       </nav>
 
       <div className="border-t border-tnvs-border px-3 py-3">
-        <button onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-tnvs-muted hover:bg-white/[0.03] hover:text-white transition-colors">
+        <button
+          onClick={logout}
+          data-testid="nav-logout"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-tnvs-muted hover:bg-white/[0.03] hover:text-white transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           <span>Logout</span>
         </button>

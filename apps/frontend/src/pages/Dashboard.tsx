@@ -1,10 +1,13 @@
 import { memo } from 'react';
 import { ArrowUp, ArrowDown, DollarSign, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { useApp } from '../state/AppStateProvider';
+import { useLatestTicks } from '../lib/tickStream';
 import { cls, fmtUsd, fmtPct, fmtDate } from '../utils/format';
 
 export const DashboardPage = memo(function DashboardPage() {
-  const { signals, positions, trades, copyJobs, copyStats, loading } = useApp();
+  const app = useApp();
+  const { signals = [], positions = [], trades = [], copyJobs = [], copyStats, loading = false } = app;
+  const { latest: latestTicks, state: tickState } = useLatestTicks();
 
   const totalPnl = trades.filter(t => t.status === 'closed').reduce((s, t) => s + (t.pnl || 0), 0);
   const winTrades = trades.filter(t => t.status === 'closed' && (t.pnl || 0) > 0).length;
@@ -23,10 +26,10 @@ export const DashboardPage = memo(function DashboardPage() {
       {loading && <div className="text-sm text-tnvs-muted">Loading...</div>}
 
       <div className="grid grid-cols-4 gap-4">
-        <Card icon={DollarSign} label="Total P&L" value={fmtUsd(totalPnl)} color={totalPnl >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss'} />
-        <Card icon={TrendingUp} label="Win Rate" value={fmtPct(winRate)} color={winRate >= 0.5 ? 'text-tnvs-win' : 'text-tnvs-warn'} />
-        <Card icon={Activity} label="Open Positions" value={String(openPos.length)} />
-        <Card icon={TrendingDown} label="30d Signals" value={String(signals.length)} />
+        <Card data-testid="kpi-pnl"     icon={DollarSign}   label="Total P&L"       value={fmtUsd(totalPnl)} color={totalPnl >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss'} />
+        <Card data-testid="kpi-winrate" icon={TrendingUp}   label="Win Rate"        value={fmtPct(winRate)} color={winRate >= 0.5 ? 'text-tnvs-win' : 'text-tnvs-warn'} />
+        <Card data-testid="kpi-pos"     icon={Activity}     label="Open Positions"  value={String(openPos.length)} />
+        <Card data-testid="kpi-signals" icon={TrendingDown} label="30d Signals"     value={String(signals.length)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -74,6 +77,38 @@ export const DashboardPage = memo(function DashboardPage() {
       </div>
 
       <div className="tnvs-card">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white">Live Prices</h3>
+          <span data-testid="dashboard-tick-state" className="text-[10px] uppercase tracking-wider text-tnvs-dim">
+            {tickState === 'open' ? 'streaming' : tickState}
+          </span>
+        </div>
+        {Object.keys(latestTicks).length === 0 ? (
+          <Empty>Waiting for ticks… (start price-feed)</Empty>
+        ) : (
+          <table className="tnvs-table" data-testid="dashboard-ticks">
+            <thead>
+              <tr><th>Symbol</th><th>Bid</th><th>Ask</th><th>Last</th><th>Source</th></tr>
+            </thead>
+            <tbody>
+              {Object.values(latestTicks)
+                .sort((a, b) => a.symbol.localeCompare(b.symbol))
+                .slice(0, 8)
+                .map((t) => (
+                  <tr key={t.symbol}>
+                    <td className="font-medium">{t.symbol}</td>
+                    <td className="font-mono">{fmtUsd(t.bid)}</td>
+                    <td className="font-mono">{fmtUsd(t.ask)}</td>
+                    <td className="font-mono">{fmtUsd(t.last)}</td>
+                    <td className="text-xs text-tnvs-muted">{t.source}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="tnvs-card">
         <h3 className="mb-3 text-sm font-semibold text-white">Latest Copy Jobs</h3>
         {recentJobs.length === 0 ? <Empty>No copy jobs yet</Empty> : (
           <table className="tnvs-table">
@@ -97,9 +132,9 @@ export const DashboardPage = memo(function DashboardPage() {
   );
 });
 
-function Card({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; color?: string }) {
+function Card({ icon: Icon, label, value, color, 'data-testid': testId }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; color?: string; 'data-testid'?: string }) {
   return (
-    <div className="tnvs-card flex items-center gap-4">
+    <div data-testid={testId} className="tnvs-card flex items-center gap-4">
       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white/[0.04]">
         <Icon className={cls('h-5 w-5', color || 'text-tnvs-muted')} />
       </div>

@@ -1,0 +1,17 @@
+node_modules
+dist
+.vite
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.vscode/
+.idea/
