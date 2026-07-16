@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; margin: 0; }
+  body { overflow: hidden; }
+}
+
+@layer components {
+  .tnvs-card {
+    @apply rounded-lg border border-tnvs-border bg-tnvs-surface p-4;
+  }
+  .tnvs-card-hover {
+    @apply tnvs-card transition-colors hover:bg-tnvs-surface2;
+  }
+  .tnvs-input {
+    @apply w-full rounded-lg border border-tnvs-border bg-tnvs-void px-3 py-2 text-sm text-white
+           placeholder:text-tnvs-dim focus:border-tnvs-purple/60 focus:outline-none focus:ring-1 focus:ring-tnvs-purple/30;
+  }
+  .tnvs-label {
+    @apply block text-xs font-medium uppercase tracking-wider text-tnvs-muted;
+  }
+  .tnvs-help {
+    @apply mt-1 text-xs text-tnvs-dim;
+  }
+  .tnvs-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-tnvs-purple/40
+           disabled:pointer-events-none disabled:opacity-40;
+  }
+  .tnvs-btn-default {
+    @apply tnvs-btn border border-tnvs-border bg-tnvs-surface text-tnvs-muted hover:bg-tnvs-surface2 hover:text-white;
+  }
+  .tnvs-btn-primary {
+    @apply tnvs-btn bg-tnvs-purple text-white hover:brightness-110 shadow-tnvs-soft;
+  }
+  .tnvs-btn-danger {
+    @apply tnvs-btn border border-tnvs-loss/30 bg-tnvs-loss/10 text-tnvs-loss hover:bg-tnvs-loss/20;
+  }
+  .tnvs-btn-ghost {
+    @apply tnvs-btn text-tnvs-muted hover:bg-white/[0.06] hover:text-white;
+  }
+  .tnvs-pill {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider;
+  }
+  .tnvs-table {
+    @apply w-full text-left text-sm;
+  }
+  .tnvs-table th {
+    @apply border-b border-tnvs-border px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-tnvs-muted;
+  }
+  .tnvs-table td {
+    @apply border-b border-tnvs-border/50 px-3 py-2 text-white;
+  }
+  .tnvs-table tr:hover td {
+    @apply bg-white/[0.02];
+  }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
