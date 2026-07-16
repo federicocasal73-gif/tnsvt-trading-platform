@@ -613,6 +613,7 @@ services:
     container_name: tnsvt-ai-core
     hostname: ai-core
     environment:
+      AI_CORE_ENV: ${AI_CORE_ENV:-development}
       AI_CORE_LOG_LEVEL: ${AI_CORE_LOG_LEVEL:-INFO}
       AI_CORE_POSTGRES_HOST: postgres
       AI_CORE_POSTGRES_PORT: "5432"
@@ -639,6 +640,37 @@ services:
         condition: service_healthy
       ollama:
         condition: service_started
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  regime-detector:
+    build:
+      context: .
+      dockerfile: apps/ai/regime-detector/Dockerfile
+    container_name: tnsvt-regime-detector
+    hostname: regime-detector
+    environment:
+      REGIME_DETECTOR_ENV: ${REGIME_DETECTOR_ENV:-development}
+      REGIME_DETECTOR_LOG_LEVEL: ${REGIME_DETECTOR_LOG_LEVEL:-INFO}
+      REGIME_DETECTOR_POSTGRES_HOST: postgres
+      REGIME_DETECTOR_POSTGRES_PORT: "5432"
+      REGIME_DETECTOR_POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      REGIME_DETECTOR_POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      REGIME_DETECTOR_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REGIME_DETECTOR_REDIS_HOST: redis
+      REGIME_DETECTOR_REDIS_PORT: "6379"
+      REGIME_DETECTOR_NATS_URL: nats://nats:4222
+      REGIME_DETECTOR_CLASSIFY_INTERVAL_SEC: "5"
+    ports:
+      - "${REGIME_DETECTOR_PORT:-8201}:8201"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
     networks:
       - tnsvt-network
     restart: unless-stopped

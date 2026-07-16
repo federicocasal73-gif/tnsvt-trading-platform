@@ -83,6 +83,15 @@
       "required": false
     },
     {
+      "name": "regime-detector",
+      "path_prefix": "/api/v1/regime",
+      "instances": ["http://regime-detector:8201"],
+      "timeout_ms": 10000,
+      "rate_limit": 100,
+      "health_path": "/health",
+      "required": false
+    },
+    {
       "name": "price-feed",
       "path_prefix": "/api/v1/prices",
       "instances": ["http://price-feed:8300"],
