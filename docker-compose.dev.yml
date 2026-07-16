@@ -554,6 +554,44 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  ai-core:
+    build:
+      context: .
+      dockerfile: apps/ai/ai-core/Dockerfile
+    container_name: tnsvt-ai-core
+    hostname: ai-core
+    environment:
+      AI_CORE_ENV: ${AI_CORE_ENV:-development}
+      AI_CORE_LOG_LEVEL: ${AI_CORE_LOG_LEVEL:-INFO}
+      AI_CORE_POSTGRES_HOST: postgres
+      AI_CORE_POSTGRES_PORT: "5432"
+      AI_CORE_POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      AI_CORE_POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      AI_CORE_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      AI_CORE_REDIS_HOST: redis
+      AI_CORE_REDIS_PORT: "6379"
+      AI_CORE_NATS_URL: nats://nats:4222
+      AI_CORE_OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      AI_CORE_OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      AI_CORE_OLLAMA_ENABLED: ${OLLAMA_ENABLED:-true}
+      AI_CORE_SCORE_EXECUTE_THRESHOLD: "70.0"
+      AI_CORE_SCORE_MONITOR_THRESHOLD: "50.0"
+      AI_CORE_SCORE_MIN_CONFIDENCE: "0.40"
+    ports:
+      - "${AI_CORE_PORT:-8200}:8200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
   # mt5-connector corre en WINDOWS host (donde vive MT5)
   # En dev Linux se incluye solo para mostrar el Dockerfile; descomentar si se quiere testear
   # mt5-connector:

@@ -1,0 +1,17 @@
+[project]
+name = "tnsvt-ai-core"
+version = "0.1.0"
+description = "AI-powered signal scoring engine for TNSVT V2"
+requires-python = ">=3.12"
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E501"]

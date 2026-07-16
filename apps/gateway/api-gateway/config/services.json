@@ -76,7 +76,7 @@
     {
       "name": "ai-core",
       "path_prefix": "/api/v1/ai",
-      "instances": ["http://ai-core:8010"],
+      "instances": ["http://ai-core:8200"],
       "timeout_ms": 30000,
       "rate_limit": 50,
       "health_path": "/health",

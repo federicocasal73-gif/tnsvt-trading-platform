@@ -1,0 +1,30 @@
+# TNSVT V2 - AI Core Service
+# Python dependencies for the AI Core service (signal scoring, regime detection)
+
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# Async DB + Cache
+asyncpg>=0.29.0
+redis>=5.0.0
+
+# NATS messaging
+nats-py>=2.7.0
+
+# HTTP clients
+httpx>=0.27.0
+aiohttp>=3.9.0
+
+# Observability
+prometheus-client>=0.20.0
+structlog>=24.1.0
+
+# ML / numerics
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
