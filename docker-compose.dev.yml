@@ -561,7 +561,6 @@ services:
     container_name: tnsvt-ai-core
     hostname: ai-core
     environment:
-      AI_CORE_ENV: ${AI_CORE_ENV:-development}
       AI_CORE_LOG_LEVEL: ${AI_CORE_LOG_LEVEL:-INFO}
       AI_CORE_POSTGRES_HOST: postgres
       AI_CORE_POSTGRES_PORT: "5432"
@@ -588,6 +587,33 @@ services:
         condition: service_healthy
       ollama:
         condition: service_started
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  price-feed:
+    build:
+      context: .
+      dockerfile: apps/market-data/price-feed/Dockerfile
+    container_name: tnsvt-price-feed
+    hostname: price-feed
+    environment:
+      PRICE_FEED_PORT: "8300"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PRICE_FEED_SYMBOLS: ${PRICE_FEED_SYMBOLS:-EURUSD,GBPUSD,USDJPY,XAUUSD,BTCUSD}
+      PRICE_FEED_MOCK_URL: ${PRICE_FEED_MOCK_URL:-}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+    ports:
+      - "${PRICE_FEED_PORT:-8300}:8300"
+    depends_on:
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
     networks:
       - tnsvt-network
     restart: unless-stopped

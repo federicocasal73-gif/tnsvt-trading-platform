@@ -94,7 +94,7 @@
     {
       "name": "price-feed",
       "path_prefix": "/api/v1/prices",
-      "instances": ["http://price-feed:8012"],
+      "instances": ["http://price-feed:8300"],
       "timeout_ms": 5000,
       "rate_limit": 300,
       "health_path": "/health",
