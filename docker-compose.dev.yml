@@ -472,6 +472,34 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  audit-engine:
+    build:
+      context: .
+      dockerfile: apps/audit/audit-engine/Dockerfile
+    container_name: tnsvt-audit-engine
+    hostname: audit-engine
+    environment:
+      AUDIT_ENGINE_PORT: "8600"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+    ports:
+      - "${AUDIT_ENGINE_PORT:-8600}:8600"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
   # mt5-connector corre en WINDOWS host (donde vive MT5)
   # En dev Linux se incluye solo para mostrar el Dockerfile; descomentar si se quiere testear
   # mt5-connector:
