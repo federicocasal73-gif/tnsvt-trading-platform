@@ -239,7 +239,8 @@ func (h *RiskHandler) TradeOpened(c *gin.Context) {
 	}
 
 	tenantID := getTenantID(c)
-	req.SignalID = req.SignalID // viene en payload
+	// req.SignalID comes in the request body — no rewrite needed here
+	_ = tenantID
 
 	pos, err := h.service.TradeOpened(c.Request.Context(), &req)
 	if err != nil {

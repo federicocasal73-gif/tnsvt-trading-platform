@@ -37,7 +37,7 @@ type SignalParser struct {
 func NewSignalParser() *SignalParser {
 	return &SignalParser{
 		actionRe: regexp.MustCompile(`(?i)\b(BUY|SELL|LONG|SHORT|CLOSE|MODIFY|CLOSE ALL)\b`),
-		symbolRe: regexp.MustCompile(`\b([A-Z]{6}|[A-Z]{3}/[A-Z]{3}|XAU[A-Z]*|XAG[A-Z]*|BTC[A-Z]*|ETH[A-Z]*|US30[A-Z]*|NAS[A-Z]*)\b`),
+		symbolRe: regexp.MustCompile(`\b([A-Z]{6}|[A-Z]{3}/[A-Z]{3}|XAU[A-Z0-9]*|XAG[A-Z0-9]*|BTC[A-Z0-9]*|ETH[A-Z0-9]*|US\d{1,3}[A-Z]*|NAS\d{1,3}[A-Z]*)\b`),
 		priceRe:  regexp.MustCompile(`(?i)(?:entry|@|entry\s*price|precio\s*de\s*entrada|@)?\s*[:\s]?\s*(\d+\.?\d*)`),
 		slRe:     regexp.MustCompile(`(?i)(?:sl|stop\s*loss|stoploss|stop)\s*[:\s@]?\s*(\d+\.?\d*)`),
 		tpRe:     regexp.MustCompile(`(?i)(?:tp|take\s*profit|takeprofit|tp\d+)\s*[:\s@]?\s*(\d+\.?\d*)`),
@@ -259,7 +259,7 @@ func (p *SignalParser) extractSL(text string) (float64, error) {
 func (p *SignalParser) extractTPs(text string) ([]float64, error) {
 	tps := []float64{}
 
-	// TP1, TP2, TP3, ...
+	// TP1, TP2, TP3, ... (e.g., "TP1: 1.0870 TP2: 1.0890")
 	multiTPRe := regexp.MustCompile(`(?i)tp(\d+)[:\s@]+(\d+\.?\d*)`)
 	matches := multiTPRe.FindAllStringSubmatch(text, -1)
 
@@ -283,19 +283,9 @@ func (p *SignalParser) extractTPs(text string) ([]float64, error) {
 		return tps, nil
 	}
 
-	// Single TP
-	singleTPRe := regexp.MustCompile(`(?i)tp[:\s@]+(\d+\.?\d*)`)
-	match := singleTPRe.FindStringSubmatch(text)
-	if len(match) >= 2 {
-		price, err := strconv.ParseFloat(match[1], 64)
-		if err == nil && price > 0 {
-			return []float64{price}, nil
-		}
-	}
-
-	// TP con coma
-	commaTPRe := regexp.MustCompile(`(?i)tp[s]?[:\s@]+([\d.,\s]+)`)
-	match = commaTPRe.FindStringSubmatch(text)
+	// TP con coma (e.g., "TP: 2045, 2040") — try this BEFORE single-TP so we don't lose values
+	commaTPRe := regexp.MustCompile(`(?i)tp[:\s@]+([\d.,\s]+?)(?:\s*$|\s+sl|\s+stop)`)
+	match := commaTPRe.FindStringSubmatch(text)
 	if len(match) >= 2 {
 		parts := strings.Split(match[1], ",")
 		for _, part := range parts {
@@ -303,6 +293,19 @@ func (p *SignalParser) extractTPs(text string) ([]float64, error) {
 			if err == nil && price > 0 {
 				tps = append(tps, price)
 			}
+		}
+		if len(tps) > 0 {
+			return tps, nil
+		}
+	}
+
+	// Single TP
+	singleTPRe := regexp.MustCompile(`(?i)tp[:\s@]+(\d+\.?\d*)`)
+	match = singleTPRe.FindStringSubmatch(text)
+	if len(match) >= 2 {
+		price, err := strconv.ParseFloat(match[1], 64)
+		if err == nil && price > 0 {
+			return []float64{price}, nil
 		}
 	}
 

@@ -33,20 +33,20 @@ type JWTService struct {
 	secret    []byte
 	algorithm string
 	authCfg   interface {
-		JWTAccessTokenExpire  time.Duration
-		JWTRefreshTokenExpire time.Duration
-		JWTAlgorithm          string
+		JWTAccessTokenExpire() time.Duration
+		JWTRefreshTokenExpire() time.Duration
+		JWTAlgorithm() string
 	}
 }
 
 // NewJWTService crea un nuevo servicio JWT
 func NewJWTService(authCfg interface {
-	JWTAccessTokenExpire  time.Duration
-	JWTRefreshTokenExpire time.Duration
-	JWTAlgorithm          string
+	JWTAccessTokenExpire() time.Duration
+	JWTRefreshTokenExpire() time.Duration
+	JWTAlgorithm() string
 }, _ interface{}) *JWTService {
 	return &JWTService{
-		secret:    []byte(authCfg.JWTAlgorithm), // alias
+		secret:    []byte(authCfg.JWTAlgorithm()),
 		algorithm: "HS256",
 		authCfg:   authCfg,
 	}
@@ -61,7 +61,7 @@ func (s *JWTService) SetSecret(secret string) {
 
 // GenerateAccessToken genera un access token (corta duración)
 func (s *JWTService) GenerateAccessToken(user *models.User, tenant *models.Tenant) (string, time.Time, error) {
-	expiresAt := time.Now().Add(s.authCfg.JWTAccessTokenExpire)
+	expiresAt := time.Now().Add(s.authCfg.JWTAccessTokenExpire())
 
 	claims := &JWTClaims{
 		UserID:    user.ID,
@@ -92,7 +92,7 @@ func (s *JWTService) GenerateAccessToken(user *models.User, tenant *models.Tenan
 // Retorna el token plain + hash para guardar en DB
 func (s *JWTService) GenerateRefreshToken(user *models.User) (string, string, time.Time, error) {
 	tokenID := uuid.New()
-	expiresAt := time.Now().Add(s.authCfg.JWTRefreshTokenExpire)
+	expiresAt := time.Now().Add(s.authCfg.JWTRefreshTokenExpire())
 
 	claims := &JWTClaims{
 		UserID:    user.ID,
@@ -151,8 +151,6 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 // hashToken hashea un token con SHA-256 para guardar en DB
 func hashToken(token string) string {
 	// Para Fase 1 usamos SHA-256; en Fase 3 podemos usar bcrypt
-	importHash := ""
-	_ = importHash
 	return sha256Hex(token)
 }
 

@@ -314,13 +314,11 @@ func (s *RiskService) fetchAllOpenWithTrailing(ctx context.Context) ([]*models.P
 	return all, nil
 }
 
-func (s *listAllTenants) listAllTenants(ctx context.Context) ([]uuid.UUID, error) {
+func (s *RiskService) listAllTenants(ctx context.Context) ([]uuid.UUID, error) {
 	// En producción: consultar user-service o tenant-manager
 	// Por ahora retornamos solo el default tenant (Fase 1)
 	return []uuid.UUID{uuid.MustParse("00000000-0000-0000-0000-000000000001")}, nil
 }
-
-type listAllTenants struct{}
 
 func (s *RiskService) shouldActivateTrailing(p *models.Position) bool {
 	if !s.config.TrailingStop {
@@ -592,6 +590,14 @@ func (s *RiskService) GetStats(ctx context.Context, tenantID uuid.UUID) (*models
 	openPositions, _ := s.repo.ListOpenPositions(ctx, tenantID)
 	limits, _ := s.repo.GetLimits(ctx, tenantID)
 
+	// Convert []*Position → []Position for the response DTO
+	openPositionsValue := make([]models.Position, 0, len(openPositions))
+	for _, p := range openPositions {
+		if p != nil {
+			openPositionsValue = append(openPositionsValue, *p)
+		}
+	}
+
 	stats := &models.StatsResponse{
 		Daily: models.DailyStats{
 			TenantID:      tenantID,
@@ -602,7 +608,7 @@ func (s *RiskService) GetStats(ctx context.Context, tenantID uuid.UUID) (*models
 		},
 		WeeklyPnL:     weeklyPnL,
 		MonthlyPnL:    monthlyPnL,
-		OpenPositions: openPositions,
+		OpenPositions: openPositionsValue,
 		Limits:        *limits,
 	}
 

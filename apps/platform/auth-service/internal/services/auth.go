@@ -45,11 +45,11 @@ type AuthService struct {
 	redis      *redis.Client
 	jwt        *JWTService
 	authConfig interface {
-		JWTAccessTokenExpire  time.Duration
-		JWTRefreshTokenExpire time.Duration
-		MaxLoginAttempts      int
-		LockoutDuration       time.Duration
-		BCryptRounds          int
+		JWTAccessTokenExpire() time.Duration
+		JWTRefreshTokenExpire() time.Duration
+		MaxLoginAttempts() int
+		LockoutDuration() time.Duration
+		BCryptRounds() int
 	}
 	log interface {
 		Info(string, ...any)
@@ -64,11 +64,11 @@ func NewAuthService(
 	redis *redis.Client,
 	jwt *JWTService,
 	authConfig interface {
-		JWTAccessTokenExpire  time.Duration
-		JWTRefreshTokenExpire time.Duration
-		MaxLoginAttempts      int
-		LockoutDuration       time.Duration
-		BCryptRounds          int
+		JWTAccessTokenExpire() time.Duration
+		JWTRefreshTokenExpire() time.Duration
+		MaxLoginAttempts() int
+		LockoutDuration() time.Duration
+		BCryptRounds() int
 	},
 	log interface {
 		Info(string, ...any)
@@ -130,7 +130,7 @@ func (s *AuthService) Register(ctx context.Context, req *models.RegisterRequest,
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), s.authConfig.BCryptRounds)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), s.authConfig.BCryptRounds())
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
@@ -193,8 +193,8 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip, u
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		// Incrementar failed login
 		count, _ := s.repo.IncrementFailedLogin(ctx, user.ID)
-		if count >= s.authConfig.MaxLoginAttempts {
-			until := time.Now().Add(s.authConfig.LockoutDuration)
+		if count >= s.authConfig.MaxLoginAttempts() {
+			until := time.Now().Add(s.authConfig.LockoutDuration())
 			s.repo.LockUser(ctx, user.ID, until)
 			s.recordAudit(ctx, &user.ID, &user.TenantID, "login", ip, userAgent, "failure", map[string]any{
 				"reason": "locked_after_failed_attempts", "attempts": count,
@@ -321,7 +321,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 	}
 
 	// Hash nueva
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.authConfig.BCryptRounds)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.authConfig.BCryptRounds())
 	if err != nil {
 		return err
 	}
@@ -431,13 +431,23 @@ func validatePasswordStrength(password string) error {
 
 func generateSlug(name string) string {
 	slug := strings.ToLower(strings.TrimSpace(name))
-	slug = strings.ReplaceAll(slug, " ", "-")
-	// Remover caracteres no-ASCII
+	// Colapsar runs de espacios en un solo guión
+	slug = strings.Join(strings.Fields(slug), "-")
+	// Remover caracteres no-ASCII / no alfanuméricos (excepto '-')
 	out := make([]rune, 0, len(slug))
+	prevDash := false
 	for _, r := range slug {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
 			out = append(out, r)
+			prevDash = false
+		} else if r == '-' && !prevDash && len(out) > 0 {
+			out = append(out, r)
+			prevDash = true
 		}
+	}
+	// Trim trailing dash
+	if len(out) > 0 && out[len(out)-1] == '-' {
+		out = out[:len(out)-1]
 	}
 	return string(out)
 }
@@ -449,7 +459,15 @@ func generateTOTPSecret() string {
 
 func verifyTOTPSecret(secret, code string) bool {
 	// Placeholder - en producción usar github.com/pquerna/otp
-	return len(code) == 6
+	if len(code) != 6 {
+		return false
+	}
+	for _, c := range code {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func verifyTOTPCode(secret, code string) bool {
