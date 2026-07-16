@@ -1,5 +1,5 @@
 # Prometheus configuration for TNSVT V2
-# Monitorea: Traefik, servicios Go/Python via exporters
+# Monitorea: infra (Postgres/Redis/NATS/Traefik/Ollama) + 11 servicios app
 
 global:
   scrape_interval: 15s
@@ -18,55 +18,102 @@ global:
 rule_files:
   - "alerts/*.yml"
 
-# Scrape configs
 scrape_configs:
-  # Prometheus itself
+  # ─── Prometheus itself ────────────────────────────────────────────
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
 
-  # Traefik (API Gateway metrics)
-  - job_name: traefik
+  # ─── Infrastructure exporters ─────────────────────────────────────
+  - job_name: postgres-exporter
     static_configs:
-      - targets: ['traefik:8080']
+      - targets: ['postgres-exporter:9187']
     metrics_path: /metrics
 
-  # NATS monitoring
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    metrics_path: /metrics
+
   - job_name: nats
     static_configs:
       - targets: ['nats:8222']
     metrics_path: /metrics
 
-  # PostgreSQL exporter (Fase 2)
-  # - job_name: postgres
-  #   static_configs:
-  #     - targets: ['postgres-exporter:9187']
+  - job_name: traefik
+    static_configs:
+      - targets: ['traefik:8080']
+    metrics_path: /metrics
 
-  # Redis exporter (Fase 2)
-  # - job_name: redis
-  #   static_configs:
-  #     - targets: ['redis-exporter:9121']
+  # ─── Go application services ─────────────────────────────────────
+  # Cada servicio Go expone /metrics (promhttp.Handler()) en su puerto HTTP
+  - job_name: api-gateway
+    static_configs:
+      - targets: ['api-gateway:8000']
+    metrics_path: /metrics
 
-  # Ollama metrics (Fase 2 - requiere exporter custom)
-  # - job_name: ollama
-  #   static_configs:
-  #     - targets: ['ollama-exporter:8000']
+  - job_name: auth-service
+    static_configs:
+      - targets: ['auth-service:8001']
+    metrics_path: /metrics
 
-  # Servicios de aplicación Go (Fase 1+)
-  # Cada servicio expone /metrics en su propio puerto
-  # - job_name: signal-engine
-  #   static_configs:
-  #     - targets: ['signal-engine:8003']
-  # - job_name: execution-engine
-  #   static_configs:
-  #     - targets: ['execution-engine:8004']
+  - job_name: user-service
+    static_configs:
+      - targets: ['user-service:8401']
+    metrics_path: /metrics
 
-  # Servicios Python (Fase 1+)
-  # - job_name: ai-core
-  #   static_configs:
-  #     - targets: ['ai-core:8010']
+  - job_name: signal-engine
+    static_configs:
+      - targets: ['signal-engine:8003']
+    metrics_path: /metrics
 
-  # Node exporter (Fase 3 - métricas de host)
-  # - job_name: node
-  #   static_configs:
-  #     - targets: ['node-exporter:9100']
+  - job_name: execution-engine
+    static_configs:
+      - targets: ['execution-engine:8004']
+    metrics_path: /metrics
+
+  - job_name: copy-trading
+    static_configs:
+      - targets: ['copy-trading:8005']
+    metrics_path: /metrics
+
+  - job_name: risk-engine
+    static_configs:
+      - targets: ['risk-engine:8006']
+    metrics_path: /metrics
+
+  - job_name: audit-engine
+    static_configs:
+      - targets: ['audit-engine:8600']
+    metrics_path: /metrics
+
+  - job_name: price-feed
+    static_configs:
+      - targets: ['price-feed:8300']
+    metrics_path: /metrics
+
+  - job_name: telegram-bot-service
+    static_configs:
+      - targets: ['telegram-bot-service:8503']
+    metrics_path: /metrics
+
+  # ─── Python application services ──────────────────────────────────
+  - job_name: ai-core
+    static_configs:
+      - targets: ['ai-core:8200']
+    metrics_path: /metrics
+
+  # ─── Host metrics (Node Exporter, host-level CPU/RAM/disk/net) ───
+  # Comenta la línea siguiente si no quieres métricas del host Docker.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metrics_path: /metrics
+
+  # ─── Ollama (LLM server) ─────────────────────────────────────────
+  # Ollama expone /api/metrics en versiones recientes; ajustar según versión
+  - job_name: ollama
+    static_configs:
+      - targets: ['ollama:11434']
+    metrics_path: /api/metrics
+    # Si tu versión de Ollama no expone metrics todavía, comenta este job.

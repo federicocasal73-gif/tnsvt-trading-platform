@@ -214,6 +214,58 @@ services:
     depends_on:
       - traefik
 
+  # ─── Exporters (Prometheus metrics sources) ─────────────────
+  postgres-exporter:
+    <<: *restart_policy
+    <<: *logging
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: tnsvt-postgres-exporter
+    hostname: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-tnsvt}:${POSTGRES_PASSWORD:-tnsvt}@postgres:5432/${POSTGRES_DB:-tnsvt}?sslmode=disable"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - tnsvt-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis-exporter:
+    <<: *restart_policy
+    <<: *logging
+    image: oliver006/redis_exporter:latest
+    container_name: tnsvt-redis-exporter
+    hostname: redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+    networks:
+      - tnsvt-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  node-exporter:
+    <<: *restart_policy
+    <<: *logging
+    image: prom/node-exporter:latest
+    container_name: tnsvt-node-exporter
+    hostname: node-exporter
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - "/:/host:ro,rslave"
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
   # ─── Grafana ────────────────────────────────────────────────
   grafana:
     <<: *restart_policy

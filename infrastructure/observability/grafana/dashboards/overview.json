@@ -1,0 +1,173 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "Service Health (1 = up)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "up{job=~\"auth-service|user-service|signal-engine|execution-engine|copy-trading|risk-engine|audit-engine|price-feed|telegram-bot-service|ai-core|api-gateway\"}",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      }
+    },
+    {
+      "title": "HTTP Request Rate (req/sec, by service)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "reqps"}
+      }
+    },
+    {
+      "title": "CPU Usage by Service",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "percent"}
+      }
+    },
+    {
+      "title": "Go Goroutines (per service)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {
+          "expr": "go_goroutines{job=~\"auth-service|signal-engine|risk-engine|copy-trading|execution-engine|audit-engine|price-feed|telegram-bot-service|api-gateway|user-service\"}",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Usage (RSS, MB)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{job=~\".*\"} / 1024 / 1024",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "decmbytes"}
+      }
+    },
+    {
+      "title": "Postgres Connections",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "legendFormat": "active",
+          "refId": "A"
+        },
+        {
+          "expr": "pg_stat_activity_count{datname=\"tnsvt\"}",
+          "legendFormat": "tnsvt db",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Redis Memory",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes / 1024 / 1024",
+          "legendFormat": "used",
+          "refId": "A"
+        },
+        {
+          "expr": "redis_memory_max_bytes / 1024 / 1024",
+          "legendFormat": "max",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "decmbytes"}
+      }
+    },
+    {
+      "title": "NATS Messages / sec",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+      "targets": [
+        {
+          "expr": "rate(gnatsd_varz_msg_in_total[5m])",
+          "legendFormat": "in",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(gnatsd_varz_msg_out_total[5m])",
+          "legendFormat": "out",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["tnsvt", "overview"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "TNSVT V2 - Overview",
+  "uid": "tnsvt-overview",
+  "version": 1,
+  "weekStart": ""
+}
