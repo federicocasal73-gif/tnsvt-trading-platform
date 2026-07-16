@@ -1,0 +1,124 @@
+# Minimal end-to-end stack for demo / local dev.
+# Only the services needed to see ticks flow price-feed -> NATS -> frontend.
+#
+# Run with:
+#   docker compose -f docker-compose.e2e.yml up -d
+#
+# Then:
+#   - Frontend at http://localhost:5180
+#   - Price feed SSE at http://localhost:8300/api/v1/prices/stream
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: tnsvt-e2e-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_USER: tnsvt
+      POSTGRES_PASSWORD: tnsvt
+      POSTGRES_DB: tnsvt
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tnsvt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: tnsvt-e2e-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: tnsvt-e2e-nats
+    hostname: nats
+    command: ["--jetstream", "--store_dir=/data"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  price-feed:
+    build:
+      context: .
+      dockerfile: apps/market-data/price-feed/Dockerfile
+    container_name: tnsvt-e2e-price-feed
+    hostname: price-feed
+    environment:
+      PRICE_FEED_PORT: "8300"
+      ENV: development
+      LOG_LEVEL: info
+      PRICE_FEED_SYMBOLS: "EURUSD,GBPUSD,USDJPY,XAUUSD,BTCUSD,ETHUSD"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+    ports:
+      - "8300:8300"
+    depends_on:
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    restart: unless-stopped
+
+  regime-detector:
+    build:
+      context: .
+      dockerfile: apps/ai/regime-detector/Dockerfile
+    container_name: tnsvt-e2e-regime-detector
+    hostname: regime-detector
+    environment:
+      REGIME_DETECTOR_PORT: "8201"
+      ENV: development
+      LOG_LEVEL: info
+      REGIME_DETECTOR_POSTGRES_HOST: postgres
+      REGIME_DETECTOR_POSTGRES_PORT: "5432"
+      REGIME_DETECTOR_POSTGRES_DB: tnsvt
+      REGIME_DETECTOR_POSTGRES_USER: tnsvt
+      REGIME_DETECTOR_POSTGRES_PASSWORD: tnsvt
+      REGIME_DETECTOR_REDIS_HOST: redis
+      REGIME_DETECTOR_REDIS_PORT: "6379"
+      REGIME_DETECTOR_NATS_URL: nats://nats:4222
+      REGIME_DETECTOR_CLASSIFY_INTERVAL_SEC: "5"
+    ports:
+      - "8201:8201"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # The frontend is not dockerized in the e2e stack because it doesn't
+  # need to be — we run it locally with `npm run dev` against the
+  # services above.
+
+volumes:
+  nats-data:
+
+networks:
+  default:
+    name: tnsvt-e2e-net

@@ -1,0 +1,26 @@
+
+     Ô£ô list status 200
+     Ô£ô list has symbols
+     Ô£ô snapshot status 200
+     Ô£ô snapshot has items
+
+     checks.........................: 100.00% Ô£ô 15104      Ô£ù 0    
+     data_received..................: 7.9 MB  260 kB/s
+     data_sent......................: 736 kB  24 kB/s
+   Ô£ô http_errors....................: 0.00%   Ô£ô 0          Ô£ù 3776 
+     http_req_blocked...............: avg=10.31┬Ás  min=0s       med=0s       max=11.77ms  p(90)=0s       p(95)=0s      
+     http_req_connecting............: avg=7.83┬Ás   min=0s       med=0s       max=1ms      p(90)=0s       p(95)=0s      
+   Ô£ô http_req_duration..............: avg=730.28┬Ás min=0s       med=556.3┬Ás  max=3.72ms   p(90)=1.22ms   p(95)=1.59ms  
+       { expected_response:true }...: avg=730.28┬Ás min=0s       med=556.3┬Ás  max=3.72ms   p(90)=1.22ms   p(95)=1.59ms  
+     http_req_failed................: 0.00%   Ô£ô 0          Ô£ù 7552 
+     http_req_receiving.............: avg=77.58┬Ás  min=0s       med=0s       max=1.13ms   p(90)=525.59┬Ás p(95)=550.1┬Ás 
+     http_req_sending...............: avg=5.14┬Ás   min=0s       med=0s       max=1ms      p(90)=0s       p(95)=0s      
+     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=647.55┬Ás min=0s       med=542.6┬Ás  max=3.72ms   p(90)=1.12ms   p(95)=1.58ms  
+     http_reqs......................: 7552    248.81291/s
+     iteration_duration.............: avg=509.25ms min=501.14ms med=509.22ms max=515.96ms p(90)=512.32ms p(95)=513.05ms
+     iterations.....................: 3776    124.406455/s
+   Ô£ô snapshot_latency_ms............: avg=0.846133 min=0        med=1        max=4        p(90)=2        p(95)=2       
+     vus............................: 6       min=4        max=100
+     vus_max........................: 100     min=100      max=100
+
