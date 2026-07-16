@@ -437,6 +437,41 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  copy-trading:
+    build:
+      context: .
+      dockerfile: apps/trading/copy-trading/Dockerfile
+    container_name: tnsvt-copy-trading
+    hostname: copy-trading
+    environment:
+      COPY_TRADING_PORT: "8005"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      NATS_HOST: nats
+      NATS_PORT: "4222"
+      EXECUTION_ENGINE_URL: http://execution-engine:8004
+      COPY_TRADING_MAX_ACCOUNTS: "20"
+      COPY_TRADING_TIMEOUT_SECONDS: "60"
+    ports:
+      - "${COPY_TRADING_PORT:-8005}:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
   # mt5-connector corre en WINDOWS host (donde vive MT5)
   # En dev Linux se incluye solo para mostrar el Dockerfile; descomentar si se quiere testear
   # mt5-connector:
