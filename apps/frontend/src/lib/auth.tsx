@@ -33,8 +33,8 @@ function decodeToken(t: string): AuthUser | null {
   try {
     const payload = JSON.parse(atob(t.split('.')[1]));
     return {
-      user_id: payload.sub || payload.user_id,
-      tenant_id: payload.tenant_id || '00000000-0000-0000-0000-000000000001',
+      user_id: payload.uid || payload.sub || payload.user_id,
+      tenant_id: payload.tid || payload.tenant_id || '00000000-0000-0000-0000-000000000001',
       email: payload.email || '',
       username: payload.username || '',
       role: payload.role || 'viewer',

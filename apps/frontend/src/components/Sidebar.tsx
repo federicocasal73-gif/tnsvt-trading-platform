@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Activity, BarChart3, History, LayoutDashboard, ListChecks, Radio, Settings, LogOut } from 'lucide-react';
+import { Activity, BarChart3, Bot, History, LayoutDashboard, ListChecks, Radio, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { cls } from '../utils/format';
 
@@ -18,9 +18,11 @@ interface SidebarProps {
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
   activity: Activity,
+  positions: Activity,
   signals: BarChart3,
   live: Radio,
   history: ListChecks,
+  bot: Bot,
   settings: Settings,
 };
 

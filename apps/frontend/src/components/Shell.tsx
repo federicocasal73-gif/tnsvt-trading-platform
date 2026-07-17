@@ -36,7 +36,7 @@ export function Shell() {
       <Sidebar page={currentRoute.name} setPage={handleSetPage} items={navItems} />
       <div className="flex flex-1 flex-col min-w-0">
         <TopBar />
-        <main className="flex-1 overflow-auto p-6">
+        <main className={['mt5-dashboard','mt5-positions','mt5-channels','mt5-settings','mt5-control'].includes(currentRoute.name) ? 'flex-1 overflow-hidden' : 'flex-1 overflow-auto p-6'}>
           {/* React Router renders the matched child route here. */}
           <Outlet />
         </main>

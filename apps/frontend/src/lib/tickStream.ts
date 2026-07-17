@@ -87,6 +87,7 @@ export class TickStreamClient {
     try {
       this.es = new EventSource(url);
     } catch (err) {
+      console.debug('[tickStream] EventSource failed to open');
       this.setState('error');
       this.scheduleReconnect();
       return;
@@ -120,13 +121,15 @@ export class TickStreamClient {
 
   private scheduleReconnect() {
     if (this.closed) return;
-    const max = this.opts.maxReconnects ?? 0;
+    const max = this.opts.maxReconnects ?? 3;
     if (max !== 0 && this.reconnects >= max) {
+      // Give up silently — the price-feed service is probably not running.
+      console.debug('[tickStream] max reconnects reached, giving up');
       this.setState('closed');
       return;
     }
     this.reconnects += 1;
-    const delay = this.opts.reconnectDelay ?? 2000;
+    const delay = this.opts.reconnectDelay ?? 5000;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

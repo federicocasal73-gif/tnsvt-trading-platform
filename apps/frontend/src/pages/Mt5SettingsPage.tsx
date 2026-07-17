@@ -1,0 +1,336 @@
+import { useEffect, useState } from 'react';
+import { Save, RotateCcw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { api, BotConfig } from '../lib/api';
+import { cls } from '../utils/format';
+import { Card, Page, Switch, NumberInput, PercentInput } from '../components/common';
+
+type Toast = { kind: 'ok' | 'err'; msg: string } | null;
+
+const DEFAULTS = {
+  lot_mode: 'FIXED' as 'FIXED' | 'PERCENTAGE',
+  lot_size: 0.01,
+  lot_percentage: 0.5,
+  deviation: 20,
+  symbol_suffix: '',
+  active_daily_profit: false,
+  daily_profit_target: 2.0,
+  active_daily_loss: false,
+  daily_loss_limit: 2.0,
+  active_weekly_profit: false,
+  weekly_profit: 5.0,
+  active_weekly_loss: false,
+  weekly_loss: 5.0,
+  active_monthly_profit: false,
+  monthly_profit: 15.0,
+  active_monthly_loss: false,
+  monthly_loss: 10.0,
+};
+
+export function Mt5SettingsPage() {
+  const [cfg, setCfg] = useState<BotConfig | null>(null);
+  const [draft, setDraft] = useState<BotConfig | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<Toast>(null);
+  const [dirty, setDirty] = useState(false);
+
+  const load = async () => {
+    try {
+      const c = await api.bridge.config();
+      setCfg(c);
+      setDraft(c);
+      setDirty(false);
+    } catch (e: any) {
+      setToast({ kind: 'err', msg: e.message });
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const update = (patch: Partial<BotConfig>) => {
+    setDraft(d => (d ? { ...d, ...patch } : d));
+    setDirty(true);
+  };
+
+  const updateRisk = (patch: Record<string, unknown>) => {
+    setDraft(d => (d ? { ...d, risk_management: { ...(d.risk_management || {}), ...patch } as any } : d));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    if (!draft) return;
+    setSaving(true);
+    setToast(null);
+    try {
+      const patch: Record<string, unknown> = {
+        lot_mode: draft.lot_mode || DEFAULTS.lot_mode,
+        lot_size: draft.lot_size ?? DEFAULTS.lot_size,
+        lot_percentage: draft.lot_percentage ?? DEFAULTS.lot_percentage,
+        deviation: draft.deviation ?? DEFAULTS.deviation,
+        symbol_suffix: draft.symbol_suffix ?? DEFAULTS.symbol_suffix,
+        risk_management: draft.risk_management,
+      };
+      const res = await api.bridge.updateConfig(patch);
+      setToast({ kind: 'ok', msg: `Guardado: ${res.updated_keys.join(', ')}` });
+      setDirty(false);
+      await load();
+    } catch (e: any) {
+      setToast({ kind: 'err', msg: e.message });
+    } finally {
+      setSaving(false);
+    }
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleReset = () => {
+    setDraft(cfg);
+    setDirty(false);
+  };
+
+  if (!draft) {
+    return (
+      <Page title="MT5 · Settings" subtitle="Configuración de operativa y riesgo">
+        <div className="text-sm text-tnvs-muted">Cargando…</div>
+      </Page>
+    );
+  }
+
+  const risk = (draft.risk_management || {}) as any;
+  const safeNum = (v: any, fb: number) => (typeof v === 'number' ? v : fb);
+
+  return (
+    <Page
+      title="MT5 · Settings"
+      subtitle="Modo de lote, riesgo y operativa"
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleReset}
+            disabled={!dirty || saving}
+            className="inline-flex items-center gap-1.5 rounded-md border border-tnvs-border bg-tnvs-surface px-3 py-1.5 text-xs text-tnvs-muted hover:text-white disabled:opacity-40"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            className="inline-flex items-center gap-1.5 rounded-md bg-tnvs-purple px-3 py-1.5 text-xs font-medium text-white hover:bg-tnvs-purple/80 disabled:opacity-40"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      }
+    >
+      {toast && (
+        <div
+          className={cls(
+            'mb-4 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs',
+            toast.kind === 'ok'
+              ? 'border-tnvs-win/40 bg-tnvs-win/10 text-tnvs-win'
+              : 'border-tnvs-loss/40 bg-tnvs-loss/10 text-tnvs-loss',
+          )}
+        >
+          {toast.kind === 'ok' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+          {toast.msg}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card header="Broker / Operativa">
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs font-medium text-tnvs-muted">Modo de lote</div>
+              <div className="mt-2 flex gap-2">
+                {(['FIXED', 'PERCENTAGE'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => update({ lot_mode: mode })}
+                    className={cls(
+                      'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                      draft.lot_mode === mode
+                        ? 'bg-tnvs-purple text-white'
+                        : 'border border-tnvs-border bg-tnvs-void text-tnvs-muted hover:text-white',
+                    )}
+                  >
+                    {mode === 'FIXED' ? 'Lote Fijo' : 'Riesgo Dinámico %'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {draft.lot_mode === 'FIXED' ? (
+              <div>
+                <div className="text-xs font-medium text-tnvs-muted">Tamaño lote fijo</div>
+                <div className="mt-2">
+                  <NumberInput
+                    value={safeNum(draft.lot_size, DEFAULTS.lot_size)}
+                    onChange={v => update({ lot_size: v })}
+                    min={0.01}
+                    step={0.01}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-xs font-medium text-tnvs-muted">% riesgo por operación</div>
+                <div className="mt-2">
+                  <PercentInput
+                    value={safeNum(draft.lot_percentage, DEFAULTS.lot_percentage) / 100}
+                    onChange={v => update({ lot_percentage: Math.round(v * 10000) / 100 })}
+                    step={0.005}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div className="text-xs font-medium text-tnvs-muted">Desviación máxima (pips)</div>
+              <div className="mt-2">
+                <NumberInput
+                  value={safeNum(draft.deviation, DEFAULTS.deviation)}
+                  onChange={v => update({ deviation: v })}
+                  min={1}
+                  step={5}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs font-medium text-tnvs-muted">Symbol suffix (vacío = auto-detect)</div>
+              <div className="mt-2">
+                <input
+                  value={draft.symbol_suffix || ''}
+                  onChange={e => update({ symbol_suffix: e.target.value })}
+                  placeholder=".pro, .ecn, ..."
+                  className="tnvs-input w-48 font-mono text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card header="Risk Management">
+          <div className="grid grid-cols-3 gap-4">
+            <RiskColumn
+              title="Diaria"
+              activeProfit={risk.active_daily_profit}
+              targetProfit={safeNum(risk.daily_profit_target, DEFAULTS.daily_profit_target)}
+              activeLoss={risk.active_daily_loss}
+              limitLoss={safeNum(risk.daily_loss_limit, DEFAULTS.daily_loss_limit)}
+              onToggleProfit={(v) => updateRisk({ active_daily_profit: v })}
+              onChangeProfit={(v) => updateRisk({ daily_profit_target: v })}
+              onToggleLoss={(v) => updateRisk({ active_daily_loss: v })}
+              onChangeLoss={(v) => updateRisk({ daily_loss_limit: v })}
+            />
+            <RiskColumn
+              title="Semanal"
+              activeProfit={risk.active_weekly_profit}
+              targetProfit={safeNum(risk.weekly_profit, DEFAULTS.weekly_profit)}
+              activeLoss={risk.active_weekly_loss}
+              limitLoss={safeNum(risk.weekly_loss, DEFAULTS.weekly_loss)}
+              onToggleProfit={(v) => updateRisk({ active_weekly_profit: v })}
+              onChangeProfit={(v) => updateRisk({ weekly_profit: v })}
+              onToggleLoss={(v) => updateRisk({ active_weekly_loss: v })}
+              onChangeLoss={(v) => updateRisk({ weekly_loss: v })}
+            />
+            <RiskColumn
+              title="Mensual"
+              activeProfit={risk.active_monthly_profit}
+              targetProfit={safeNum(risk.monthly_profit, DEFAULTS.monthly_profit)}
+              activeLoss={risk.active_monthly_loss}
+              limitLoss={safeNum(risk.monthly_loss, DEFAULTS.monthly_loss)}
+              onToggleProfit={(v) => updateRisk({ active_monthly_profit: v })}
+              onChangeProfit={(v) => updateRisk({ monthly_profit: v })}
+              onToggleLoss={(v) => updateRisk({ active_monthly_loss: v })}
+              onChangeLoss={(v) => updateRisk({ monthly_loss: v })}
+            />
+          </div>
+        </Card>
+
+        <Card header="Conexión (solo lectura)" className="lg:col-span-2">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <ReadRow label="API ID" value={cfg?.api_id ? `${cfg.api_id.slice(0, 4)}…` : '—'} />
+            <ReadRow label="API Hash" value={cfg?.api_hash ? `${cfg.api_hash.slice(0, 6)}…` : '—'} />
+            <ReadRow label="Bridge URL" value={cfg?.bridge_url || '—'} mono />
+            <ReadRow
+              label="Canales configurados"
+              value={`${(cfg?.channels_data || []).length} seleccionados`}
+            />
+          </div>
+          <div className="mt-3 text-xs text-tnvs-dim">
+            Para reconfigurar Telegram, usá <span className="font-medium text-tnvs-muted">MT5 Channels</span>.
+          </div>
+        </Card>
+      </div>
+    </Page>
+  );
+}
+
+function RiskColumn({
+  title, activeProfit, targetProfit, activeLoss, limitLoss,
+  onToggleProfit, onChangeProfit, onToggleLoss, onChangeLoss,
+}: {
+  title: string;
+  activeProfit: boolean;
+  targetProfit: number;
+  activeLoss: boolean;
+  limitLoss: number;
+  onToggleProfit: (v: boolean) => void;
+  onChangeProfit: (v: number) => void;
+  onToggleLoss: (v: boolean) => void;
+  onChangeLoss: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-wider text-tnvs-muted">{title}</div>
+      <div className="mt-3 space-y-3">
+        <div className="rounded-md bg-tnvs-void p-3">
+          <Switch
+            checked={activeProfit}
+            onChange={onToggleProfit}
+            label="Meta profit"
+          />
+          <div className={cls('mt-2', !activeProfit && 'opacity-40 pointer-events-none')}>
+            <NumberInput
+              value={targetProfit}
+              onChange={onChangeProfit}
+              min={0}
+              step={0.5}
+              suffix="%"
+              prefix="Target"
+            />
+          </div>
+        </div>
+        <div className="rounded-md bg-tnvs-void p-3">
+          <Switch
+            checked={activeLoss}
+            onChange={onToggleLoss}
+            label="Límite loss"
+          />
+          <div className={cls('mt-2', !activeLoss && 'opacity-40 pointer-events-none')}>
+            <NumberInput
+              value={limitLoss}
+              onChange={onChangeLoss}
+              min={0}
+              step={0.5}
+              suffix="%"
+              prefix="Límite"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReadRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded bg-tnvs-void px-3 py-2">
+      <span className="text-xs text-tnvs-muted">{label}</span>
+      <span className={cls('text-sm text-white', mono && 'font-mono')}>{value}</span>
+    </div>
+  );
+}

@@ -1,0 +1,10 @@
+*.db
+*.db-shm
+*.db-wal
+*.pyc
+__pycache__/
+.venv/
+*.tmp
+TNSVT
+bridge.out.log
+bridge.err.log

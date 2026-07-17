@@ -39,13 +39,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
+      // Helper: silently ignore downstream service errors (502/404/503) so
+      // we don't spam the console or auto-logout when backend services are
+      // simply not deployed yet. Only network/auth errors propagate.
+      const safeGet = async <T,>(p: Promise<T>, fallback: T): Promise<T> => {
+        try {
+          return await p;
+        } catch (e: any) {
+          const msg = String(e?.message || '');
+          if (/^HTTP (401|502|503|404)/.test(msg)) {
+            console.debug(`[AppState] downstream unavailable: ${msg}`);
+            return fallback;
+          }
+          throw e;
+        }
+      };
+
       const [prof, sig, pos, tr, cj, cs] = await Promise.allSettled([
-        api.get<UserProfile>(`/users/${user.user_id}/profile`).catch(() => null),
-        api.get<{ signals: Signal[] }>('/signals').catch(() => ({ signals: [] })),
-        api.get<{ positions: Position[] }>('/risk/positions').catch(() => ({ positions: [] })),
-        api.get<{ executions: Trade[] }>('/executions').catch(() => ({ executions: [] })),
-        api.get<{ jobs: CopyJob[]; total: number }>('/copy/jobs?limit=50').catch(() => ({ jobs: [], total: 0 })),
-        api.get<Stats>('/copy/stats').catch(() => null),
+        safeGet<UserProfile | null>(api.get<UserProfile>(`/users/${user.user_id}/profile`), null),
+        safeGet<{ signals: Signal[] }>(api.get<{ signals: Signal[] }>('/signals'), { signals: [] }),
+        safeGet<{ positions: Position[] }>(api.get<{ positions: Position[] }>('/risk/positions'), { positions: [] }),
+        safeGet<{ executions: Trade[] }>(api.get<{ executions: Trade[] }>('/executions'), { executions: [] }),
+        safeGet<{ jobs: CopyJob[]; total: number }>(api.get<{ jobs: CopyJob[]; total: number }>('/copy/jobs?limit=50'), { jobs: [], total: 0 }),
+        safeGet<Stats | null>(api.get<Stats>('/copy/stats'), null),
       ]);
 
       if (!mounted.current) return;
