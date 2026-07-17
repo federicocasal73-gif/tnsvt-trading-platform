@@ -27,11 +27,16 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/mt5-bot-iframe/, ''),
         ws: true,
       },
-      // Bridge API para llamadas directas desde el frontend (si se necesitan)
-      '/bridge-direct': {
+      // Bridge API directo (sin pasar por gateway). /bridge/* → :8522/api/v1/bridge/*
+      '/bridge': {
         target: bridgeTarget,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/bridge-direct/, ''),
+        rewrite: (path) => `/api/v1${path}`,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['cache-control'] = 'no-cache';
+          });
+        },
       },
     },
   },

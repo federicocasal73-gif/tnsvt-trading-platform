@@ -44,32 +44,32 @@ export const api = {
   token,
   // ─── MT5 Bridge ────────────────────────────────────────
   bridge: {
-    metrics: () => request<Metrics>('/api/v1/bridge/analytics/metrics'),
-    equityCurve: () => request<EquityPoint[]>('/api/v1/bridge/analytics/equity-curve'),
-    byChannel: () => request<ChannelAgg[]>('/api/v1/bridge/analytics/by-channel'),
-    bySymbol: () => request<SymbolAgg[]>('/api/v1/bridge/analytics/by-symbol'),
-    livePositions: () => request<LivePosition[]>('/api/v1/bridge/analytics/live-positions'),
-    trades: (status?: string) => request<LivePosition[]>(`/api/v1/bridge/analytics/trades${status ? `?status=${status}` : ''}`),
-    config: () => request<BotConfig>('/api/v1/bridge/config'),
+    metrics: () => request<Metrics>('/bridge/analytics/metrics'),
+    equityCurve: () => request<EquityPoint[]>('/bridge/analytics/equity-curve'),
+    byChannel: () => request<ChannelAgg[]>('/bridge/analytics/by-channel'),
+    bySymbol: () => request<SymbolAgg[]>('/bridge/analytics/by-symbol'),
+    livePositions: () => request<LivePosition[]>('/bridge/analytics/live-positions'),
+    trades: (status?: string) => request<LivePosition[]>(`/bridge/analytics/trades${status ? `?status=${status}` : ''}`),
+    config: () => request<BotConfig>('/bridge/config'),
     updateConfig: (patch: Partial<BotConfig>) =>
       request<{ ok: boolean; updated_keys: string[] }>(
-        '/api/v1/bridge/config',
+        '/bridge/config',
         { method: 'POST', body: JSON.stringify(patch) },
       ),
     triggerScan: () =>
       request<{ accepted: boolean; request_id: string }>(
-        '/api/v1/bridge/telegram/scan',
+        '/bridge/telegram/scan',
         { method: 'POST' },
       ),
     scanResult: () =>
-      request<ScanResult>('/api/v1/bridge/telegram/channels'),
+      request<ScanResult>('/bridge/telegram/channels'),
     controlState: () =>
       request<{ status: string; updated_at?: string }>(
-        '/api/v1/bridge/control/state',
+        '/bridge/control/state',
       ),
     control: (action: 'start' | 'stop' | 'wait_config') =>
       request<{ ok: boolean; status: string }>(
-        '/api/v1/bridge/control',
+        '/bridge/control',
         { method: 'POST', body: JSON.stringify({ action }) },
       ),
   },
