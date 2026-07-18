@@ -270,6 +270,13 @@ export interface BotConfig {
   deviation?: number;
   channels_data?: ChannelSelection[];
   risk_management?: RiskManagement;
+  trailing_stop?: TrailingStopConfig;
+}
+
+export interface TrailingStopConfig {
+  enabled: boolean;
+  step_pips: number;
+  start_pips: number;
 }
 
 export interface ScanResult {

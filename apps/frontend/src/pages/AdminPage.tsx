@@ -132,7 +132,9 @@ export function AdminPage() {
               })}
             </div>
           ) : (
-            <div className="text-sm text-tnvs-muted">Sin datos — ¿auth-service corriendo?</div>
+            <div className="text-sm text-tnvs-muted">
+              {stats ? 'Sin planes registrados todavía' : 'Cargando…'}
+            </div>
           )}
         </Card>
 
@@ -158,15 +160,17 @@ Env: STRIPE_WEBHOOK_SECRET=<sk_webhook_...>`}
       <Card header={`Tenants (${tenants.length})`}>
         {loading ? (
           <div className="py-8 text-center text-sm text-tnvs-muted">Cargando…</div>
-        ) : tenants.length === 0 ? (
-          <Empty
-            title="Sin tenants"
-            description={
-              error
-                ? 'La petición falló (ver error arriba). Solo super_admin ve esta página.'
-                : 'No hay tenants registrados todavía.'
-            }
-          />
+          ) : tenants.length === 0 ? (
+            <Empty
+              title="Sin tenants"
+              description={
+                error
+                  ? 'La petición falló (ver error arriba). Requerido rol admin/super_admin/tenant_admin.'
+                  : stats === null
+                  ? 'Cargando…'
+                  : 'No hay tenants registrados todavía.'
+              }
+            />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

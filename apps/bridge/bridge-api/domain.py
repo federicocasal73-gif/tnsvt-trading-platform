@@ -24,11 +24,31 @@ class ChannelProfile(BaseModel):
     topics: list[Topic] = Field(default_factory=list)
 
 
+class ChannelProfile(BaseModel):
+    """Per-channel trading rules (Phase 2).
+
+    default_symbol:    si la señal llega sin símbolo (raro), usar este.
+    allow_symbols:     whitelist. Si está vacío, se acepta todo (sujeto a block).
+    block_symbols:     blacklist. Siempre se rechazan (prevalecen sobre allow).
+    multi_same_symbol: si False, no abre 2da posición del mismo símbolo.
+    max_positions:     tope de posiciones abiertas para ESTE canal.
+                       0 = ilimitado.
+    max_spread_pips:   spread máximo permitido al abrir. 0 = sin límite.
+    """
+    default_symbol: Optional[str] = None
+    allow_symbols: list[str] = Field(default_factory=list)
+    block_symbols: list[str] = Field(default_factory=list)
+    multi_same_symbol: bool = True
+    max_positions: int = 0
+    max_spread_pips: int = 0
+
+
 class ChannelSelection(BaseModel):
-    """Una selección persistible: canal + topic opcional."""
+    """Una selección persistible: canal + topic opcional + su Profile."""
     id: int
     name: str
     topic_id: Optional[int] = None
+    profile: ChannelProfile = Field(default_factory=ChannelProfile)
 
 
 class ScanRequest(BaseModel):

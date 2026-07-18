@@ -431,6 +431,7 @@ class ConfigUpdate(BaseModel):
     lot_percentage: Optional[float] = None
     deviation: Optional[int] = None
     symbol_suffix: Optional[str] = None
+    trailing_stop: Optional[dict] = None
 
 
 @app.get("/api/v1/bridge/config")

@@ -70,6 +70,7 @@ export function Mt5SettingsPage() {
         deviation: draft.deviation ?? DEFAULTS.deviation,
         symbol_suffix: draft.symbol_suffix ?? DEFAULTS.symbol_suffix,
         risk_management: draft.risk_management,
+        trailing_stop: (draft as any).trailing_stop || { enabled: false, step_pips: 30, start_pips: 20 },
       };
       const res = await api.bridge.updateConfig(patch);
       setToast({ kind: 'ok', msg: `Guardado: ${res.updated_keys.join(', ')}` });
@@ -213,41 +214,95 @@ export function Mt5SettingsPage() {
         </Card>
 
         <Card header="Risk Management">
-          <div className="grid grid-cols-3 gap-4">
-            <RiskColumn
-              title="Diaria"
-              activeProfit={risk.active_daily_profit}
-              targetProfit={safeNum(risk.daily_profit_target, DEFAULTS.daily_profit_target)}
-              activeLoss={risk.active_daily_loss}
-              limitLoss={safeNum(risk.daily_loss_limit, DEFAULTS.daily_loss_limit)}
-              onToggleProfit={(v) => updateRisk({ active_daily_profit: v })}
-              onChangeProfit={(v) => updateRisk({ daily_profit_target: v })}
-              onToggleLoss={(v) => updateRisk({ active_daily_loss: v })}
-              onChangeLoss={(v) => updateRisk({ daily_loss_limit: v })}
-            />
-            <RiskColumn
-              title="Semanal"
-              activeProfit={risk.active_weekly_profit}
-              targetProfit={safeNum(risk.weekly_profit, DEFAULTS.weekly_profit)}
-              activeLoss={risk.active_weekly_loss}
-              limitLoss={safeNum(risk.weekly_loss, DEFAULTS.weekly_loss)}
-              onToggleProfit={(v) => updateRisk({ active_weekly_profit: v })}
-              onChangeProfit={(v) => updateRisk({ weekly_profit: v })}
-              onToggleLoss={(v) => updateRisk({ active_weekly_loss: v })}
-              onChangeLoss={(v) => updateRisk({ weekly_loss: v })}
-            />
-            <RiskColumn
-              title="Mensual"
-              activeProfit={risk.active_monthly_profit}
-              targetProfit={safeNum(risk.monthly_profit, DEFAULTS.monthly_profit)}
-              activeLoss={risk.active_monthly_loss}
-              limitLoss={safeNum(risk.monthly_loss, DEFAULTS.monthly_loss)}
-              onToggleProfit={(v) => updateRisk({ active_monthly_profit: v })}
-              onChangeProfit={(v) => updateRisk({ monthly_profit: v })}
-              onToggleLoss={(v) => updateRisk({ active_monthly_loss: v })}
-              onChangeLoss={(v) => updateRisk({ monthly_loss: v })}
-            />
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-4">
+              <RiskColumn
+                title="Diaria"
+                activeProfit={risk.active_daily_profit}
+                targetProfit={safeNum(risk.daily_profit_target, DEFAULTS.daily_profit_target)}
+                activeLoss={risk.active_daily_loss}
+                limitLoss={safeNum(risk.daily_loss_limit, DEFAULTS.daily_loss_limit)}
+                onToggleProfit={(v) => updateRisk({ active_daily_profit: v })}
+                onChangeProfit={(v) => updateRisk({ daily_profit_target: v })}
+                onToggleLoss={(v) => updateRisk({ active_daily_loss: v })}
+                onChangeLoss={(v) => updateRisk({ daily_loss_limit: v })}
+              />
+              <RiskColumn
+                title="Semanal"
+                activeProfit={risk.active_weekly_profit}
+                targetProfit={safeNum(risk.weekly_profit, DEFAULTS.weekly_profit)}
+                activeLoss={risk.active_weekly_loss}
+                limitLoss={safeNum(risk.weekly_loss, DEFAULTS.weekly_loss)}
+                onToggleProfit={(v) => updateRisk({ active_weekly_profit: v })}
+                onChangeProfit={(v) => updateRisk({ weekly_profit: v })}
+                onToggleLoss={(v) => updateRisk({ active_weekly_loss: v })}
+                onChangeLoss={(v) => updateRisk({ weekly_loss: v })}
+              />
+              <RiskColumn
+                title="Mensual"
+                activeProfit={risk.active_monthly_profit}
+                targetProfit={safeNum(risk.monthly_profit, DEFAULTS.monthly_profit)}
+                activeLoss={risk.active_monthly_loss}
+                limitLoss={safeNum(risk.monthly_loss, DEFAULTS.monthly_loss)}
+                onToggleProfit={(v) => updateRisk({ active_monthly_profit: v })}
+                onChangeProfit={(v) => updateRisk({ monthly_profit: v })}
+                onToggleLoss={(v) => updateRisk({ active_monthly_loss: v })}
+                onChangeLoss={(v) => updateRisk({ monthly_loss: v })}
+              />
+            </div>
           </div>
+        </Card>
+
+        <Card header="Trailing Stop (Phase 1)">
+          {(() => {
+            const trailing = (draft as any).trailing_stop || { enabled: false, step_pips: 30, start_pips: 20 };
+            const updateTrailing = (patch: any) => {
+              setDraft((d) => d ? { ...d, trailing_stop: { ...(d as any).trailing_stop, ...patch } } as any : d);
+              setDirty(true);
+            };
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-white">Activar Trailing Stop</div>
+                    <div className="text-xs text-tnvs-muted">Mueve el SL hacia el precio cuando va a favor. Protege ganancias.</div>
+                  </div>
+                  <Switch
+                    checked={!!trailing.enabled}
+                    onChange={(v) => updateTrailing({ enabled: v })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={cls('rounded-md bg-tnvs-void p-3', !trailing.enabled && 'opacity-40 pointer-events-none')}>
+                    <div className="text-[10px] uppercase tracking-wider text-tnvs-muted mb-1">Trailing Start</div>
+                    <NumberInput
+                      value={safeNum(trailing.start_pips, 20)}
+                      onChange={(v) => updateTrailing({ start_pips: v })}
+                      min={1}
+                      step={5}
+                      suffix="pips"
+                    />
+                    <div className="text-[10px] text-tnvs-dim mt-1">
+                      El SL empieza a moverse cuando la ganancia llega a este nivel
+                    </div>
+                  </div>
+                  <div className={cls('rounded-md bg-tnvs-void p-3', !trailing.enabled && 'opacity-40 pointer-events-none')}>
+                    <div className="text-[10px] uppercase tracking-wider text-tnvs-muted mb-1">Trailing Step</div>
+                    <NumberInput
+                      value={safeNum(trailing.step_pips, 30)}
+                      onChange={(v) => updateTrailing({ step_pips: v })}
+                      min={1}
+                      step={5}
+                      suffix="pips"
+                    />
+                    <div className="text-[10px] text-tnvs-dim mt-1">
+                      Cuántos pips mantiene el SL detrás del precio
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </Card>
 
         <Card header="Conexión (solo lectura)" className="lg:col-span-2">

@@ -112,8 +112,23 @@ class ConfigManager:
         return payload
 
     def scan_in_progress(self) -> bool:
-        """Detecta si hay un scan corriendo (request sin response aún)."""
+        """Detecta si hay un scan corriendo (request sin response aún).
+
+        Auto-cleanup de archivos stale: si el request lleva más de 5 minutos
+        sin respuesta (bot no está corriendo), se elimina para no dejar la
+        UI atascada en PENDING eternamente.
+        """
         if CMD_REQ_PATH.exists():
+            try:
+                age_seconds = time.time() - CMD_REQ_PATH.stat().st_mtime
+                if age_seconds > 300:  # 5 min
+                    logger.info(
+                        f"cmd_requests.json stale ({age_seconds:.0f}s), removing"
+                    )
+                    CMD_REQ_PATH.unlink()
+                    return False
+            except OSError:
+                pass
             return True
         if not CONFIG_PATH.exists():
             return False
