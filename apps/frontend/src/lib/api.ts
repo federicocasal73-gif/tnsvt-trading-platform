@@ -77,9 +77,9 @@ export const api = {
   // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
   admin: {
     tenants: (limit = 50, offset = 0) =>
-      request<AdminTenant[]>(`/api/v1/admin/tenants?limit=${limit}&offset=${offset}`),
+      request<AdminTenant[]>(`/admin/tenants?limit=${limit}&offset=${offset}`),
     stats: () =>
-      request<AdminStats>('/api/v1/admin/stats'),
+      request<AdminStats>('/admin/stats'),
   },
 };
 
