@@ -23,17 +23,19 @@ function pnlLevel(pnl: number, maxAbs: number): number {
   return 0;
 }
 
-const LEVEL_COLORS: Record<number, string> = {
-  0: 'bg-white/[0.04]',
-  1: 'bg-tnvs-win/20',
-  2: 'bg-tnvs-win/40',
-  3: 'bg-tnvs-win/60',
-  4: 'bg-tnvs-win',
-  -1: 'bg-tnvs-loss/20',
-  -2: 'bg-tnvs-loss/40',
-  -3: 'bg-tnvs-loss/60',
-  -4: 'bg-tnvs-loss',
-};
+function levelColor(level: number): string {
+  switch (level) {
+    case 4:  return 'bg-tnvs-win';
+    case 3:  return 'bg-tnvs-win/60';
+    case 2:  return 'bg-tnvs-win/40';
+    case 1:  return 'bg-tnvs-win/20';
+    case -1: return 'bg-tnvs-loss/20';
+    case -2: return 'bg-tnvs-loss/40';
+    case -3: return 'bg-tnvs-loss/60';
+    case -4: return 'bg-tnvs-loss';
+    default: return 'bg-white/[0.04]';
+  }
+}
 
 export function CalendarHeatmap({ data, year }: { data: CalendarDay[]; year: number }) {
   const maxAbs = useMemo(() => {
@@ -99,7 +101,7 @@ export function CalendarHeatmap({ data, year }: { data: CalendarDay[]; year: num
                 return (
                   <div
                     key={di}
-                    className={cls('h-3 w-3 rounded-sm cursor-pointer', LEVEL_COLORS[level] || 'bg-white/[0.04]')}
+                    className={cls('h-3 w-3 rounded-sm cursor-pointer', levelColor(level))}
                     title={`${cell.date.toISOString().slice(0, 10)}: $${cell.day.pnl.toFixed(2)} (${cell.day.trades} trades)`}
                   />
                 );

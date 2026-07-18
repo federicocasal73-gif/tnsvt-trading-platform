@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, RefreshCw, Save, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { api, BotConfig, ChannelProfile, ChannelSelection, ScanResult } from '../lib/api';
+import { api, BotConfig, ChannelProfile, ChannelSelection, ChannelProfileData, ScanResult } from '../lib/api';
 import { cls } from '../utils/format';
 import { Empty, Card, Page } from '../components/common';
 
@@ -461,15 +461,6 @@ function RiskRow({ label, v, on }: { label: string; v: number; on: boolean }) {
 
 // ─── ChannelProfile editor (Phase 2) ─────────────────────────────────
 
-interface ChannelProfileData {
-  default_symbol?: string | null;
-  allow_symbols?: string[];
-  block_symbols?: string[];
-  multi_same_symbol?: boolean;
-  max_positions?: number;
-  max_spread_pips?: number;
-}
-
 function ProfileEditor({
   selectionKey, id, topicId, name, current, onChange,
 }: {
@@ -477,7 +468,7 @@ function ProfileEditor({
   id: number;
   topicId: number | null;
   name: string;
-  current: ChannelProfileData;
+  current: any;
   onChange: (p: ChannelProfileData) => void;
 }) {
   const prof = current || {};
@@ -492,8 +483,8 @@ function ProfileEditor({
   const commitSymbols = () => {
     onChange({
       ...prof,
-      allow_symbols: allowText.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
-      block_symbols: blockText.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
+      allow_symbols: allowText.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean),
+      block_symbols: blockText.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean),
     });
   };
 

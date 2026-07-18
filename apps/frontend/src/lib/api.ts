@@ -243,6 +243,16 @@ export interface ChannelSelection {
   id: number;
   name: string;
   topic_id: number | null;
+  profile?: ChannelProfileData;
+}
+
+export interface ChannelProfileData {
+  default_symbol?: string | null;
+  allow_symbols?: string[];
+  block_symbols?: string[];
+  multi_same_symbol?: boolean;
+  max_positions?: number;
+  max_spread_pips?: number;
 }
 
 export interface RiskManagement {
