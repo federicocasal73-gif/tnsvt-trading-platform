@@ -1,3 +1,4 @@
+import { MessageCircle, Terminal } from 'lucide-react';
 import { ChannelAgg } from '../lib/api';
 import { cls } from '../utils/format';
 
@@ -22,25 +23,42 @@ export function ChannelTable({ rows }: { rows: ChannelAgg[] }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.channel_id ?? 0} className="border-b border-tnvs-border/50 last:border-0 hover:bg-white/[0.02]">
-                <td className="px-4 py-2.5 text-white">{r.channel_title}</td>
-                <td className="px-4 py-2.5 text-right font-mono text-tnvs-muted">{r.trades}</td>
-                <td className="px-4 py-2.5 text-right font-mono text-tnvs-win">{r.wins}</td>
-                <td className={cls('px-4 py-2.5 text-right font-mono', r.pnl >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
-                  ${r.pnl.toFixed(2)}
-                </td>
-                <td className="px-4 py-2.5 text-right font-mono text-tnvs-muted">{(r.win_rate * 100).toFixed(1)}%</td>
-                <td className="px-4 py-2.5">
-                  <div className="h-1.5 w-24 rounded-full bg-white/[0.08]">
-                    <div
-                      className="h-full rounded-full bg-tnvs-win transition-all"
-                      style={{ width: `${(Math.abs(r.pnl) / maxPnl) * 100}%` }}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const isDirect = !r.channel_id || r.channel_id === 0 || r.channel_title === 'Unknown';
+              return (
+                <tr key={r.channel_id ?? 0} className="border-b border-tnvs-border/50 last:border-0 hover:bg-white/[0.02]">
+                  <td className="px-4 py-2.5">
+                    <span className={cls(
+                      'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs',
+                      isDirect
+                        ? 'bg-white/[0.05] text-tnvs-muted'
+                        : 'bg-blue-500/10 text-blue-400',
+                    )}>
+                      {isDirect ? (
+                        <Terminal className="h-3 w-3" />
+                      ) : (
+                        <MessageCircle className="h-3 w-3" />
+                      )}
+                      {isDirect ? 'Directo (MT5)' : r.channel_title}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-tnvs-muted">{r.trades}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-tnvs-win">{r.wins}</td>
+                  <td className={cls('px-4 py-2.5 text-right font-mono', r.pnl >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
+                    ${r.pnl.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-tnvs-muted">{(r.win_rate * 100).toFixed(1)}%</td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-1.5 w-24 rounded-full bg-white/[0.08]">
+                      <div
+                        className="h-full rounded-full bg-tnvs-win transition-all"
+                        style={{ width: `${(Math.abs(r.pnl) / maxPnl) * 100}%` }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

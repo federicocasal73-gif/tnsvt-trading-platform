@@ -51,6 +51,8 @@ export const api = {
     livePositions: () => request<LivePosition[]>('/bridge/analytics/live-positions'),
     calendar: (year?: number) => request<CalendarDay[]>(`/bridge/analytics/calendar${year ? `?year=${year}` : ''}`),
     trades: (status?: string) => request<LivePosition[]>(`/bridge/analytics/trades${status ? `?status=${status}` : ''}`),
+    account: () => request<{ ok: boolean; data: Mt5AccountSnapshot }>('/bridge/mt5/account'),
+    positionsLive: () => request<{ ok: boolean; data: Mt5PositionSnapshot[]; count: number }>('/bridge/mt5/positions'),
     config: () => request<BotConfig>('/bridge/config'),
     updateConfig: (patch: Partial<BotConfig>) =>
       request<{ ok: boolean; updated_keys: string[] }>(
@@ -294,6 +296,40 @@ export interface TrailingStopConfig {
   enabled: boolean;
   step_pips: number;
   start_pips: number;
+}
+
+// ─── MT5 Live Snapshot ───────────────────────────────────────────────────
+
+export interface Mt5AccountSnapshot {
+  login: number;
+  balance: number;
+  equity: number;
+  margin: number;
+  margin_free: number;
+  margin_level: number | null;
+  profit: number;
+  leverage: number;
+  currency: string;
+  server: string;
+  name: string;
+  updated_at: string;
+}
+
+export interface Mt5PositionSnapshot {
+  ticket: number;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  volume: number;
+  price_open: number;
+  price_current: number;
+  sl: number | null;
+  tp: number | null;
+  profit: number;
+  swap: number;
+  commission: number;
+  magic: number;
+  comment: string;
+  time: string;
 }
 
 export interface ScanResult {

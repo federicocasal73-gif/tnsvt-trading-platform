@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { MessageCircle, RefreshCw, Terminal } from 'lucide-react';
 import { api, LivePosition } from '../lib/api';
 import { cls } from '../utils/format';
 import { Empty } from '../components/common';
@@ -202,7 +202,19 @@ export function Mt5PositionsPage() {
                   <td className={cls('px-4 py-2.5 text-right font-mono', t.pnl > 0 ? 'text-tnvs-win' : t.pnl < 0 ? 'text-tnvs-loss' : 'text-tnvs-muted')}>
                     {t.pnl > 0 ? '+' : ''}${t.pnl.toFixed(2)}
                   </td>
-                  <td className="px-4 py-2.5 text-tnvs-muted">{t.channel_title || '—'}</td>
+                  <td className="px-4 py-2.5">
+                    {t.channel_title ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
+                        <MessageCircle className="h-3 w-3" />
+                        {t.channel_title}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2 py-0.5 text-xs text-tnvs-muted">
+                        <Terminal className="h-3 w-3" />
+                        Directo
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 font-mono text-[11px] text-tnvs-muted">
                     {new Date(t.opened_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>

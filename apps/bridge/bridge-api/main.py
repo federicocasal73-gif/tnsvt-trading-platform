@@ -216,6 +216,8 @@ def root():
             "GET  /api/v1/bridge/analytics/by-symbol",
             "GET  /api/v1/bridge/analytics/live-positions",
             "GET  /api/v1/bridge/analytics/calendar",
+            "GET  /api/v1/bridge/mt5/account",
+            "GET  /api/v1/bridge/mt5/positions",
         ],
     }
 
@@ -556,6 +558,38 @@ def control_bot(req: BotControlRequest):
     if not ok:
         raise HTTPException(500, msg)
     return {"ok": True, "status": new_status}
+
+
+# ─── MT5 Live Snapshots (leídos del bot) ─────────────────────────────────
+
+
+BOT_SNAPSHOT_DIR = os.getenv("BOT_SNAPSHOT_DIR", r"D:\TradingBotMT5")
+
+
+def _read_json_safe(path: str) -> dict | list | None:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+@app.get("/api/v1/bridge/mt5/account")
+def get_mt5_account():
+    """Cuenta MT5 en vivo: balance, equity, margin, leverage, etc."""
+    data = _read_json_safe(os.path.join(BOT_SNAPSHOT_DIR, "account_snapshot.json"))
+    if data is None:
+        raise HTTPException(503, "MT5 snapshot not available (bot may be disconnected)")
+    return {"ok": True, "data": data}
+
+
+@app.get("/api/v1/bridge/mt5/positions")
+def get_mt5_positions():
+    """Todas las posiciones abiertas en MT5 (bot + manuales)."""
+    data = _read_json_safe(os.path.join(BOT_SNAPSHOT_DIR, "positions_snapshot.json"))
+    if data is None:
+        raise HTTPException(503, "Positions snapshot not available")
+    return {"ok": True, "data": data, "count": len(data) if data else 0}
 
 
 # ─── Prometheus /metrics ──────────────────────────────────────────────────
