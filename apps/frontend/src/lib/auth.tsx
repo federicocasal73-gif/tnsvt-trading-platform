@@ -31,7 +31,12 @@ export function useAuth() {
 
 function decodeToken(t: string): AuthUser | null {
   try {
-    const payload = JSON.parse(atob(t.split('.')[1]));
+    // JWT usa base64url (con `-` y `_`) — atob() espera base64 estándar.
+    let b64 = t.split('.')[1];
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = (4 - (b64.length % 4)) % 4;
+    b64 += '='.repeat(pad);
+    const payload = JSON.parse(atob(b64));
     return {
       user_id: payload.uid || payload.sub || payload.user_id,
       tenant_id: payload.tid || payload.tenant_id || '00000000-0000-0000-0000-000000000001',
