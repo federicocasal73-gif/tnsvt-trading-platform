@@ -12,11 +12,12 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       // ─── Específicos primero (orden importa: first-match-wins) ─────
-      // Bridge API directo. /bridge/* → :8522/api/v1/bridge/*
-      '/bridge': {
+      // Bridge API directo. /api/v1/bridge/* → :8522/api/v1/bridge/*
+      // (la key debe matchear el path completo, NO un prefijo sin api/v1)
+      '/api/v1/bridge': {
         target: bridgeTarget,
         changeOrigin: true,
-        rewrite: (path) => `/api/v1${path}`,
+        rewrite: (path) => path, // path ya viene con /api/v1/bridge, el bridge espera ese prefijo
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['cache-control'] = 'no-cache';

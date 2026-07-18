@@ -182,10 +182,15 @@ type JWTClaims struct {
 }
 
 // NewJWTValidator crea un nuevo validador
+//
+// IMPORTANTE: el secret default debe coincidir con el fallback del
+// auth-service (`apps/platform/auth-service/internal/services/jwt.go:43`)
+// para que en dev/demo, sin JWT_SECRET explícito, ambos servicios firmen
+// y validen con la misma clave.
 func NewJWTValidator(_ time.Duration) *JWTValidator {
 	secret := getEnv("JWT_SECRET", "")
 	if secret == "" {
-		secret = "dev_secret_change_me_min_32_chars_abc"
+		secret = "tnsvt-dev-default-secret-change-me-in-prod-!!"
 	}
 	return &JWTValidator{secret: []byte(secret)}
 }

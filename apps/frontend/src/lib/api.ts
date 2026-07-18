@@ -14,12 +14,16 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   // Debug: log every response so we can diagnose auto-logout issues.
   console.debug(`[api] ${opts?.method || 'GET'} ${path} -> ${res.status}`);
 
-  // Auto-logout only when 401 hits a protected endpoint (user already has
-  // a token in localStorage). Public endpoints like /auth/login or
-  // /auth/register return 401 for bad credentials and should NOT trigger
-  // a logout/redirect.
-  if (res.status === 401 && token() && !isPublicAuthPath(path)) {
-    console.warn(`[api] 401 on protected ${path} - logging out`);
+  // Auto-logout ONLY when the auth-service itself rejects our token.
+  // A 401 from any other endpoint (downstream services that don't know
+  // our token format, services temporarily unavailable, etc.) is "just" a
+  // data unavailability and MUST NOT kick the user out — safeGet() in
+  // AppStateProvider already swallows these for read-only dashboards.
+  //
+  // Public endpoints (login/register/refresh) take the regular error path.
+  const isAuthValidation = path === '/api/v1/auth/me' || path === '/api/v1/auth/refresh';
+  if (res.status === 401 && token() && isAuthValidation) {
+    console.warn(`[api] 401 on auth validation ${path} - logging out`);
     localStorage.removeItem('tnsvt_token');
     window.location.href = '/login';
     throw new Error('Unauthorized');
@@ -29,10 +33,6 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
     throw new Error(body.error || `HTTP ${res.status}`);
   }
   return res.json();
-}
-
-function isPublicAuthPath(path: string): boolean {
-  return /^\/auth\/(login|register|refresh)/.test(path);
 }
 
 export const api = {
