@@ -49,6 +49,7 @@ export const api = {
     byChannel: () => request<ChannelAgg[]>('/bridge/analytics/by-channel'),
     bySymbol: () => request<SymbolAgg[]>('/bridge/analytics/by-symbol'),
     livePositions: () => request<LivePosition[]>('/bridge/analytics/live-positions'),
+    calendar: (year?: number) => request<CalendarDay[]>(`/bridge/analytics/calendar${year ? `?year=${year}` : ''}`),
     trades: (status?: string) => request<LivePosition[]>(`/bridge/analytics/trades${status ? `?status=${status}` : ''}`),
     config: () => request<BotConfig>('/bridge/config'),
     updateConfig: (patch: Partial<BotConfig>) =>
@@ -271,6 +272,12 @@ export interface BotConfig {
   channels_data?: ChannelSelection[];
   risk_management?: RiskManagement;
   trailing_stop?: TrailingStopConfig;
+}
+
+export interface CalendarDay {
+  date: string;
+  pnl: number;
+  trades: number;
 }
 
 export interface TrailingStopConfig {

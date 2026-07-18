@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ExternalLink, RefreshCw } from 'lucide-react';
-import { api, Metrics, EquityPoint, ChannelAgg, SymbolAgg } from '../lib/api';
+import { api, Metrics, EquityPoint, ChannelAgg, SymbolAgg, CalendarDay } from '../lib/api';
 import { EquityCurve } from '../components/EquityCurve';
 import { KPIGrid } from '../components/KPIGrid';
 import { ChannelTable } from '../components/ChannelTable';
 import { SymbolTable } from '../components/SymbolTable';
+import { CalendarHeatmap } from '../components/CalendarHeatmap';
 
 type Status = 'checking' | 'online' | 'offline';
 
@@ -13,18 +14,20 @@ export function Mt5DashboardPage() {
   const [equity, setEquity] = useState<EquityPoint[]>([]);
   const [byChannel, setByChannel] = useState<ChannelAgg[]>([]);
   const [bySymbol, setBySymbol] = useState<SymbolAgg[]>([]);
+  const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [status, setStatus] = useState<Status>('checking');
   const [loading, setLoading] = useState(true);
 
   const fetchAll = async () => {
     try {
-      const [m, e, c, s] = await Promise.all([
+      const [m, e, c, s, cal] = await Promise.all([
         api.bridge.metrics(),
         api.bridge.equityCurve(),
         api.bridge.byChannel(),
         api.bridge.bySymbol(),
+        api.bridge.calendar(),
       ]);
-      setMetrics(m); setEquity(e); setByChannel(c); setBySymbol(s);
+      setMetrics(m); setEquity(e); setByChannel(c); setBySymbol(s); setCalendar(cal);
       setStatus('online');
     } catch {
       setStatus('offline');
@@ -87,6 +90,9 @@ export function Mt5DashboardPage() {
             <ChannelTable rows={byChannel} />
             <SymbolTable rows={bySymbol} />
           </div>
+          {calendar.length > 0 && (
+            <CalendarHeatmap data={calendar} year={new Date().getFullYear()} />
+          )}
         </>
       )}
     </div>

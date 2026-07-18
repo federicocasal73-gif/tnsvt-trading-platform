@@ -215,6 +215,7 @@ def root():
             "GET  /api/v1/bridge/analytics/by-channel",
             "GET  /api/v1/bridge/analytics/by-symbol",
             "GET  /api/v1/bridge/analytics/live-positions",
+            "GET  /api/v1/bridge/analytics/calendar",
         ],
     }
 
@@ -401,6 +402,32 @@ def analytics_by_symbol(request: Request, tenant_id: Optional[str] = None):
     all_trades = trades_db.fetch_all_trades(_resolve_tenant(request, tenant_id))
     return _cached(f"by_symbol:{tenant_id or 'all'}",
                    lambda: _aggregate_by_symbol(all_trades))
+
+
+@app.get("/api/v1/bridge/analytics/calendar")
+def analytics_calendar(request: Request, tenant_id: Optional[str] = None,
+                       year: Optional[int] = None):
+    """Daily P&L aggregated for a heatmap view.
+
+    Returns [{date: 'YYYY-MM-DD', pnl: float, trades: int}, ...]
+    for the given year (default: current year).
+    """
+    tid = _resolve_tenant(request, tenant_id)
+    all_trades = trades_db.fetch_all_trades(tid)
+    closed = [t for t in all_trades if t.get("status") == "CLOSED"]
+    y = year or datetime.now(timezone.utc).year
+    daily: dict[str, dict] = {}
+    for t in closed:
+        d = (t.get("closed_at") or "")[:10]
+        if not d or not d.startswith(str(y)):
+            continue
+        if d not in daily:
+            daily[d] = {"date": d, "pnl": 0.0, "trades": 0}
+        daily[d]["pnl"] += t.get("pnl") or 0
+        daily[d]["trades"] += 1
+    for v in daily.values():
+        v["pnl"] = round(v["pnl"], 2)
+    return _cached(f"calendar:{tid}:{y}", lambda: sorted(daily.values(), key=lambda x: x["date"]))
 
 
 @app.get("/api/v1/bridge/analytics/live-positions")
