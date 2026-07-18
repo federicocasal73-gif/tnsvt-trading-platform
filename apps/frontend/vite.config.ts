@@ -34,12 +34,23 @@ export default defineConfig({
           });
         },
       },
-      // Billing webhook (Stripe).
-      '/api/v1/auth/billing': {
+      // Auth endpoints → auth-service directo. Sin este proxy, los auth/*
+      // caen en el catch-all '/api' y el gateway devuelve 503 (su
+      // services.json apunta a hostname docker 'auth-service' que no
+      // resuelve en Windows nativos).
+      '/api/v1/auth': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
+      // Users endpoints → auth-service directo (no hay user-service
+      // corriendo, pero el gateway tampoco puede forwardear).
+      '/api/v1/users': {
         target: 'http://localhost:8001',
         changeOrigin: true,
       },
-      // Catch-all → gateway :8000 (auth, signals, copy, etc).
+      // Catch-all → gateway :8000 (signals, copy, risk, prices, etc
+      // — que NO corren en dev, así que 502 es la respuesta esperada).
       '/api': {
         target: apiTarget,
         changeOrigin: true,
