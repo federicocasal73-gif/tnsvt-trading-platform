@@ -14,9 +14,10 @@ type jwtCfg struct {
 	algo          string
 }
 
-func (c jwtCfg) JWTAccessTokenExpire() time.Duration  { return c.accessExpire }
-func (c jwtCfg) JWTRefreshTokenExpire() time.Duration { return c.refreshExpire }
-func (c jwtCfg) JWTAlgorithm() string                 { return c.algo }
+func (c jwtCfg) JWTAccessTokenExpireVal() time.Duration  { return c.accessExpire }
+func (c jwtCfg) JWTRefreshTokenExpireVal() time.Duration { return c.refreshExpire }
+func (c jwtCfg) JWTAlgorithmVal() string                 { return c.algo }
+func (c jwtCfg) GetJWTSecret() string                    { return "test-secret-must-be-at-least-32-chars" }
 
 type jwtCfgStruct struct {
 	JWTAccessTokenExpireVal  time.Duration
@@ -24,9 +25,10 @@ type jwtCfgStruct struct {
 	JWTAlgorithmVal          string
 }
 
-func (c jwtCfgStruct) JWTAccessTokenExpire() time.Duration  { return c.JWTAccessTokenExpireVal }
-func (c jwtCfgStruct) JWTRefreshTokenExpire() time.Duration { return c.JWTRefreshTokenExpireVal }
-func (c jwtCfgStruct) JWTAlgorithm() string                 { return c.JWTAlgorithmVal }
+func (c jwtCfgStruct) JWTAccessTokenExpireVal() time.Duration  { return c.JWTAccessTokenExpireVal }
+func (c jwtCfgStruct) JWTRefreshTokenExpireVal() time.Duration { return c.JWTRefreshTokenExpireVal }
+func (c jwtCfgStruct) JWTAlgorithmVal() string                 { return c.JWTAlgorithmVal }
+func (c jwtCfgStruct) GetJWTSecret() string                    { return "test-secret-must-be-at-least-32-chars" }
 
 func newTestJWTSvc(t *testing.T, secret string) *JWTService {
 	t.Helper()

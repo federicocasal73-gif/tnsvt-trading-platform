@@ -106,6 +106,14 @@ type AuthConfig struct {
 	LockoutDuration       time.Duration
 }
 
+func (a AuthConfig) JWTAccessTokenExpireVal() time.Duration  { return a.JWTAccessTokenExpire }
+func (a AuthConfig) JWTRefreshTokenExpireVal() time.Duration { return a.JWTRefreshTokenExpire }
+func (a AuthConfig) JWTAlgorithmVal() string                 { return a.JWTAlgorithm }
+func (a AuthConfig) GetJWTSecret() string                    { return a.JWTSecret }
+func (a AuthConfig) BCryptRoundsVal() int                    { return a.BCryptRounds }
+func (a AuthConfig) MaxLoginAttemptsVal() int                { return a.MaxLoginAttempts }
+func (a AuthConfig) LockoutDurationVal() time.Duration       { return a.LockoutDuration }
+
 // Load carga configuración desde variables de entorno
 func Load(serviceName string) *Config {
 	cfg := &Config{

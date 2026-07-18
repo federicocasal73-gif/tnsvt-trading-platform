@@ -18,6 +18,7 @@ import { Mt5ControlPage } from './pages/Mt5ControlPage';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
 import { SignupWizard } from './pages/SignupWizard';
+import { AdminPage } from './pages/AdminPage';
 
 // ─── Router setup ────────────────────────────────────────────────────────
 // Each route has a name, path, icon, and component. The Shell reads the
@@ -35,6 +36,7 @@ export const ROUTES = [
   { path: '/mt5-channels', name: 'mt5-channels', label: 'MT5 Channels', icon: 'live' },
   { path: '/mt5-settings', name: 'mt5-settings', label: 'MT5 Settings', icon: 'settings' },
   { path: '/mt5-control', name: 'mt5-control', label: 'MT5 Control', icon: 'bot' },
+  { path: '/admin', name: 'admin', label: 'Admin', icon: 'settings' },
   { path: '/settings', name: 'settings', label: 'Settings', icon: 'settings' },
 ] as const;
 
@@ -62,6 +64,7 @@ const router = createBrowserRouter([
       { path: 'mt5-channels', element: <Mt5ChannelsPage /> },
       { path: 'mt5-settings', element: <Mt5SettingsPage /> },
       { path: 'mt5-control', element: <Mt5ControlPage /> },
+      { path: 'admin', element: <AdminPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

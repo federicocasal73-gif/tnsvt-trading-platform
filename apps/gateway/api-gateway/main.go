@@ -38,6 +38,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -60,7 +61,7 @@ func main() {
 	// ─── Config ───
 	cfg := sharedconfig.Load("api-gateway")
 	port := cfg.Get("API_GATEWAY_PORT", "8000")
-	servicesCfg := config.LoadServices("apps/gateway/api-gateway/config/services.json")
+	servicesCfg := config.LoadServices(os.Getenv("SERVICES_CONFIG"))
 
 	// ─── Logging ───
 	log := sharedlogging.New("api-gateway", cfg.LogLevel)
@@ -131,8 +132,11 @@ func main() {
 			continue
 		}
 
+		// Strip leading /api/v1 to avoid double prefix (router group is /api/v1)
+		stripped := strings.TrimPrefix(pathPrefix, "/api/v1")
+
 		svcCfg := svc
-		v1.Group(pathPrefix).
+		v1.Group(stripped).
 			Use(middleware.GlobalRateLimit(redisClient, svcCfg.RateLimit, time.Minute)).
 			Use(middleware.OptionalAuth(jwtValidator)).
 			Use(middleware.CircuitBreaker(registry, svcCfg.Name)).

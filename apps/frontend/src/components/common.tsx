@@ -66,10 +66,13 @@ export function Card({ className, children, header, footer }: { className?: stri
   );
 }
 
-export function StatCard({ label, value, hint, accent, className }: { label: string; value: string; hint?: string; accent?: string; className?: string }) {
+export function StatCard({ label, value, hint, accent, className, icon: Icon }: { label: string; value: string | number; hint?: string; accent?: string; className?: string; icon?: React.ComponentType<{ className?: string }> }) {
   return (
     <div className={cls('rounded-lg border border-tnvs-border bg-tnvs-surface p-4', className)}>
-      <div className="text-[10px] font-medium uppercase tracking-wider text-tnvs-muted">{label}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-medium uppercase tracking-wider text-tnvs-muted">{label}</div>
+        {Icon && <Icon className={cls('h-4 w-4', accent || 'text-tnvs-muted')} />}
+      </div>
       <div className={cls('mt-1 font-mono text-2xl font-semibold', accent || 'text-white')}>{value}</div>
       {hint && <div className="mt-0.5 text-xs text-tnvs-dim">{hint}</div>}
     </div>

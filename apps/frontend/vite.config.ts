@@ -11,6 +11,34 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     proxy: {
+      // ─── Específicos primero (orden importa: first-match-wins) ─────
+      // Bridge API directo. /bridge/* → :8522/api/v1/bridge/*
+      '/bridge': {
+        target: bridgeTarget,
+        changeOrigin: true,
+        rewrite: (path) => `/api/v1${path}`,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['cache-control'] = 'no-cache';
+          });
+        },
+      },
+      // Admin endpoints → auth-service directo (gateway no los enruta).
+      '/api/v1/admin': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['cache-control'] = 'no-cache';
+          });
+        },
+      },
+      // Billing webhook (Stripe).
+      '/api/v1/auth/billing': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      // Catch-all → gateway :8000 (auth, signals, copy, etc).
       '/api': {
         target: apiTarget,
         changeOrigin: true,
@@ -26,17 +54,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/mt5-bot-iframe/, ''),
         ws: true,
-      },
-      // Bridge API directo (sin pasar por gateway). /bridge/* → :8522/api/v1/bridge/*
-      '/bridge': {
-        target: bridgeTarget,
-        changeOrigin: true,
-        rewrite: (path) => `/api/v1${path}`,
-        configure: (proxy) => {
-          proxy.on('proxyRes', (proxyRes) => {
-            proxyRes.headers['cache-control'] = 'no-cache';
-          });
-        },
       },
     },
   },

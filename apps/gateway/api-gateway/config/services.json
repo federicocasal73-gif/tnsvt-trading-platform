@@ -108,6 +108,15 @@
       "rate_limit": 100,
       "health_path": "/health",
       "required": false
+    },
+    {
+      "name": "bridge-api",
+      "path_prefix": "/api/v1/bridge",
+      "instances": ["http://localhost:8522"],
+      "timeout_ms": 10000,
+      "rate_limit": 200,
+      "health_path": "/health",
+      "required": false
     }
   ]
 }

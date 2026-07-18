@@ -73,6 +73,13 @@ export const api = {
         { method: 'POST', body: JSON.stringify({ action }) },
       ),
   },
+  // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
+  admin: {
+    tenants: (limit = 50, offset = 0) =>
+      request<AdminTenant[]>(`/api/v1/admin/tenants?limit=${limit}&offset=${offset}`),
+    stats: () =>
+      request<AdminStats>('/api/v1/admin/stats'),
+  },
 };
 
 export interface UserProfile {
@@ -271,4 +278,28 @@ export interface ScanResult {
   completed_at?: string;
   request_id?: string;
   data?: ChannelProfile[];
+}
+
+// ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────────────
+
+export interface AdminTenant {
+  id: string;
+  name: string;
+  slug: string;
+  schema: string;
+  status: 'active' | 'trial' | 'suspended';
+  plan: 'free' | 'starter' | 'pro' | 'enterprise';
+  max_users: number;
+  max_signals_per_day: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminStats {
+  total_tenants: number;
+  active_subscriptions: number;
+  mrr_usd: number;
+  churn_pct: number;
+  by_plan: { plan: string; count: number }[];
+  pricing_per_plan_usd: Record<string, number>;
 }

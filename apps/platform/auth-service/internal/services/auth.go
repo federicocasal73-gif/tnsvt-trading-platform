@@ -45,11 +45,11 @@ type AuthService struct {
 	redis      *redis.Client
 	jwt        *JWTService
 	authConfig interface {
-		JWTAccessTokenExpire() time.Duration
-		JWTRefreshTokenExpire() time.Duration
-		MaxLoginAttempts() int
-		LockoutDuration() time.Duration
-		BCryptRounds() int
+		JWTAccessTokenExpireVal() time.Duration
+		JWTRefreshTokenExpireVal() time.Duration
+		MaxLoginAttemptsVal() int
+		LockoutDurationVal() time.Duration
+		BCryptRoundsVal() int
 	}
 	log interface {
 		Info(string, ...any)
@@ -64,11 +64,11 @@ func NewAuthService(
 	redis *redis.Client,
 	jwt *JWTService,
 	authConfig interface {
-		JWTAccessTokenExpire() time.Duration
-		JWTRefreshTokenExpire() time.Duration
-		MaxLoginAttempts() int
-		LockoutDuration() time.Duration
-		BCryptRounds() int
+		JWTAccessTokenExpireVal() time.Duration
+		JWTRefreshTokenExpireVal() time.Duration
+		MaxLoginAttemptsVal() int
+		LockoutDurationVal() time.Duration
+		BCryptRoundsVal() int
 	},
 	log interface {
 		Info(string, ...any)
@@ -130,7 +130,7 @@ func (s *AuthService) Register(ctx context.Context, req *models.RegisterRequest,
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), s.authConfig.BCryptRounds())
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), s.authConfig.BCryptRoundsVal())
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
@@ -170,7 +170,8 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip, u
 			})
 			return nil, ErrInvalidCredentials
 		}
-		return nil, err
+		s.log.Error("GetUserByEmail failed", err, "email", req.Email)
+		return nil, fmt.Errorf("get user: %w", err)
 	}
 
 	// Verificar status
@@ -193,8 +194,8 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip, u
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		// Incrementar failed login
 		count, _ := s.repo.IncrementFailedLogin(ctx, user.ID)
-		if count >= s.authConfig.MaxLoginAttempts() {
-			until := time.Now().Add(s.authConfig.LockoutDuration())
+		if count >= s.authConfig.MaxLoginAttemptsVal() {
+			until := time.Now().Add(s.authConfig.LockoutDurationVal())
 			s.repo.LockUser(ctx, user.ID, until)
 			s.recordAudit(ctx, &user.ID, &user.TenantID, "login", ip, userAgent, "failure", map[string]any{
 				"reason": "locked_after_failed_attempts", "attempts": count,
@@ -233,6 +234,7 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip, u
 	// Cargar tenant
 	tenant, err := s.repo.GetTenantByID(ctx, user.TenantID)
 	if err != nil {
+		s.log.Error("GetTenantByID failed", err, "user_id", user.ID, "tenant_id", user.TenantID)
 		return nil, fmt.Errorf("get tenant: %w", err)
 	}
 
@@ -321,7 +323,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 	}
 
 	// Hash nueva
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.authConfig.BCryptRounds())
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.authConfig.BCryptRoundsVal())
 	if err != nil {
 		return err
 	}

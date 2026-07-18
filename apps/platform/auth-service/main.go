@@ -81,7 +81,9 @@ func main() {
 
 	// ─── Services ───
 	jwtService := services.NewJWTService(cfg.Auth, log)
+	jwtService.SetSecret(cfg.Auth.JWTSecret)
 	authService := services.NewAuthService(repo, redisClient, jwtService, cfg.Auth, log)
+	jwtAdapter := &middleware.JWTServiceAdapter{Service: jwtService}
 
 	// ─── Gin router ───
 	if cfg.Env == "production" {
@@ -109,14 +111,27 @@ func main() {
 		v1.POST("/register", middleware.RateLimit(redisClient, "register", 5, 1*time.Minute), authHandler.Register)
 		v1.POST("/login", middleware.RateLimit(redisClient, "login", 10, 1*time.Minute), authHandler.Login)
 		v1.POST("/refresh", authHandler.Refresh)
-		v1.POST("/logout", middleware.RequireAuth(jwtService), authHandler.Logout)
-		v1.GET("/me", middleware.RequireAuth(jwtService), authHandler.Me)
-		v1.POST("/password/change", middleware.RequireAuth(jwtService), authHandler.ChangePassword)
-		v1.POST("/2fa/setup", middleware.RequireAuth(jwtService), authHandler.Setup2FA)
-		v1.POST("/2fa/verify", middleware.RequireAuth(jwtService), authHandler.Verify2FA)
+		v1.POST("/logout", middleware.RequireAuth(jwtAdapter), authHandler.Logout)
+		v1.GET("/me", middleware.RequireAuth(jwtAdapter), authHandler.Me)
+		v1.POST("/password/change", middleware.RequireAuth(jwtAdapter), authHandler.ChangePassword)
+		v1.POST("/2fa/setup", middleware.RequireAuth(jwtAdapter), authHandler.Setup2FA)
+		v1.POST("/2fa/verify", middleware.RequireAuth(jwtAdapter), authHandler.Verify2FA)
 
 		// Admin only
-		v1.GET("/users", middleware.RequireAuth(jwtService), middleware.RequireRole("admin", "super_admin"), authHandler.ListUsers)
+		v1.GET("/users", middleware.RequireAuth(jwtAdapter), middleware.RequireRole("admin", "super_admin"), authHandler.ListUsers)
+
+		// Billing webhook (Stripe). POST sin auth — la auth es la firma HMAC.
+		billingHandler := handlers.NewBillingHandler(repo, log)
+		v1.POST("/billing/webhook", billingHandler)
+	}
+
+	// ─── Admin endpoints ───
+	adminHandler := handlers.NewAdminHandler(repo, log)
+	// En dev/demo aceptamos 3 roles. En producción acota a super_admin.
+	adminV1 := router.Group("/api/v1/admin", middleware.RequireAuth(jwtAdapter), middleware.RequireRole("super_admin", "admin", "tenant_admin"))
+	{
+		adminV1.GET("/tenants", adminHandler.ListTenants)
+		adminV1.GET("/stats", adminHandler.Stats)
 	}
 
 	// ─── 404 ───

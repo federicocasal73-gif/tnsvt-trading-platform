@@ -135,3 +135,7 @@ config/accounts.json
 # Generated docs (regenerables)
 word/*.docx
 pdf/*.pdf
+# Local dev tokens
+.token
+*.local
+

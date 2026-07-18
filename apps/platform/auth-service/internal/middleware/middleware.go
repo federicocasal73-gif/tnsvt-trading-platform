@@ -36,7 +36,7 @@ func RequestID() gin.HandlerFunc {
 func Logging(log interface {
 	Info(string, ...any)
 	Warn(string, ...any)
-	Error(string, error)
+	Error(string, error, ...any)
 }) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()

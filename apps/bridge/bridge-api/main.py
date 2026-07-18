@@ -530,6 +530,86 @@ def control_bot(req: BotControlRequest):
     return {"ok": True, "status": new_status}
 
 
+# ─── Prometheus /metrics ──────────────────────────────────────────────────
+
+
+# Import lazily so the bridge doesn't fail if the lib is missing.
+try:
+    from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+    PROM_OK = True
+except ImportError:
+    PROM_OK = False
+
+if PROM_OK:
+    # Counters / histograms de las rutas bridge (instrumentadas globalmente
+    # con un middleware: cada request entra con un Counter por método/path).
+    REQ_COUNTER = Counter(
+        "bridge_http_requests_total",
+        "Total HTTP requests serviced by the bridge API",
+        ["method", "path", "status"],
+    )
+    REQ_LATENCY = Histogram(
+        "bridge_http_request_duration_seconds",
+        "Request latency in seconds",
+        ["method", "path"],
+    )
+    OUTBOX_QUEUE_GAUGE = Gauge(
+        "bridge_outbox_pending_total",
+        "Currently pending outbox events",
+    )
+    TRADES_GAUGE = Gauge(
+        "bridge_trades_total",
+        "Total trades recorded",
+        ["status"],
+    )
+
+    @app.middleware("http")
+    async def prometheus_middleware(request: Request, call_next):
+        import time
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed = time.perf_counter() - start
+        # Patrón del path para evitar cardinalidad infinita:
+        # /api/v1/bridge/config → /api/v1/bridge/config
+        # /api/v1/bridge/analytics/metrics → /api/v1/bridge/analytics/{kind}
+        path = request.url.path
+        if path.startswith("/api/v1/bridge/analytics/"):
+            label = "/api/v1/bridge/analytics/{kind}"
+        elif path.startswith("/api/v1/bridge/telegram/"):
+            label = "/api/v1/bridge/telegram/{kind}"
+        elif path.startswith("/api/v1/bridge/"):
+            label = "/api/v1/bridge/{kind}"
+        else:
+            label = path
+        REQ_COUNTER.labels(request.method, label, str(response.status_code)).inc()
+        REQ_LATENCY.labels(request.method, label).observe(elapsed)
+        return response
+
+    @app.get("/metrics")
+    def metrics():
+        # Updatear gauges al vuelo (no usamos background poll para no agregar
+        # más threads en el bridge).
+        try:
+            stats = outbox.stats()
+            OUTBOX_QUEUE_GAUGE.set(stats.get("PENDING", 0))
+
+            by_status = {}
+            for t in trades_db.fetch_all_trades():
+                by_status[t.get("status", "UNKNOWN")] = by_status.get(t.get("status", "UNKNOWN"), 0) + 1
+            for s, n in by_status.items():
+                TRADES_GAUGE.labels(s).set(n)
+        except Exception:
+            pass
+
+        body = generate_latest()
+        from fastapi.responses import Response
+        return Response(content=body, media_type=CONTENT_TYPE_LATEST)
+else:
+    @app.get("/metrics")
+    def metrics_disabled():
+        return {"error": "prometheus_client not installed", "pip": "install prometheus-client"}
+
+
 if __name__ == "__main__":
     import uvicorn
 

@@ -26,6 +26,10 @@ type Repository interface {
 	CreateTenant(ctx context.Context, t *models.Tenant) error
 	GetTenantByID(ctx context.Context, id uuid.UUID) (*models.Tenant, error)
 	GetTenantBySlug(ctx context.Context, slug string) (*models.Tenant, error)
+	UpdateTenant(ctx context.Context, t *models.Tenant) error
+	ListTenants(ctx context.Context, limit, offset int) ([]*models.Tenant, error)
+	CountTenantsByPlan(ctx context.Context) (map[string]int, error)
+	CountActiveSubscriptions(ctx context.Context) (int, error)
 
 	// Users
 	CreateUser(ctx context.Context, u *models.User) error
@@ -59,7 +63,7 @@ type postgresRepo struct {
 }
 
 // NewPostgresRepository crea un nuevo repository PostgreSQL
-func NewPostgresRepository(dsn string, log interface{ Error(string, error); Info(string, ...any) }) (Repository, error) {
+func NewPostgresRepository(dsn string, log interface{ Error(string, error, ...any); Info(string, ...any) }) (Repository, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DSN: %w", err)
@@ -240,6 +244,74 @@ func (r *postgresRepo) GetTenantBySlug(ctx context.Context, slug string) (*model
 		return nil, err
 	}
 	return t, nil
+}
+
+// UpdateTenant updates mutable fields of an existing tenant (plan, status,
+// max_users, max_signals_per_day, name). Returns ErrNotFound if no row matches.
+func (r *postgresRepo) UpdateTenant(ctx context.Context, t *models.Tenant) error {
+	t.UpdatedAt = time.Now()
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.tenants
+		 SET name = $2, status = $3, plan = $4,
+		     max_users = $5, max_signals_per_day = $6,
+		     updated_at = $7
+		 WHERE id = $1`,
+		t.ID, t.Name, t.Status, t.Plan, t.MaxUsers, t.MaxSignals, t.UpdatedAt)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ListTenants paginated by created_at DESC.
+func (r *postgresRepo) ListTenants(ctx context.Context, limit, offset int) ([]*models.Tenant, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, name, slug, schema, status, plan, max_users, max_signals_per_day, created_at, updated_at
+		 FROM platform.tenants
+		 ORDER BY created_at DESC
+		 LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*models.Tenant
+	for rows.Next() {
+		t := &models.Tenant{}
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Schema, &t.Status, &t.Plan, &t.MaxUsers, &t.MaxSignals, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// CountTenantsByPlan returns a map {"free":N, "starter":N, "pro":N, "enterprise":N, ...}
+func (r *postgresRepo) CountTenantsByPlan(ctx context.Context) (map[string]int, error) {
+	rows, err := r.pool.Query(ctx, `SELECT plan, COUNT(*) FROM platform.tenants GROUP BY plan`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[string]int)
+	for rows.Next() {
+		var plan string
+		var n int
+		if err := rows.Scan(&plan, &n); err != nil {
+			return nil, err
+		}
+		out[plan] = n
+	}
+	return out, rows.Err()
+}
+
+// CountActiveSubscriptions returns count of tenants with status='active' AND plan != 'free'.
+func (r *postgresRepo) CountActiveSubscriptions(ctx context.Context) (int, error) {
+	var n int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM platform.tenants WHERE status = 'active' AND plan <> 'free'`).Scan(&n)
+	return n, err
 }
 
 // ─── Users ─────────────────────────────────────────────────────
