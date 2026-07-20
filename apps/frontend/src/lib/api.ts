@@ -101,6 +101,10 @@ export const api = {
       request<AdminTenant[]>(`/admin/tenants?limit=${limit}&offset=${offset}`),
     stats: () =>
       request<AdminStats>('/admin/stats'),
+    tenantsDemo: () =>
+      request<{ ok: boolean; tenants: AdminTenant[]; stats: AdminStats }>(`/admin/tenants_demo`),
+    seedDemo: () =>
+      request<{ ok: boolean; seeded?: number; skipped?: boolean }>(`/admin/seed_demo`, { method: 'POST' }),
   },
 };
 

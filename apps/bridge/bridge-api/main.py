@@ -705,6 +705,84 @@ def admin_cleanup_trades(older_than_days: int = 90,
     return {"ok": True, "deleted": deleted, "remaining": count_after}
 
 
+@app.post("/api/v1/admin/seed_demo")
+def admin_seed_demo():
+    """Crea trades semilla para que la pagina Admin tenga data visible.
+
+    Idempotente: solo siembra si la tabla esta vacia.
+    """
+    with trades_db._connect() as conn:
+        existing = conn.execute("SELECT COUNT(*) FROM trades WHERE tenant_id='admin_demo'").fetchone()[0]
+        if existing > 0:
+            return {"ok": True, "skipped": True, "reason": f"ya hay {existing} trades demo"}
+
+        now = datetime.now(timezone.utc).isoformat()
+        demo = [
+            ("EURUSD",  "BUY",  1.08500,  1.080,    1.090,   35.50,  "@canal_test",                 999,  "tenant_demo_starter"),
+            ("XAUUSD",  "SELL", 3997.06,  4031.8,   3959.3, -28.50, "XAU LIQUIDITY PRIVADO", 1001,  "tenant_demo_pro"),
+            ("GBPUSD",  "BUY",  1.26800,  1.262,    1.275,   12.50,  "@canal_test",                999,  "tenant_demo_starter"),
+            ("BTCUSD",  "BUY",  89110.6,  88000.0,  89500.0, -10.00, "INVESTMENTH VIP",        1002,  "tenant_demo_enterprise"),
+            ("USDJPY",  "BUY",  138.500,  137.800,  139.200,  22.50, "Señales Vip",              1003,  "tenant_demo_pro"),
+            ("ETHUSD",  "BUY",  3450.0,   3300.0,   3600.0,  -8.50,  "Cobrax VIP",               1004,  "tenant_demo_enterprise"),
+            ("AUDUSD",  "SELL", 0.6580,   0.6650,   0.6520,   4.50,  "World Forex Research",    1005,  "tenant_demo_starter"),
+            ("EURJPY",  "BUY",  155.40,   154.50,   156.50,  -2.50,  "@canal_test",                999,  "tenant_demo_starter"),
+        ]
+        for sym, action, price, sl, tp, pnl, channel, cid, tid in demo:
+            conn.execute(
+                """INSERT INTO trades
+                   (ticket, symbol, action, volume, open_price, close_price,
+                    sl, tp, pnl, commission, swap,
+                    opened_at, closed_at,
+                    channel_id, channel_title, topic_id,
+                    status, received_at, tenant_id, source)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    abs(hash(sym + action + str(price))) % 1_000_000_000,
+                    sym, action, 0.01, price, price,
+                    sl, tp, pnl, 0.0, 0.0,
+                    now, now, cid, channel, None,
+                    "CLOSED", now, tid, "admin_demo"
+                )
+            )
+        conn.commit()
+        count = conn.execute("SELECT COUNT(*) FROM trades WHERE tenant_id='admin_demo'").fetchone()[0]
+    return {"ok": True, "seeded": count}
+
+
+@app.get("/api/v1/admin/tenants_demo")
+def admin_tenants_demo():
+    """Lista de tenants demo para la pagina Admin.
+
+    Devuelve tenants ficticios (free / starter / pro / enterprise) con
+    metricas para que la UI muestre como se ve en produccion.
+    """
+    from datetime import datetime as _dt, timedelta as _td
+    base = _dt.now() - _td(days=20)
+
+    demo = [
+        {"id": "tn_demo_free_01",       "name": "Juan Picapiedra",      "slug": "juan-picapiedra",      "schema": "tenant_demo_free",       "status": "active",    "plan": "free",       "max_users": 1,   "max_signals_per_day": 25,  "created_at": (base + _td(days=5)).isoformat(),  "last_login_at": (_dt.now() - _td(hours=2)).isoformat()},
+        {"id": "tn_demo_starter_01",    "name": "Sofia Starter",        "slug": "sofia-starter",        "schema": "tenant_demo_starter",    "status": "active",    "plan": "starter",    "max_users": 3,   "max_signals_per_day": 100, "created_at": (base + _td(days=8)).isoformat(),  "last_login_at": (_dt.now() - _td(minutes=15)).isoformat()},
+        {"id": "tn_demo_pro_01",        "name": "Carlos Pro",           "slug": "carlos-pro",           "schema": "tenant_demo_pro",        "status": "active",    "plan": "pro",        "max_users": 10,  "max_signals_per_day": 500, "created_at": (base + _td(days=12)).isoformat(), "last_login_at": (_dt.now() - _td(minutes=2)).isoformat()},
+        {"id": "tn_demo_enterprise_01", "name": "Trading Corp SA",      "slug": "trading-corp-sa",      "schema": "tenant_demo_enterprise", "status": "active",    "plan": "enterprise", "max_users": 50,  "max_signals_per_day": 2500,"created_at": (base + _td(days=18)).isoformat(), "last_login_at": (_dt.now() - _td(hours=8)).isoformat()},
+        {"id": "tn_demo_trial_01",      "name": "Maria Trial (12 dias)","slug": "maria-trial",          "schema": "tenant_demo_trial",      "status": "trial",     "plan": "pro",        "max_users": 5,   "max_signals_per_day": 200, "created_at": (base + _td(days=15)).isoformat(), "last_login_at": (_dt.now() - _td(days=1)).isoformat()},
+    ]
+
+    stats = {
+        "total_tenants": len(demo),
+        "active_subscriptions": sum(1 for t in demo if t["status"] == "active" and t["plan"] != "free"),
+        "mrr_usd": sum({"free": 0, "starter": 49, "pro": 199, "enterprise": 999}[t["plan"]] for t in demo if t["status"] == "active"),
+        "churn_pct": 2.4,
+        "by_plan": [
+            {"plan": "free",       "count": sum(1 for t in demo if t["plan"] == "free")},
+            {"plan": "starter",    "count": sum(1 for t in demo if t["plan"] == "starter")},
+            {"plan": "pro",        "count": sum(1 for t in demo if t["plan"] == "pro")},
+            {"plan": "enterprise", "count": sum(1 for t in demo if t["plan"] == "enterprise")},
+        ],
+        "pricing_per_plan_usd": {"free": 0, "starter": 49, "pro": 199, "enterprise": 999},
+    }
+    return {"ok": True, "tenants": demo, "stats": stats}
+
+
 # ─── Config del bot (canales, lot, risk) ──────────────────────────────────
 
 

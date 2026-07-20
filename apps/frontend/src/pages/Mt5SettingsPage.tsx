@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Save, RotateCcw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Save, RotateCcw, AlertTriangle, CheckCircle2, Activity, Zap, Wifi, WifiOff } from 'lucide-react';
 import { api, BotConfig } from '../lib/api';
+import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
 import { Card, Page, Switch, NumberInput, PercentInput } from '../components/common';
 
@@ -27,10 +28,11 @@ const DEFAULTS = {
 };
 
 export function Mt5SettingsPage() {
+  const bridge = useBridge();
   const [cfg, setCfg] = useState<BotConfig | null>(null);
   const [draft, setDraft] = useState<BotConfig | null>(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<Toast>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [dirty, setDirty] = useState(false);
 
   const load = async () => {
@@ -100,6 +102,10 @@ export function Mt5SettingsPage() {
   const risk = (draft.risk_management || {}) as any;
   const safeNum = (v: any, fb: number) => (typeof v === 'number' ? v : fb);
 
+  const trailing = (draft as any).trailing_stop || { enabled: false, step_pips: 30, start_pips: 20 };
+  const mt5Online = bridge.openPositions > 0 || !!bridge.account;
+  const trailingActive = !!trailing.enabled;
+
   return (
     <Page
       title="MT5 · Settings"
@@ -138,6 +144,56 @@ export function Mt5SettingsPage() {
           {toast.msg}
         </div>
       )}
+
+      {/* Banner de estado MT5 + Trailing */}
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <div
+          className={cls(
+            'flex items-center gap-2.5 rounded-lg border bg-tnvs-surface px-3 py-2',
+            mt5Online ? 'border-tnvs-win/40' : 'border-tnvs-loss/40',
+          )}
+        >
+          {mt5Online ? <Wifi className="h-4 w-4 text-tnvs-win" /> : <WifiOff className="h-4 w-4 text-tnvs-loss" />}
+          <div className="text-xs">
+            <div className={mt5Online ? 'text-tnvs-win' : 'text-tnvs-loss'}>MT5 {mt5Online ? 'Conectado' : 'Desconectado'}</div>
+            <div className="text-tnvs-muted">
+              {bridge.account ? `Balance $${bridge.account.balance.toLocaleString()}` : 'sin snapshot'}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={cls(
+            'flex items-center gap-2.5 rounded-lg border bg-tnvs-surface px-3 py-2',
+            trailingActive ? 'border-tnvs-purple/40' : 'border-tnvs-border',
+          )}
+        >
+          <Zap className={cls('h-4 w-4', trailingActive ? 'text-tnvs-purple' : 'text-tnvs-dim')} />
+          <div className="text-xs">
+            <div className={trailingActive ? 'text-tnvs-purple' : 'text-tnvs-muted'}>
+              Trailing {trailingActive ? 'ACTIVO' : 'apagado'}
+            </div>
+            <div className="text-tnvs-muted">
+              {trailingActive
+                ? `start=${trailing.start_pips} pips · step=${trailing.step_pips} pips`
+                : 'mueve SL a favor cuando hay ganancia'}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 rounded-lg border border-tnvs-border bg-tnvs-surface px-3 py-2">
+          <Activity className="h-4 w-4 text-tnvs-cyan" />
+          <div className="text-xs">
+            <div className="text-tnvs-cyan">Posiciones abiertas: {bridge.openPositions}</div>
+            <div className="text-tnvs-muted">
+              P&L flotante:{' '}
+              <span className={cls('font-mono', bridge.unrealizedPnl > 0 ? 'text-tnvs-win' : bridge.unrealizedPnl < 0 ? 'text-tnvs-loss' : 'text-tnvs-muted')}>
+                {bridge.unrealizedPnl >= 0 ? '+' : ''}${bridge.unrealizedPnl.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card header="Broker / Operativa">

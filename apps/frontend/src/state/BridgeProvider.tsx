@@ -1,25 +1,9 @@
 import { createContext, ReactNode, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { api, Mt5AccountSnapshot, Metrics } from '../lib/api';
-
-export interface Mt5Position {
-  ticket: number;
-  symbol: string;
-  type: string;
-  volume: number;
-  price_open: number;
-  price_current: number;
-  sl: number;
-  tp: number;
-  profit: number;
-  swap: number;
-  commission: number;
-  comment: string;
-  time: number;
-}
+import { api, Mt5AccountSnapshot, Mt5PositionSnapshot, Metrics } from '../lib/api';
 
 export interface BridgeState {
   account: Mt5AccountSnapshot | null;
-  positions: Mt5Position[];
+  positions: Mt5PositionSnapshot[];
   openPositions: number;
   unrealizedPnl: number;
   metrics: Metrics | null;
@@ -41,7 +25,7 @@ export function useBridge() {
 
 export function BridgeProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Mt5AccountSnapshot | null>(null);
-  const [positions, setPositions] = useState<Mt5Position[]>([]);
+  const [positions, setPositions] = useState<Mt5PositionSnapshot[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [signalCopierOnline, setSignalCopierOnline] = useState(false);
   const [signalCopierData, setSignalCopierData] = useState<BridgeState['signalCopierData']>(null);

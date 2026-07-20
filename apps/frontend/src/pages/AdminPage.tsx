@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, DollarSign, TrendingDown, RefreshCw } from 'lucide-react';
+import { Users, DollarSign, TrendingDown, RefreshCw, Database } from 'lucide-react';
 import { api, AdminTenant, AdminStats } from '../lib/api';
 import { cls } from '../utils/format';
 import { Card, Empty, Page, StatCard } from '../components/common';
@@ -22,21 +22,50 @@ export function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingDemo, setUsingDemo] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [t, s] = await Promise.all([
-        api.admin.tenants(),
-        api.admin.stats(),
-      ]);
-      setTenants(t);
-      setStats(s);
+      // Primero intentar backend real
+      try {
+        const [t, s] = await Promise.all([
+          api.admin.tenants(),
+          api.admin.stats(),
+        ]);
+        if (t.length > 0) {
+          setTenants(t);
+          setStats(s);
+          setUsingDemo(false);
+        } else {
+          throw new Error('backend vacío');
+        }
+      } catch (e: any) {
+        // Fallback: tenants demo para que la UI siempre tenga data
+        console.debug('[Admin] usando datos demo porque:', e.message);
+        const d = await api.admin.tenantsDemo();
+        setTenants(d.tenants);
+        setStats(d.stats);
+        setUsingDemo(true);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seedDemoTrades = async () => {
+    setSeeding(true);
+    try {
+      await api.admin.seedDemo();
+      await load();
+    } catch (e: any) {
+      setError('Seed falló: ' + e.message);
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -51,12 +80,19 @@ export function AdminPage() {
       title="Admin · Tenants & Billing"
       subtitle="MRR, churn, plan breakdown (suscripciones Stripe en vivo)"
       actions={
-        <button
-          onClick={load}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-tnvs-muted hover:bg-white/[0.04] hover:text-white"
-        >
-          <RefreshCw className="h-3 w-3" /> Refrescar
-        </button>
+        <div className="flex items-center gap-2">
+          {usingDemo && (
+            <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              Datos demo
+            </span>
+          )}
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-tnvs-muted hover:bg-white/[0.04] hover:text-white"
+          >
+            <RefreshCw className="h-3 w-3" /> Refrescar
+          </button>
+        </div>
       }
     >
       {error && (
@@ -138,7 +174,7 @@ export function AdminPage() {
           )}
         </Card>
 
-        <Card header="Webhook events (referencia)">
+        <Card header="Webhook de Stripe (referencia)">
           <div className="space-y-2 text-xs text-tnvs-muted">
             <p>Para que MRR se actualice en vivo, configurar el webhook de Stripe:</p>
             <pre className="rounded-md bg-tnvs-void px-3 py-2 font-mono text-[11px] text-tnvs-muted">
@@ -152,6 +188,19 @@ Eventos manejados:
 
 Env: STRIPE_WEBHOOK_SECRET=<sk_webhook_...>`}
             </pre>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={seedDemoTrades}
+                disabled={seeding}
+                className="inline-flex items-center gap-1.5 rounded-md border border-tnvs-border bg-tnvs-surface px-3 py-1.5 text-xs text-tnvs-muted hover:bg-tnvs-surface2 hover:text-white disabled:opacity-40"
+              >
+                <Database className="h-3.5 w-3.5" />
+                {seeding ? 'Sembrando...' : 'Sembrar trades demo'}
+              </button>
+              <span className="text-[10px] text-tnvs-dim">
+                8 trades CLOSED con canales, símbolos y P&L reales
+              </span>
+            </div>
           </div>
         </Card>
       </div>
@@ -165,7 +214,7 @@ Env: STRIPE_WEBHOOK_SECRET=<sk_webhook_...>`}
               title="Sin tenants"
               description={
                 error
-                  ? 'La petición falló (ver error arriba). Requerido rol admin/super_admin/tenant_admin.'
+                  ? 'La petición falló. Si querés ver data demo, cargá STripe y reintenta.'
                   : stats === null
                   ? 'Cargando…'
                   : 'No hay tenants registrados todavía.'
