@@ -29,7 +29,10 @@ export function Mt5PositionsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const data = await api.bridge.trades(tab === 'ALL' ? undefined : tab);
+      // Filtrar ultimos 30 dias por defecto para evitar que datos viejos
+      // del bot_data.db inunden la vista. Las posiciones OPEN en MT5
+      // siempre se ven (porque su opened_at es hoy).
+      const data = await api.bridge.trades(tab === 'ALL' ? undefined : tab, 30);
       setTrades(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(data)) {
           setPulse(true);

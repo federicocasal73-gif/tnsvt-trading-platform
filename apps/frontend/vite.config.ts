@@ -43,14 +43,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path,
       },
-      // Users endpoints → auth-service directo (no hay user-service
-      // corriendo, pero el gateway tampoco puede forwardear).
-      '/api/v1/users': {
-        target: 'http://localhost:8001',
-        changeOrigin: true,
-      },
-      // Catch-all → gateway :8000 (signals, copy, risk, prices, etc
-      // — que NO corren en dev, así que 502 es la respuesta esperada).
+      // Catch-all → gateway :8000 (signals, copy, risk, users, prices, etc).
       '/api': {
         target: apiTarget,
         changeOrigin: true,

@@ -31,7 +31,7 @@ func main() {
 	log := sharedlogging.New("telegram-bot-service", cfg.LogLevel)
 
 	if botToken == "" {
-		log.Error("TELEGRAM_BOT_TOKEN is required", nil)
+		log.Error("TELEGRAM_BOT_TOKEN is required", errors.New("missing token"))
 		os.Exit(1)
 	}
 

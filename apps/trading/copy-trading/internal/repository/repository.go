@@ -761,7 +761,7 @@ func isUniqueViolation(err error) bool {
 		return false
 	}
 	s := err.Error()
-	return containsAny(s, "duplicate key", "unique constraint", "23505")
+	return containsAny(s, []string{"duplicate key", "unique constraint", "23505"})
 }
 
 func containsAny(s string, subs []string) bool {

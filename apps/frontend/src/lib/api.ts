@@ -46,11 +46,30 @@ export const api = {
   bridge: {
     metrics: () => request<Metrics>('/bridge/analytics/metrics'),
     equityCurve: () => request<EquityPoint[]>('/bridge/analytics/equity-curve'),
-    byChannel: () => request<ChannelAgg[]>('/bridge/analytics/by-channel'),
-    bySymbol: () => request<SymbolAgg[]>('/bridge/analytics/by-symbol'),
+    byChannel: (tenantId?: string, sinceDays?: number) => {
+      const params = new URLSearchParams();
+      if (tenantId) params.set('tenant_id', tenantId);
+      if (sinceDays) params.set('since_days', String(sinceDays));
+      const qs = params.toString();
+      return request<ChannelAgg[]>(`/bridge/analytics/by-channel${qs ? `?${qs}` : ''}`);
+    },
+    bySymbol: (tenantId?: string, sinceDays?: number) => {
+      const params = new URLSearchParams();
+      if (tenantId) params.set('tenant_id', tenantId);
+      if (sinceDays) params.set('since_days', String(sinceDays));
+      const qs = params.toString();
+      return request<SymbolAgg[]>(`/bridge/analytics/by-symbol${qs ? `?${qs}` : ''}`);
+    },
     livePositions: () => request<LivePosition[]>('/bridge/analytics/live-positions'),
+    signalCopierStatus: () => request<{ ok: boolean; data?: { connected: boolean; balance: number; equity: number; margin: number; profit: number; open_positions: number }; error?: string }>('/bridge/mt5/signal_copier_status'),
     calendar: (year?: number) => request<CalendarDay[]>(`/bridge/analytics/calendar${year ? `?year=${year}` : ''}`),
-    trades: (status?: string) => request<LivePosition[]>(`/bridge/analytics/trades${status ? `?status=${status}` : ''}`),
+    trades: (status?: string, sinceDays?: number) => {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (sinceDays) params.set('since_days', String(sinceDays));
+      const qs = params.toString();
+      return request<LivePosition[]>(`/bridge/analytics/trades${qs ? `?${qs}` : ''}`);
+    },
     account: () => request<{ ok: boolean; data: Mt5AccountSnapshot }>('/bridge/mt5/account'),
     positionsLive: () => request<{ ok: boolean; data: Mt5PositionSnapshot[]; count: number }>('/bridge/mt5/positions'),
     config: () => request<BotConfig>('/bridge/config'),

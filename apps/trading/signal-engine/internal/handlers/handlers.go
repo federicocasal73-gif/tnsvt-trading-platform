@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -266,7 +267,7 @@ func (h *SignalHandler) Stream(c *gin.Context) {
 		return
 	}
 
-	c.Stream(func(w http.ResponseWriter) bool {
+	c.Stream(func(w io.Writer) bool {
 		select {
 		case signal, ok := <-ch:
 			if !ok {
@@ -318,7 +319,15 @@ func (h *SignalHandler) IngestTelegram(c *gin.Context) {
 		return
 	}
 
-	signal, err := h.service.SubmitRawSignal(c.Request.Context(), &raw)
+	// Extraer tenant del header (seteado por api-gateway o bridge)
+	tenantID := uuid.Nil
+	if tenantStr := c.GetHeader("X-Tenant-ID"); tenantStr != "" {
+		if t, err := uuid.Parse(tenantStr); err == nil {
+			tenantID = t
+		}
+	}
+
+	signal, err := h.service.SubmitRawSignal(c.Request.Context(), &raw, tenantID)
 	if err != nil {
 		if errors.Is(err, service.ErrDuplicate) {
 			c.JSON(http.StatusOK, gin.H{

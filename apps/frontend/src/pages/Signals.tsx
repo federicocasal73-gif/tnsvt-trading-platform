@@ -41,7 +41,7 @@ export const SignalsPage = memo(function SignalsPage() {
                   <td className="font-mono">{fmtUsd(s.entry_price)}</td>
                   <td className="font-mono text-tnvs-loss">{fmtUsd(s.stop_loss)}</td>
                   <td className="font-mono text-tnvs-win">{fmtUsd(s.take_profit)}</td>
-                  <td>{s.confidence != null ? fmtPct(s.confidence / 100) : '-'}</td>
+                  <td>{s.confidence != null ? fmtPct(s.confidence * 100) : '-'}</td>
                   <td className="text-xs text-tnvs-muted">{s.source || '-'}</td>
                   <td><StatusBadge status={s.status} /></td>
                 </tr>

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,7 +97,7 @@ func (s *CopyTradingService) ReplicateSignal(ctx context.Context, signal *models
 	totalAccounts := 0
 	for _, group := range groups {
 		if !s.groupMatches(group, signal) {
-			s.log.Debug("Group filter mismatch", "group", group.Name, "symbol", signal.Symbol, "action", signal.Action)
+			s.log.Info("Group filter mismatch", "group", group.Name, "symbol", signal.Symbol, "action", signal.Action)
 			continue
 		}
 
@@ -400,14 +401,15 @@ func (s *CopyTradingService) applyAccountConfig(signal *models.SignalInput, acco
 	// ─── SL/TP override ──────────────────────────────────────
 	if signal.EntryPrice != nil {
 		entry := *signal.EntryPrice
+		pip := pipValue(signal.Symbol)
 
 		// SL
 		if account.OverrideSL && account.SLPips > 0 {
 			pips := account.SLPips
 			if config.Side == "BUY" {
-				config.SL = entry - (pips / 10000)
+				config.SL = entry - (pips * pip)
 			} else {
-				config.SL = entry + (pips / 10000)
+				config.SL = entry + (pips * pip)
 			}
 		} else if signal.StopLoss != nil {
 			config.SL = *signal.StopLoss
@@ -417,9 +419,9 @@ func (s *CopyTradingService) applyAccountConfig(signal *models.SignalInput, acco
 		if account.OverrideTP && account.TPPips > 0 {
 			pips := account.TPPips
 			if config.Side == "BUY" {
-				config.TP = entry + (pips / 10000)
+				config.TP = entry + (pips * pip)
 			} else {
-				config.TP = entry - (pips / 10000)
+				config.TP = entry - (pips * pip)
 			}
 		} else if len(signal.TakeProfits) > 0 {
 			config.TP = signal.TakeProfits[0]
@@ -442,9 +444,7 @@ func (s *CopyTradingService) failJob(ctx context.Context, job *models.CopyJob, e
 }
 
 func (s *CopyTradingService) updateAccountStats(ctx context.Context, accountID uuid.UUID) {
-	// En Fase 1: simplificado, incrementamos via SQL
-	// En Fase 2: usar UPDATE con stats aggregation
-	s.repo.UpdateJob // (placeholder para que el linter no se queje)
+	// En Fase 2: implementar UPDATE con stats aggregation
 }
 
 // ─── Group CRUD ───────────────────────────────────────────────
@@ -549,9 +549,9 @@ func (s *CopyTradingService) CreateAccount(ctx context.Context, tenantID, groupI
 		LotMultiplier: derefFloat(req.LotMultiplier),
 		RiskPercent:  req.RiskPercent,
 		OverrideSL:   overrideSL,
-		SLPips:       dereqFloat(req.SLPips),
+		SLPips:       derefFloat(req.SLPips),
 		OverrideTP:   overrideTP,
-		TPPips:       dereqFloat(req.TPPips),
+		TPPips:       derefFloat(req.TPPips),
 		InvertSide:   invertSide,
 		SymbolSuffix: req.SymbolSuffix,
 	}
@@ -687,13 +687,6 @@ func derefFloat(p *float64) float64 {
 	return *p
 }
 
-func dereqFloat(p *float64) float64 {
-	if p == nil {
-		return 0
-	}
-	return *p
-}
-
 func stripSuffix(symbol string) string {
 	// Quitar suffixes comunes para evitar duplicación
 	for _, suffix := range []string{".m", ".M", ".r", ".R", ".pro", ".raw", ".Raw"} {
@@ -709,6 +702,26 @@ func roundToStep(value, step float64) float64 {
 		return value
 	}
 	return float64(int(value/step+0.5)) * step
+}
+
+func pipValue(symbol string) float64 {
+	up := strings.ToUpper(symbol)
+	if strings.Contains(up, "JPY") {
+		return 0.01
+	}
+	if strings.HasPrefix(up, "XAU") || strings.HasPrefix(up, "XAG") || strings.Contains(up, "GOLD") || strings.Contains(up, "SILVER") {
+		return 0.1
+	}
+	if strings.HasPrefix(up, "BTC") || strings.HasPrefix(up, "ETH") || strings.Contains(up, "XBT") {
+		return 0.01
+	}
+	if strings.Contains(up, "US30") || strings.Contains(up, "SPX") || strings.Contains(up, "NAS") || strings.Contains(up, "DJI") {
+		return 1.0
+	}
+	if strings.Contains(up, "XTI") || strings.Contains(up, "XBR") || strings.Contains(up, "OIL") {
+		return 0.01
+	}
+	return 0.0001
 }
 
 // ErrInvalidSignal señal inválida

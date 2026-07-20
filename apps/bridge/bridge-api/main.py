@@ -218,8 +218,227 @@ def root():
             "GET  /api/v1/bridge/analytics/calendar",
             "GET  /api/v1/bridge/mt5/account",
             "GET  /api/v1/bridge/mt5/positions",
+            "POST /api/v1/bridge/copier/trades",
+            "PUT  /api/v1/bridge/copier/trades/{id}",
+            "POST /api/v1/bridge/copier/status",
+            "GET  /api/v1/bridge/copier/status",
+            "GET  /api/v1/bridge/copier/dashboard",
         ],
     }
+
+
+# ─── Copier Status (compat con el bot Python Terminal_Financiera_Pro) ───
+#
+# Estos endpoints reproducen el contrato del "TNSVT Symphony" PHP para que
+# el `signal_copier` y el bot de Telegram (que apuntan via tnsvt_client.py)
+# puedan seguir hablando con el bridge-api FastAPI del V2 sin reescritura.
+#
+# Persistencia: tabla `copier_status` (key/value JSON) en bridge_outbox.db.
+
+import threading as _threading
+from typing import Any as _Any
+
+_status_lock = _threading.Lock()
+
+
+def _init_status_table():
+    with trades_db._connect() as _conn:
+        _conn.execute(
+            """CREATE TABLE IF NOT EXISTS copier_status (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )"""
+        )
+
+
+_init_status_table()
+
+
+@app.get("/api/v1/bridge/copier/dashboard")
+def copier_dashboard():
+    """Snapshot consolidado: status + MT5 account + métricas analytics + posiciones.
+
+    Compat shape: {"success": True, "status": {...}, "config": {...}, "trades": [...]}
+    Replica lo que devolvía Symphony PHP en /api/admin/copier/dashboard.
+    """
+    status = {}
+    with _status_lock:
+        with trades_db._connect() as conn:
+            for row in conn.execute("SELECT key, value FROM copier_status").fetchall():
+                try:
+                    status[row["key"]] = json.loads(row["value"])
+                except Exception:
+                    pass
+
+    metrics = compute_metrics(trades_db.fetch_closed_trades())
+    live_positions = trades_db.fetch_open_trades()
+
+    status_payload = {
+        "balance": status.get("balance", 0.0),
+        "daily_pnl": status.get("daily_pnl", 0.0),
+        "weekly_pnl": status.get("weekly_pnl", 0.0),
+        "total_trades": metrics.get("total", 0),
+        "win_rate": round(metrics.get("win_rate", 0) * 100, 1),
+        "mt5_connected": status.get("mt5_connected", False),
+        "telegram_bot": status.get("telegram_bot", False),
+        "bot_username": status.get("bot_username", ""),
+        "last_heartbeat": status.get("last_heartbeat", ""),
+        **status.get("extras", {}),
+    }
+
+    return {
+        "success": True,
+        "status": status_payload,
+        "config": {},
+        "trades": trades_db.fetch_all_trades()[:50],
+        "metrics": metrics,
+        "live_positions_count": len(live_positions),
+    }
+
+
+@app.post("/api/v1/bridge/copier/status")
+def copier_status_upsert(payload: dict):
+    """POST /api/v1/bridge/copier/status — heartbeat + merge con campos nuevos.
+
+    El bot lo llama con: telegram_bot=True, bot_username=@x, etc.
+    Mergemos con el status actual (igual que Symphony hacia read+merge+POST).
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "payload debe ser dict")
+    with _status_lock, trades_db._connect() as conn:
+        # Read current + merge + write back
+        cur: dict = {}
+        for row in conn.execute("SELECT key, value FROM copier_status").fetchall():
+            try:
+                cur[row["key"]] = json.loads(row["value"])
+            except Exception:
+                pass
+        cur.update({k: v for k, v in payload.items() if v is not None})
+        cur["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+        # Persist every key as separate row
+        for k, v in cur.items():
+            conn.execute(
+                "INSERT OR REPLACE INTO copier_status (key, value, updated_at) VALUES (?, ?, ?)",
+                (k, json.dumps(v), datetime.now(timezone.utc).isoformat()),
+            )
+    return {"success": True, "merged_keys": list(payload.keys()), "total_keys": len(cur)}
+
+
+@app.get("/api/v1/bridge/copier/status")
+def copier_status_get():
+    """GET /api/v1/bridge/copier/status — devuelve el status actual (cache)."""
+    out = {}
+    with _status_lock, trades_db._connect() as conn:
+        for row in conn.execute("SELECT key, value FROM copier_status").fetchall():
+            try:
+                out[row["key"]] = json.loads(row["value"])
+            except Exception:
+                pass
+    return {"status": out}
+
+
+@app.post("/api/v1/bridge/copier/trades")
+def copier_log_trade(payload: dict):
+    """POST /api/v1/bridge/copier/trades — log_trade del signal_copier.
+
+    Body: {symbol, action, price, sl, tp, result, pnl, notes, account_id?, channel_id?, channel_title?}
+    Mapping:
+      - genera ticket deterministico NEGATIVO a partir de timestamp+symbol si no hay
+      - persiste en trades_db (que es el mismo store que ya usa /api/v1/bridge/mt5/order)
+      - devuelve {id, ticket} para que el bot pueda mapear luego en trade_map.json
+    """
+    required = ["symbol", "action"]
+    for k in required:
+        if k not in payload:
+            raise HTTPException(400, f"missing field: {k}")
+
+    action = payload["action"]
+    symbol = payload["symbol"]
+    result = payload.get("result", "OPEN")
+
+    # Ticket sintetico solo si el bot no proporciona uno (signal_copier no lleva counter).
+    ticket = payload.get("ticket")
+    if not ticket:
+        # tick negativo basado en epoch microsegundo, unico
+        ticket = -int(datetime.now(timezone.utc).timestamp() * 1_000_000) % 2_000_000_000
+
+    pnl_val = float(payload.get("pnl") or 0)
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # extraer canal si viene en notes
+    notes = payload.get("notes") or ""
+    channel_title = payload.get("channel_title") or ""
+    if not channel_title and notes:
+        channel_title = notes
+
+    row = {
+        "ticket": ticket,
+        "symbol": symbol,
+        "action": action,
+        "volume": float(payload.get("volume") or 0.01),
+        "price": payload.get("price"),
+        "open_price": payload.get("price"),
+        "sl": payload.get("sl"),
+        "tp": payload.get("tp"),
+        "pnl": pnl_val,
+        "status": "CLOSED" if result in ("WIN", "LOSS", "CLOSED", "BREAKEVEN", "ERROR") else "OPEN",
+        "opened_at": now_iso,
+        "closed_at": now_iso if result in ("WIN", "LOSS", "CLOSED", "BREAKEVEN", "ERROR") else None,
+        "channel_id": payload.get("channel_id"),
+        "channel_title": channel_title,
+        "topic_id": payload.get("topic_id"),
+        "received_at": now_iso,
+        "tenant_id": payload.get("tenant_id") or "default",
+        "source": payload.get("source") or "signal_copier",
+    }
+    trades_db.upsert_trade(row)
+    # devolver id interno (autoincrement) aproximado via rowcount/ticket
+    return {"id": ticket, "ticket": ticket, "success": True}
+
+
+@app.put("/api/v1/bridge/copier/trades/{trade_id}")
+def copier_update_trade(trade_id: int, payload: dict):
+    """PUT /api/v1/bridge/copier/trades/{id} — update_trade del bot.
+
+    Acepta update parcial: {result?, pnl?, sl?, tp?}.
+    """
+    if not isinstance(payload, dict) or not payload:
+        raise HTTPException(400, "payload vacio")
+
+    fields = {}
+    if "result" in payload:
+        result = payload["result"]
+        fields["status"] = "CLOSED" if result in ("WIN", "LOSS", "CLOSED", "BREAKEVEN") else result
+        if result in ("WIN", "LOSS", "CLOSED", "BREAKEVEN"):
+            fields["closed_at"] = datetime.now(timezone.utc).isoformat()
+    if "pnl" in payload:
+        fields["pnl"] = float(payload["pnl"])
+    if "sl" in payload:
+        fields["sl"] = payload["sl"]
+    if "tp" in payload:
+        fields["tp"] = payload["tp"]
+
+    if not fields:
+        raise HTTPException(400, "no actualizable")
+
+    set_clause = ", ".join(f"{k}=?" for k in fields)
+    values = list(fields.values())
+    values.append(trade_id)
+
+    with trades_db._lock, trades_db._connect() as conn:
+        cur = conn.execute(
+            f"UPDATE trades SET {set_clause} WHERE ticket=? OR id=?",
+            (*values, trade_id),
+        )
+        if cur.rowcount == 0:
+            # intentar por id interno
+            cur = conn.execute(
+                f"UPDATE trades SET {set_clause} WHERE id=?",
+                tuple(values),
+            )
+    return {"success": True, "updated": cur.rowcount}
 
 
 # ─── Analytics ──────────────────────────────────────────────────────────
@@ -439,14 +658,51 @@ def analytics_live_positions(request: Request, tenant_id: Optional[str] = None):
 
 @app.get("/api/v1/bridge/analytics/trades")
 def analytics_trades(request: Request, status: Optional[str] = None,
-                     tenant_id: Optional[str] = None):
-    """Filtros: ?status=OPEN|CLOSED, ?tenant_id=xxx"""
+                     tenant_id: Optional[str] = None,
+                     since_days: Optional[int] = None):
+    """Filtros:
+       ?status=OPEN|CLOSED
+       ?tenant_id=xxx
+       ?since_days=N   -> ignorar trades con mas de N dias de antiguedad
+                          (para destrabar la vista cuando hay muchos viejos)
+    """
     tid = _resolve_tenant(request, tenant_id)
+    all_trades = trades_db.fetch_all_trades(tid)
+    if since_days is not None and since_days > 0:
+        from datetime import datetime as _dt, timedelta as _td
+        cutoff = (_dt.now(timezone.utc) - _td(days=since_days)).isoformat()
+        all_trades = [t for t in all_trades if (t.get("opened_at") or "") >= cutoff]
+
     if status == "OPEN":
-        return trades_db.fetch_open_trades(tid)
+        return [t for t in all_trades if t.get("status") == "OPEN"]
     if status == "CLOSED":
-        return trades_db.fetch_closed_trades(tid)
-    return trades_db.fetch_all_trades(tid)
+        return [t for t in all_trades if t.get("status") == "CLOSED"]
+    return all_trades
+
+
+@app.post("/api/v1/admin/trades/cleanup")
+def admin_cleanup_trades(older_than_days: int = 90,
+                          confirm: bool = False,
+                          tenant_id: Optional[str] = None):
+    """Limpia trades viejos (>older_than_days) de bridge_outbox.db.
+
+    Safety: requiere confirm=True. Mantiene el schema Copernicus intacto.
+    Devuelve el numero de trades eliminados.
+    """
+    if not confirm:
+        raise HTTPException(400, "Se requiere confirm=true para ejecutar cleanup")
+    with trades_db._connect() as conn:
+        count_before = conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+        conn.execute(
+            "DELETE FROM trades WHERE opened_at < datetime('now', ?)",
+            (f"-{int(older_than_days)} days",),
+        )
+        conn.commit()
+        count_after = conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+    deleted = count_before - count_after
+    logger.warning("admin_cleanup_trades: borrados %d trades viejos (older than %d days) by tenant=%s",
+                  deleted, older_than_days, tenant_id)
+    return {"ok": True, "deleted": deleted, "remaining": count_after}
 
 
 # ─── Config del bot (canales, lot, risk) ──────────────────────────────────
@@ -590,6 +846,35 @@ def get_mt5_positions():
     if data is None:
         raise HTTPException(503, "Positions snapshot not available")
     return {"ok": True, "data": data, "count": len(data) if data else 0}
+
+
+@app.get("/api/v1/bridge/mt5/signal_copier_status")
+def signal_copier_status():
+    """Lee el archivo var/mt5_status.json que escribe el signal_copier (Python).
+
+    Devuelve connected, balance, open_positions, y los P&L agregados.
+    Si el signal_copier no ha escrito nunca, devuelve connected=False.
+    """
+    import json as _json
+    from pathlib import Path as _P
+    # El bridge-api corre dentro de TNSVT V2; el signal_copier escribe en
+    # la carpeta var/ del proyecto Python. La ruta se resuelve via env o default.
+    candidate_paths = [
+        os.getenv("SIGNAL_COPIER_VAR", ""),
+        r"D:\TradingBotMT5\var\mt5_status.json",
+        r"C:\Users\HP 240 inch G9\OneDrive\Desktop\Importante ultimas cosas\Terminal_Financiera_Pro_Completo\Terminal_Financiera_Pro\var\mt5_status.json",
+    ]
+    for path in candidate_paths:
+        if not path:
+            continue
+        p = _P(path)
+        if p.exists():
+            try:
+                data = _json.loads(p.read_text(encoding="utf-8"))
+                return {"ok": True, "data": data, "path": str(p)}
+            except Exception as e:
+                return {"ok": False, "error": str(e)}
+    return {"ok": False, "error": "signal_copier status file not found", "connected": False}
 
 
 # ─── Prometheus /metrics ──────────────────────────────────────────────────

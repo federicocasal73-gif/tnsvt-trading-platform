@@ -66,7 +66,7 @@ export const DashboardPage = memo(function DashboardPage() {
                     <td className="font-medium">{s.symbol}</td>
                     <td><ActionBadge action={s.action} /></td>
                     <td className="font-mono">{fmtUsd(s.entry_price)}</td>
-                    <td>{s.confidence != null ? fmtPct(s.confidence / 100) : '-'}</td>
+                    <td>{s.confidence != null ? fmtPct(s.confidence * 100) : '-'}</td>
                     <td className="text-xs text-tnvs-muted">{fmtDate(s.created_at)}</td>
                   </tr>
                 ))}

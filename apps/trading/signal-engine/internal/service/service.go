@@ -130,7 +130,7 @@ func (s *SignalService) SubmitSignal(ctx context.Context, req *models.SubmitSign
 }
 
 // SubmitRawSignal procesa una señal cruda de Telegram (texto)
-func (s *SignalService) SubmitRawSignal(ctx context.Context, raw *models.RawSignal) (*models.Signal, error) {
+func (s *SignalService) SubmitRawSignal(ctx context.Context, raw *models.RawSignal, tenantID uuid.UUID) (*models.Signal, error) {
 	signal, err := s.parser.ParseRawSignal(raw)
 	if err != nil {
 		// Guardar como rechazada
@@ -153,7 +153,7 @@ func (s *SignalService) SubmitRawSignal(ctx context.Context, raw *models.RawSign
 		return rejected, err
 	}
 
-	signal.TenantID = uuid.Nil // Se setea por defecto; en producción usar el del usuario que autorizó el canal
+	signal.TenantID = tenantID
 	signal.SourceID = fmt.Sprintf("%d_%d", raw.ChannelID, raw.MessageID)
 	signal.Hash = s.computeRawHashWithSignal(raw.Text, signal)
 

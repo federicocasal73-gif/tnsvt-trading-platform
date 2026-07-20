@@ -42,11 +42,13 @@ export function Mt5DashboardPage() {
     const results = await Promise.allSettled([
       api.bridge.metrics(),
       api.bridge.equityCurve(),
-      api.bridge.byChannel(),
-      api.bridge.bySymbol(),
+      api.bridge.byChannel(undefined, 30),
+      api.bridge.bySymbol(undefined, 30),
       api.bridge.calendar(),
       api.bridge.account(),
       api.bridge.positionsLive(),
+      // Tambien traer trades recientes para enriquecer el panel
+      api.bridge.trades(undefined, 30),
     ]);
     if (results[0].status === 'fulfilled') {
       setMetrics(results[0].value);

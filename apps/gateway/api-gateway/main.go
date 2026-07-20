@@ -12,7 +12,7 @@
 //
 // Routing:
 //   /api/v1/auth/*          → auth-service:8001
-//   /api/v1/users/*         → user-service:8002
+//   /api/v1/users/*         → user-service:8401
 //   /api/v1/signals/*       → signal-engine:8003
 //   /api/v1/executions/*    → execution-engine:8004
 //   /api/v1/copy/*          → copy-trading:8005

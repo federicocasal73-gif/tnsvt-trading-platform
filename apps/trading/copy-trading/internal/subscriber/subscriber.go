@@ -44,15 +44,20 @@ func NewSignalSubscriber(nc *nats.Conn, trigger ReplicationTrigger, log interfac
 
 // Start comienza a escuchar
 func (s *SignalSubscriber) Start(ctx context.Context) error {
-	sub, err := s.nats.Subscribe("trading.signal.validated", s.handleMessage)
+	subCreated, err := s.nats.Subscribe("trading.signal.created", s.handleMessage)
+	if err != nil {
+		return fmt.Errorf("subscribe to trading.signal.created: %w", err)
+	}
+	subValidated, err := s.nats.Subscribe("trading.signal.validated", s.handleMessage)
 	if err != nil {
 		return fmt.Errorf("subscribe to trading.signal.validated: %w", err)
 	}
-	s.log.Info("NATS subscriber started", "subject", "trading.signal.validated")
+	s.log.Info("NATS subscriber started", "subjects", []string{"trading.signal.created", "trading.signal.validated"})
 
 	go func() {
 		<-ctx.Done()
-		sub.Unsubscribe()
+		subCreated.Unsubscribe()
+		subValidated.Unsubscribe()
 		s.log.Info("NATS subscriber stopped")
 	}()
 

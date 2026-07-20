@@ -138,13 +138,13 @@ export function PercentInput({ value, onChange, step, min, max, disabled }: {
   return (
     <div className="flex items-center gap-2">
       <input
-        type="number" value={(value * 100).toFixed(1)}
+        type="number" value={(value * 100).toFixed(2)}
         onChange={e => onChange((parseFloat(e.target.value) || 0) / 100)}
         min={min != null ? min * 100 : undefined}
         max={max != null ? max * 100 : undefined}
-        step={step != null ? step * 100 : 0.1}
+        step={step != null ? step * 100 : 0.05}
         disabled={disabled}
-        className="tnvs-input w-20 text-center font-mono text-sm"
+        className="tnvs-input w-24 text-center font-mono text-sm"
       />
       <span className="text-sm text-tnvs-dim">%</span>
     </div>

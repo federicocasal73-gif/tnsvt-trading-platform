@@ -177,12 +177,58 @@ export function Mt5SettingsPage() {
             ) : (
               <div>
                 <div className="text-xs font-medium text-tnvs-muted">% riesgo por operación</div>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center gap-2">
                   <PercentInput
                     value={safeNum(draft.lot_percentage, DEFAULTS.lot_percentage) / 100}
-                    onChange={v => update({ lot_percentage: Math.round(v * 10000) / 100 })}
-                    step={0.005}
+                    onChange={v => {
+                      const pct = Math.round(v * 10000) / 100;
+                      const clamped = Math.max(0.01, Math.min(10.0, pct));
+                      update({ lot_percentage: clamped });
+                    }}
+                    step={0.0025}
+                    min={0.01}
+                    max={10.0}
                   />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = safeNum(draft.lot_percentage, DEFAULTS.lot_percentage);
+                        update({ lot_percentage: Math.max(0.01, Math.round((cur - 0.25) * 100) / 100) });
+                      }}
+                      className="rounded border border-tnvs-border bg-tnvs-void px-1.5 py-0.5 text-xs text-tnvs-muted hover:text-white"
+                      title="-0.25%"
+                    >
+                      −0.25
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = safeNum(draft.lot_percentage, DEFAULTS.lot_percentage);
+                        update({ lot_percentage: Math.min(10.0, Math.round((cur + 0.25) * 100) / 100) });
+                      }}
+                      className="rounded border border-tnvs-border bg-tnvs-void px-1.5 py-0.5 text-xs text-tnvs-muted hover:text-white"
+                      title="+0.25%"
+                    >
+                      +0.25
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update({ lot_percentage: 0.5 })}
+                      className="rounded border border-tnvs-border bg-tnvs-void px-1.5 py-0.5 text-xs text-tnvs-muted hover:text-white"
+                      title="Set 0.5%"
+                    >
+                      0.5%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update({ lot_percentage: 1.0 })}
+                      className="rounded border border-tnvs-border bg-tnvs-void px-1.5 py-0.5 text-xs text-tnvs-muted hover:text-white"
+                      title="Set 1.0%"
+                    >
+                      1.0%
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

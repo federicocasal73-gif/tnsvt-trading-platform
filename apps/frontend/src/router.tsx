@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import { AppProvider } from './state/AppStateProvider';
+import { BridgeProvider } from './state/BridgeProvider';
+import { ThemeProvider } from './state/ThemeProvider';
 import { Shell } from './components/Shell';
 import { DashboardPage } from './pages/Dashboard';
 import { PositionsPage } from './pages/Positions';
@@ -83,9 +85,13 @@ function ProtectedShell() {
 export function AppRouter() {
   return (
     <AuthProvider>
-      <AppProvider>
-        <RouterProvider router={router} />
-      </AppProvider>
+      <ThemeProvider>
+        <BridgeProvider>
+          <AppProvider>
+            <RouterProvider router={router} />
+          </AppProvider>
+        </BridgeProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

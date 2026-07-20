@@ -25,7 +25,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "auth-service",
 			PathPrefix: "/api/v1/auth",
-			Instances:  []string{"http://auth-service:8001"},
+			Instances:  []string{"http://localhost:8001"},
 			Timeout:    5000,
 			RateLimit:  100,
 			HealthPath: "/health",
@@ -34,7 +34,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "user-service",
 			PathPrefix: "/api/v1/users",
-			Instances:  []string{"http://user-service:8002"},
+			Instances:  []string{"http://localhost:8401"},
 			Timeout:    5000,
 			RateLimit:  100,
 			HealthPath: "/health",
@@ -43,7 +43,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "signal-engine",
 			PathPrefix: "/api/v1/signals",
-			Instances:  []string{"http://signal-engine:8003"},
+			Instances:  []string{"http://localhost:8003"},
 			Timeout:    10000,
 			RateLimit:  200,
 			HealthPath: "/health",
@@ -52,7 +52,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "execution-engine",
 			PathPrefix: "/api/v1/executions",
-			Instances:  []string{"http://execution-engine:8004"},
+			Instances:  []string{"http://localhost:8004"},
 			Timeout:    30000,
 			RateLimit:  100,
 			HealthPath: "/health",
@@ -61,7 +61,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "copy-trading",
 			PathPrefix: "/api/v1/copy",
-			Instances:  []string{"http://copy-trading:8005"},
+			Instances:  []string{"http://localhost:8005"},
 			Timeout:    15000,
 			RateLimit:  50,
 			HealthPath: "/health",
@@ -70,7 +70,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "risk-engine",
 			PathPrefix: "/api/v1/risk",
-			Instances:  []string{"http://risk-engine:8006"},
+			Instances:  []string{"http://localhost:8006"},
 			Timeout:    5000,
 			RateLimit:  200,
 			HealthPath: "/health",
@@ -79,7 +79,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "mt5-connector",
 			PathPrefix: "/api/v1/brokers",
-			Instances:  []string{"http://mt5-connector:8007"},
+			Instances:  []string{"http://localhost:8007"},
 			Timeout:    15000,
 			RateLimit:  100,
 			HealthPath: "/health",
@@ -88,7 +88,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "audit-engine",
 			PathPrefix: "/api/v1/audit",
-			Instances:  []string{"http://audit-engine:8600"},
+			Instances:  []string{"http://localhost:8600"},
 			Timeout:    5000,
 			RateLimit:  200,
 			HealthPath: "/health",
@@ -97,7 +97,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "ai-core",
 			PathPrefix: "/api/v1/ai",
-			Instances:  []string{"http://ai-core:8200"},
+			Instances:  []string{"http://localhost:8200"},
 			Timeout:    30000,
 			RateLimit:  50,
 			HealthPath: "/health",
@@ -106,7 +106,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "price-feed",
 			PathPrefix: "/api/v1/prices",
-			Instances:  []string{"http://price-feed:8300"},
+			Instances:  []string{"http://localhost:8300"},
 			Timeout:    5000,
 			RateLimit:  300,
 			HealthPath: "/health",
@@ -115,7 +115,7 @@ func LoadServices(path string) []ServiceConfig {
 		{
 			Name:       "telegram-bot-service",
 			PathPrefix: "/api/v1/notify",
-			Instances:  []string{"http://telegram-bot-service:8503"},
+			Instances:  []string{"http://localhost:8503"},
 			Timeout:    10000,
 			RateLimit:  100,
 			HealthPath: "/health",

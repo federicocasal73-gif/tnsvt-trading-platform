@@ -11,6 +11,7 @@ import os
 import sqlite3
 import threading
 import time
+from datetime import datetime, timedelta
 
 from db import TradesDB
 
@@ -18,6 +19,10 @@ logger = logging.getLogger("bridge.syncer")
 
 SYNC_INTERVAL = 30
 BOT_DB_PATH = os.getenv("BOT_SQLITE_PATH", r"D:\TradingBotMT5\bot_data.db")
+# Solo sincronizamos trades con no mas de N dias de antiguedad para
+# evitar que datos viejos del bot_data.db inunden la analytics del bridge.
+# Por defecto: ultimos 90 dias, configurable via env.
+SYNC_DAYS_BACK = int(os.getenv("BOT_SYNC_DAYS_BACK", "90"))
 
 
 class BotSyncer(threading.Thread):
@@ -29,7 +34,10 @@ class BotSyncer(threading.Thread):
         self._stop_event = threading.Event()
 
     def run(self):
-        logger.info("BotSyncer iniciado → %s (cada %ds)", BOT_DB_PATH, SYNC_INTERVAL)
+        logger.info(
+            "BotSyncer iniciado → %s (cada %ds, ventana=%dd)",
+            BOT_DB_PATH, SYNC_INTERVAL, SYNC_DAYS_BACK,
+        )
         while not self._stop_event.is_set():
             try:
                 self._tick()
@@ -45,6 +53,8 @@ class BotSyncer(threading.Thread):
             logger.debug("syncer: bot DB no encontrada en %s", BOT_DB_PATH)
             return
 
+        cutoff = (datetime.now() - timedelta(days=SYNC_DAYS_BACK)).strftime("%Y-%m-%d %H:%M:%S")
+
         try:
             with sqlite3.connect(BOT_DB_PATH, timeout=5) as conn:
                 conn.row_factory = sqlite3.Row
@@ -53,7 +63,11 @@ class BotSyncer(threading.Thread):
                               sl, tp, pnl, close_price, commission, swap,
                               channel_id, channel_title, topic_id,
                               status, closed_at, date AS opened_at
-                       FROM trades WHERE ticket > 0"""
+                       FROM trades
+                       WHERE ticket > 0
+                         AND date >= ?
+                       ORDER BY id DESC""",
+                    (cutoff,),
                 ).fetchall()
         except Exception as e:
             logger.warning("syncer: error leyendo bot DB: %s", e)
@@ -73,4 +87,4 @@ class BotSyncer(threading.Thread):
                 logger.warning("syncer: error upsert ticket=%s: %s", payload.get("ticket"), e)
 
         if count:
-            logger.info("syncer: %d trade(s) sincronizado(s)", count)
+            logger.info("syncer: %d trade(s) sincronizado(s) (ultimos %d dias)", count, SYNC_DAYS_BACK)
