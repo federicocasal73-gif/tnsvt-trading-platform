@@ -22,6 +22,7 @@ import os
 import sys
 import time
 import json
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -253,6 +254,74 @@ def _init_status_table():
 
 
 _init_status_table()
+
+
+@app.post("/api/v1/bridge/copier/close")
+def copier_close(payload: dict):
+    """Encolar un comando de cierre (symbol) para que el signal_copier lo procese.
+
+    Body: {"action": "close", "symbol": "XAUUSD", "by_user": "telegram:<id>"}
+    Escribe a D:\\TradingBotMT5\\cmd_requests.json (append-safe).
+    Devuelve {"ok": True, "request_id": "...", "open_positions": N}
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "payload debe ser dict")
+    action = payload.get("action")
+    symbol = (payload.get("symbol") or "").upper().strip()
+    by_user = payload.get("by_user", "anonymous")
+    if action != "close":
+        raise HTTPException(400, f"action no soportado: {action}")
+    if not symbol:
+        raise HTTPException(400, "symbol requerido")
+
+    # Verificar posiciones abiertas via MT5 snapshot
+    pos_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json"
+    open_count = 0
+    if pos_path.exists():
+        try:
+            with open(pos_path, encoding="utf-8") as f:
+                positions = json.load(f)
+            if isinstance(positions, list):
+                open_count = sum(
+                    1 for p in positions
+                    if p.get("symbol", "").upper() == symbol
+                )
+        except Exception:
+            pass
+
+    if open_count == 0:
+        return {"ok": False, "detail": f"Sin posiciones abiertas para {symbol}", "open_positions": 0}
+
+    # Generar request_id y agregar a cmd_requests.json
+    request_id = f"close_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+    cmd_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "cmd_requests.json"
+    existing = []
+    if cmd_path.exists():
+        try:
+            with open(cmd_path, encoding="utf-8") as f:
+                existing = json.load(f)
+            if not isinstance(existing, list):
+                existing = []
+        except Exception:
+            existing = []
+    existing.append({
+        "action": "close_symbol",
+        "symbol": symbol,
+        "by_user": by_user,
+        "request_id": request_id,
+        "ts": time.time(),
+    })
+    tmp = cmd_path.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, cmd_path)
+    logger.warning("copier_close: queued request_id=%s symbol=%s open=%d by=%s",
+                   request_id, symbol, open_count, by_user)
+    return {
+        "ok": True,
+        "request_id": request_id,
+        "open_positions": open_count,
+    }
 
 
 @app.get("/api/v1/bridge/copier/dashboard")
@@ -910,11 +979,135 @@ def _read_json_safe(path: str) -> dict | list | None:
 
 @app.get("/api/v1/bridge/mt5/account")
 def get_mt5_account():
-    """Cuenta MT5 en vivo: balance, equity, margin, leverage, etc."""
+    """Cuenta MT5 en vivo: balance, equity, margin, leverage, etc.
+
+    Acepta ?login=XXXX para pedir una cuenta especifica.
+    Sin param devuelve la cuenta legacy/principal.
+    """
+    login_param = None
+    if "login" in request.query_params:
+        try:
+            login_param = int(request.query_params["login"])
+        except ValueError:
+            pass
+
+    if login_param is not None:
+        snap_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / f"account_snapshot_{login_param}.json"
+        data = _read_json_safe(str(snap_path))
+        if data is None:
+            raise HTTPException(404, f"No hay snapshot para login {login_param}")
+        return {"ok": True, "data": data, "login": login_param}
+
     data = _read_json_safe(os.path.join(BOT_SNAPSHOT_DIR, "account_snapshot.json"))
     if data is None:
         raise HTTPException(503, "MT5 snapshot not available (bot may be disconnected)")
     return {"ok": True, "data": data}
+
+
+@app.get("/api/v1/bridge/mt5/accounts")
+def list_mt5_accounts():
+    """Lista todas las cuentas configuradas en accounts.json con sus snapshots.
+
+    Multi-cuenta: detecta cada account_snapshot_<login>.json y lo combina
+    con el alias y nombre del accounts.json.
+    """
+    base_dir = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5"))
+    accounts_file = base_dir / "accounts.json"
+    accounts_cfg: list = []
+    if accounts_file.exists():
+        try:
+            data = json.loads(accounts_file.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                accounts_cfg = data
+        except Exception:
+            pass
+
+    accounts_out = []
+    seen_logins = set()
+    for cfg in accounts_cfg:
+        login = cfg.get("login")
+        if not login or login in seen_logins:
+            continue
+        seen_logins.add(login)
+        snap = _read_json_safe(str(base_dir / f"account_snapshot_{login}.json")) or {}
+        accounts_out.append({
+            "login": login,
+            "alias": cfg.get("alias", f"acc_{login}"),
+            "name": cfg.get("name", snap.get("name", "?")),
+            "server": cfg.get("server", snap.get("server", "?")),
+            "balance": snap.get("balance"),
+            "equity": snap.get("equity"),
+            "margin": snap.get("margin"),
+            "profit": snap.get("profit"),
+            "open_positions": snap.get("open_positions"),
+            "updated_at": snap.get("updated_at"),
+        })
+
+    # Tambien detectar cuentas que tienen snapshot pero no estan en accounts.json
+    for path in base_dir.glob("account_snapshot_*.json"):
+        try:
+            login = int(path.stem.replace("account_snapshot_", ""))
+        except ValueError:
+            continue
+        if login in seen_logins:
+            continue
+        seen_logins.add(login)
+        snap = _read_json_safe(str(path)) or {}
+        accounts_out.append({
+            "login": login,
+            "alias": f"acc_{login}",
+            "name": snap.get("name", "?"),
+            "server": snap.get("server", "?"),
+            "balance": snap.get("balance"),
+            "equity": snap.get("equity"),
+            "margin": snap.get("margin"),
+            "profit": snap.get("profit"),
+            "open_positions": snap.get("open_positions"),
+            "updated_at": snap.get("updated_at"),
+        })
+
+    total_balance = sum(a["balance"] for a in accounts_out if a.get("balance"))
+    total_equity = sum(a["equity"] for a in accounts_out if a.get("equity"))
+    total_pnl = sum(a["profit"] for a in accounts_out if a.get("profit"))
+    total_open = sum(a.get("open_positions") or 0 for a in accounts_out)
+
+    return {
+        "ok": True,
+        "count": len(accounts_out),
+        "accounts": accounts_out,
+        "aggregate": {
+            "total_balance": round(total_balance, 2),
+            "total_equity": round(total_equity, 2),
+            "total_pnl": round(total_pnl, 2),
+            "total_open_positions": total_open,
+        },
+    }
+
+
+@app.get("/api/v1/bridge/mt5/positions")
+def get_mt5_positions():
+    """Todas las posiciones abiertas en MT5 (bot + manuales).
+
+    Acepta ?login=XXXX para pedir posiciones de una cuenta especifica.
+    """
+    login_param = None
+    if "login" in request.query_params:
+        try:
+            login_param = int(request.query_params["login"])
+        except ValueError:
+            pass
+
+    if login_param is not None:
+        pos_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / f"positions_snapshot_{login_param}.json"
+        data = _read_json_safe(str(pos_path))
+        if data is None:
+            raise HTTPException(404, f"No hay posiciones para login {login_param}")
+        return {"ok": True, "data": data, "count": len(data) if data else 0}
+
+    data = _read_json_safe(os.path.join(BOT_SNAPSHOT_DIR, "positions_snapshot.json"))
+    if data is None:
+        raise HTTPException(503, "Positions snapshot not available")
+    return {"ok": True, "data": data, "count": len(data) if data else 0}
 
 
 @app.get("/api/v1/bridge/mt5/positions")

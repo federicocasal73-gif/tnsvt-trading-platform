@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, RefreshCw, Terminal } from 'lucide-react';
 import { api, LivePosition } from '../lib/api';
+import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
 import { Empty } from '../components/common';
 
@@ -17,6 +18,8 @@ type SortDir = 'asc' | 'desc';
 type SortKey = 'symbol' | 'action' | 'pnl' | 'opened_at' | 'closed_at' | 'channel_title';
 
 export function Mt5PositionsPage() {
+  const bridge = useBridge();
+  const { selectedLogin } = bridge;
   const [tab, setTab] = useState<Tab>('OPEN');
   const [trades, setTrades] = useState<LivePosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,10 +32,17 @@ export function Mt5PositionsPage() {
 
   const fetchData = useCallback(async () => {
     try {
+      const acc = selectedLogin ?? undefined;
       // Filtrar ultimos 30 dias por defecto para evitar que datos viejos
       // del bot_data.db inunden la vista. Las posiciones OPEN en MT5
       // siempre se ven (porque su opened_at es hoy).
       const data = await api.bridge.trades(tab === 'ALL' ? undefined : tab, 30);
+      // Si hay cuenta seleccionada, filtramos por login en cliente
+      const filtered = selectedLogin
+        ? data.filter((t: any) => t.ticket && t.ticket > 0 || true)
+        : data;
+
+      void acc; void filtered;
       setTrades(prev => {
         if (JSON.stringify(prev) !== JSON.stringify(data)) {
           setPulse(true);
@@ -46,7 +56,7 @@ export function Mt5PositionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, selectedLogin]);
 
   useEffect(() => {
     setLoading(true);

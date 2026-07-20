@@ -70,8 +70,35 @@ export const api = {
       const qs = params.toString();
       return request<LivePosition[]>(`/bridge/analytics/trades${qs ? `?${qs}` : ''}`);
     },
-    account: () => request<{ ok: boolean; data: Mt5AccountSnapshot }>('/bridge/mt5/account'),
-    positionsLive: () => request<{ ok: boolean; data: Mt5PositionSnapshot[]; count: number }>('/bridge/mt5/positions'),
+    account: (login?: number | string) => {
+      const qs = login != null ? `?login=${login}` : '';
+      return request<{ ok: boolean; data: Mt5AccountSnapshot; login?: number }>(`/bridge/mt5/account${qs}`);
+    },
+    accounts: () => request<{
+      ok: boolean;
+      count: number;
+      accounts: Array<{
+        login: number;
+        alias: string;
+        name: string;
+        server: string;
+        balance: number | null;
+        equity: number | null;
+        margin: number | null;
+        profit: number | null;
+        open_positions: number | null;
+        updated_at: string | null;
+      }>;
+      aggregate: { total_balance: number; total_equity: number; total_pnl: number; total_open_positions: number };
+    }>('/bridge/mt5/accounts'),
+    accountPositions: (login?: number | string) => {
+      const qs = login != null ? `?login=${login}` : '';
+      return request<{ ok: boolean; data: Mt5PositionSnapshot[]; count: number }>(`/bridge/mt5/positions${qs}`);
+    },
+    positionsLive: (login?: number | string) => {
+      const qs = login != null ? `?login=${login}` : '';
+      return request<{ ok: boolean; data: Mt5PositionSnapshot[]; count: number }>(`/bridge/mt5/positions${qs}`);
+    },
     config: () => request<BotConfig>('/bridge/config'),
     updateConfig: (patch: Partial<BotConfig>) =>
       request<{ ok: boolean; updated_keys: string[] }>(

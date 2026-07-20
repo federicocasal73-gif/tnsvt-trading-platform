@@ -8,10 +8,11 @@
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Temas globales vía `[data-theme]` en <html>.
-   Dark  = default (Tailwind tokens actuales)
-   Light = blanco + texto oscuro
-   Sepia = papel claro con tinte cálido
+   4 Temas via [data-theme] en <html>:
+     - dark  (default)
+     - light (fondo blanco, texto negro fuerte)
+     - sepia (papel calido, texto marengo)
+     - gold  (fondo negro absoluto, acentos dorados)
    ──────────────────────────────────────────────────────────────── */
 
 :root,
@@ -29,106 +30,144 @@
   --tnvs-hover:         rgba(255,255,255,0.05);
   --tnvs-input-bg:      #000000;
   --tnvs-btn-default:   #0D0D1A;
+  --tnvs-gold:          #F5B829;
+  --tnvs-gold-soft:     #8C6E1A;
 }
 
 :root[data-theme="light"] {
-  --tnvs-bg-app:        #F4F4F5;
+  --tnvs-bg-app:        #FAFAFA;
   --tnvs-bg-surface:    #FFFFFF;
-  --tnvs-bg-surface2:   #FAFAFA;
+  --tnvs-bg-surface2:   #F1F1F1;
   --tnvs-bg-void:       #FFFFFF;
-  --tnvs-fg:            #18181B;
-  --tnvs-fg-muted:      #52525B;
-  --tnvs-fg-dim:        #71717A;
-  --tnvs-border:        rgba(0,0,0,0.10);
-  --tnvs-border-hi:     rgba(0,0,0,0.18);
-  --tnvs-card:          rgba(0,0,0,0.02);
-  --tnvs-hover:         rgba(0,0,0,0.04);
+  --tnvs-fg:            #0A0A0A;
+  --tnvs-fg-muted:      #2D2D2D;
+  --tnvs-fg-dim:        #525252;
+  --tnvs-border:        rgba(0,0,0,0.18);
+  --tnvs-border-hi:     rgba(0,0,0,0.30);
+  --tnvs-card:          rgba(0,0,0,0.03);
+  --tnvs-hover:         rgba(0,0,0,0.06);
   --tnvs-input-bg:      #FFFFFF;
   --tnvs-btn-default:   #FFFFFF;
+  --tnvs-gold:          #B8860B;
+  --tnvs-gold-soft:     #8B6914;
 }
 
 :root[data-theme="sepia"] {
-  --tnvs-bg-app:        #F5E9CB;
-  --tnvs-bg-surface:    #FAF0DA;
-  --tnvs-bg-surface2:   #F2E2C0;
-  --tnvs-bg-void:       #FAF0DA;
-  --tnvs-fg:            #3B2E15;
-  --tnvs-fg-muted:      #6B5B3A;
-  --tnvs-fg-dim:        #8A7855;
-  --tnvs-border:        rgba(89,68,30,0.20);
-  --tnvs-border-hi:     rgba(89,68,30,0.32);
-  --tnvs-card:          rgba(89,68,30,0.04);
-  --tnvs-hover:         rgba(89,68,30,0.08);
-  --tnvs-input-bg:      #FAF0DA;
-  --tnvs-btn-default:   #FAF0DA;
+  --tnvs-bg-app:        #F1E2C2;
+  --tnvs-bg-surface:    #F5E9CB;
+  --tnvs-bg-surface2:   #EAD8B0;
+  --tnvs-bg-void:       #F5E9CB;
+  --tnvs-fg:            #1F1505;
+  --tnvs-fg-muted:      #3B2E15;
+  --tnvs-fg-dim:        #6B5B3A;
+  --tnvs-border:        rgba(60,40,15,0.32);
+  --tnvs-border-hi:     rgba(60,40,15,0.50);
+  --tnvs-card:          rgba(60,40,15,0.04);
+  --tnvs-hover:         rgba(60,40,15,0.10);
+  --tnvs-input-bg:      #F5E9CB;
+  --tnvs-btn-default:   #F5E9CB;
+  --tnvs-gold:          #8B6914;
+  --tnvs-gold-soft:     #6B4F12;
 }
 
-/* Elementos raiz: backgrounds y texto */
+:root[data-theme="gold"] {
+  --tnvs-bg-app:        #050505;
+  --tnvs-bg-surface:    #0A0A0A;
+  --tnvs-bg-surface2:   #141414;
+  --tnvs-bg-void:       #000000;
+  --tnvs-fg:            #F5B829;
+  --tnvs-fg-muted:      #C99A1A;
+  --tnvs-fg-dim:        #7A5C0E;
+  --tnvs-border:        rgba(245,184,41,0.18);
+  --tnvs-border-hi:     rgba(245,184,41,0.32);
+  --tnvs-card:          rgba(245,184,41,0.05);
+  --tnvs-hover:         rgba(245,184,41,0.10);
+  --tnvs-input-bg:      #000000;
+  --tnvs-btn-default:   #0A0A0A;
+  --tnvs-gold:          #FFD700;
+  --tnvs-gold-soft:     #F5B829;
+}
+
+/* Elementos raiz */
 html, body, #root {
   background: var(--tnvs-bg-app);
   color: var(--tnvs-fg);
 }
 
-/* Mapeo a clases Tailwind existentes vía atributos [data-theme] */
-
-/* Shell / Sidebar backgrounds (sobreescribe bg-tnvs-*) */
-:root[data-theme="light"] .bg-tnvs-void,
-:root[data-theme="light"] body .bg-tnvs-void,
-:root[data-theme="light"] html .bg-tnvs-void { background: var(--tnvs-bg-void) !important; }
+/* ─── TEMA LIGHT — más contraste en texto ─── */
+:root[data-theme="light"] .bg-tnvs-void { background-color: var(--tnvs-bg-void) !important; }
 :root[data-theme="light"] .bg-tnvs-surface,
 :root[data-theme="light"] .bg-tnvs-surface\/70,
 :root[data-theme="light"] .bg-tnvs-surface\/50 { background-color: var(--tnvs-bg-surface) !important; }
 :root[data-theme="light"] .bg-tnvs-surface2 { background-color: var(--tnvs-bg-surface2) !important; }
 
-:root[data-theme="sepia"] .bg-tnvs-void { background: var(--tnvs-bg-void) !important; }
+:root[data-theme="light"] .text-white { color: var(--tnvs-fg) !important; }
+:root[data-theme="light"] .text-tnvs-muted { color: var(--tnvs-fg-muted) !important; }
+:root[data-theme="light"] .text-tnvs-dim { color: var(--tnvs-fg-dim) !important; }
+:root[data-theme="light"] .border-tnvs-border,
+:root[data-theme="light"] .border-tnvs-border\/30,
+:root[data-theme="light"] .border-tnvs-border\/50 { border-color: var(--tnvs-border) !important; }
+:root[data-theme="light"] .tnvs-input,
+:root[data-theme="light"] .bg-tnvs-void { background-color: var(--tnvs-input-bg) !important; color: var(--tnvs-fg) !important; }
+:root[data-theme="light"] .tnvs-btn-default { background-color: var(--tnvs-btn-default) !important; }
+:root[data-theme="light"] .text-black { color: var(--tnvs-fg) !important; }
+
+/* ─── TEMA SEPIA — más contraste en texto ─── */
+:root[data-theme="sepia"] .bg-tnvs-void { background-color: var(--tnvs-bg-void) !important; }
 :root[data-theme="sepia"] .bg-tnvs-surface,
 :root[data-theme="sepia"] .bg-tnvs-surface\/70,
 :root[data-theme="sepia"] .bg-tnvs-surface\/50 { background-color: var(--tnvs-bg-surface) !important; }
 :root[data-theme="sepia"] .bg-tnvs-surface2 { background-color: var(--tnvs-bg-surface2) !important; }
 
-/* Texto */
-:root[data-theme="light"] .text-white { color: var(--tnvs-fg) !important; }
-:root[data-theme="light"] .text-tnvs-muted { color: var(--tnvs-fg-muted) !important; }
-:root[data-theme="light"] .text-tnvs-dim { color: var(--tnvs-fg-dim) !important; }
-
 :root[data-theme="sepia"] .text-white { color: var(--tnvs-fg) !important; }
 :root[data-theme="sepia"] .text-tnvs-muted { color: var(--tnvs-fg-muted) !important; }
 :root[data-theme="sepia"] .text-tnvs-dim { color: var(--tnvs-fg-dim) !important; }
-
-/* Borders */
-:root[data-theme="light"] .border-tnvs-border,
-:root[data-theme="light"] .border-tnvs-border\/30,
-:root[data-theme="light"] .border-tnvs-border\/50 { border-color: var(--tnvs-border) !important; }
 :root[data-theme="sepia"] .border-tnvs-border,
 :root[data-theme="sepia"] .border-tnvs-border\/30,
 :root[data-theme="sepia"] .border-tnvs-border\/50 { border-color: var(--tnvs-border) !important; }
-
-/* Inputs y botones default */
-:root[data-theme="light"] .tnvs-input,
-:root[data-theme="light"] .bg-tnvs-void { background-color: var(--tnvs-input-bg) !important; color: var(--tnvs-fg) !important; }
 :root[data-theme="sepia"] .tnvs-input,
 :root[data-theme="sepia"] .bg-tnvs-void { background-color: var(--tnvs-input-bg) !important; color: var(--tnvs-fg) !important; }
-
-:root[data-theme="light"] .tnvs-btn-default { background-color: var(--tnvs-btn-default) !important; }
 :root[data-theme="sepia"] .tnvs-btn-default { background-color: var(--tnvs-btn-default) !important; }
-
-/* Mueve textos negros heredados cuando estamos en tema light */
-:root[data-theme="light"] .text-black { color: var(--tnvs-fg) !important; }
 :root[data-theme="sepia"] .text-black { color: var(--tnvs-fg) !important; }
 
+/* ─── TEMA GOLD/BLACK — fondo negro, texto y acentos dorados ─── */
+:root[data-theme="gold"] .bg-tnvs-void { background-color: var(--tnvs-bg-void) !important; }
+:root[data-theme="gold"] .bg-tnvs-surface,
+:root[data-theme="gold"] .bg-tnvs-surface\/70,
+:root[data-theme="gold"] .bg-tnvs-surface\/50 { background-color: var(--tnvs-bg-surface) !important; }
+:root[data-theme="gold"] .bg-tnvs-surface2 { background-color: var(--tnvs-bg-surface2) !important; }
+
+:root[data-theme="gold"] .text-white { color: var(--tnvs-fg) !important; }
+:root[data-theme="gold"] .text-tnvs-muted { color: var(--tnvs-fg-muted) !important; }
+:root[data-theme="gold"] .text-tnvs-dim { color: var(--tnvs-fg-dim) !important; }
+:root[data-theme="gold"] .border-tnvs-border,
+:root[data-theme="gold"] .border-tnvs-border\/30,
+:root[data-theme="gold"] .border-tnvs-border\/50 { border-color: var(--tnvs-border) !important; }
+:root[data-theme="gold"] .tnvs-input,
+:root[data-theme="gold"] .bg-tnvs-void { background-color: var(--tnvs-input-bg) !important; color: var(--tnvs-fg) !important; }
+:root[data-theme="gold"] .tnvs-btn-default { background-color: var(--tnvs-btn-default) !important; color: var(--tnvs-fg) !important; }
+:root[data-theme="gold"] .text-black { color: var(--tnvs-fg) !important; }
+
+/* Acento dorado para "purple" en tema gold */
+:root[data-theme="gold"] .bg-tnvs-purple { background-color: var(--tnvs-gold) !important; color: #000 !important; }
+:root[data-theme="gold"] .text-tnvs-purple { color: var(--tnvs-gold) !important; }
+:root[data-theme="gold"] .bg-tnvs-purple\/20 { background-color: rgba(245,184,41,0.20) !important; }
+:root[data-theme="gold"] .border-tnvs-purple\/40 { border-color: rgba(245,184,41,0.40) !important; }
+
 :root[data-theme="light"] body,
-:root[data-theme="light"] body * {
-  color-scheme: light;
-}
+:root[data-theme="light"] body * { color-scheme: light; }
 :root[data-theme="sepia"] body,
-:root[data-theme="sepia"] body * {
-  color-scheme: light;
-}
+:root[data-theme="sepia"] body * { color-scheme: light; }
+:root[data-theme="gold"] body { background: #000 !important; }
+:root[data-theme="gold"] body,
+:root[data-theme="gold"] body * { color-scheme: dark; }
 
 :root[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); }
 :root[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.32); }
-:root[data-theme="sepia"] ::-webkit-scrollbar-thumb { background: rgba(89,68,30,0.30); }
-:root[data-theme="sepia"] ::-webkit-scrollbar-thumb:hover { background: rgba(89,68,30,0.50); }
+:root[data-theme="sepia"] ::-webkit-scrollbar-thumb { background: rgba(60,40,15,0.30); }
+:root[data-theme="sepia"] ::-webkit-scrollbar-thumb:hover { background: rgba(60,40,15,0.50); }
+:root[data-theme="gold"] ::-webkit-scrollbar-thumb { background: rgba(245,184,41,0.30); }
+:root[data-theme="gold"] ::-webkit-scrollbar-thumb:hover { background: rgba(245,184,41,0.55); }
 
 @layer components {
   .tnvs-card {
