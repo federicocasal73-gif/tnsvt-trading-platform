@@ -69,7 +69,8 @@ class Settings:
     # ============================================
     @property
     def TELETHON_API_ID(self) -> int:
-        return int(os.getenv("TELETHON_API_ID", "0"))
+        raw = os.getenv("TELETHON_API_ID", "0")
+        return int(raw) if raw.strip().isdigit() else 0
 
     @property
     def TELETHON_API_HASH(self) -> str:
@@ -180,7 +181,11 @@ class Settings:
     @property
     def BOT_GROUP_ID(self) -> int:
         """ID del grupo de Telegram donde el bot opera."""
-        return int(os.getenv("BOT_GROUP_ID", "0"))
+        raw = os.getenv("BOT_GROUP_ID", "0")
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return 0
 
     # ============================================
     # DASHBOARD

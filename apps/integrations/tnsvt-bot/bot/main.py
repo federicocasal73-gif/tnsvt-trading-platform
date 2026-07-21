@@ -32,7 +32,7 @@ logger = logging.getLogger("Bot")
 
 async def tnsvt_heartbeat_loop(bot_app):
     """Loop asincrono que envia heartbeat a TNSVT cada 30s."""
-    bot_username = "telegram_bot"
+    bot_username = "terminalfinancieraproTNSVT_bot"
     try:
         me = await bot_app.bot.get_me()
         if me and me.username:
