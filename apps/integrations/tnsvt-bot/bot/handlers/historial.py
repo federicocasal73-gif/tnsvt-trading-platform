@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from telegram import Update
 from telegram.ext import ContextTypes
-from bot.handlers.admin_check import admin_only
+from bot.handlers.admin_check import admin_only, dm_only
 from signal_copier.database import get_trades_since, get_stats_since
 
 logger = logging.getLogger("Bot.Handlers.Historial")
@@ -26,6 +26,7 @@ def _read_mt5_status() -> dict:
     return {"connected": False}
 
 
+@dm_only
 @admin_only
 async def historial(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra historial de trades por periodo + estado de cuenta"""

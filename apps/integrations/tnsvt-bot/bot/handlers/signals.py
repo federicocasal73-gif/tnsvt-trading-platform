@@ -4,7 +4,7 @@ Handler: /senales, /copiador
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from bot.handlers.admin_check import admin_only
+from bot.handlers.admin_check import admin_only, dm_only
 from bot.services.tnsvt_status import (
     get_copier_status_from_tnsvt,
     get_recent_trades_from_tnsvt,
@@ -13,6 +13,7 @@ from bot.services.tnsvt_status import (
 logger = logging.getLogger("Bot.Handlers.Signals")
 
 
+@dm_only
 @admin_only
 async def senales(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra el estado del copiador de senales (via TNSVT)"""

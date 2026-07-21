@@ -175,6 +175,14 @@ class Settings:
         return os.getenv("NEWS_FILTER_HIGH_IMPACT_ONLY", "true").lower() == "true"
 
     # ============================================
+    # GROUP & PRIVACY
+    # ============================================
+    @property
+    def BOT_GROUP_ID(self) -> int:
+        """ID del grupo de Telegram donde el bot opera."""
+        return int(os.getenv("BOT_GROUP_ID", "0"))
+
+    # ============================================
     # DASHBOARD
     # ============================================
     @property

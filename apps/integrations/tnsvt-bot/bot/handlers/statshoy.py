@@ -5,12 +5,14 @@ import asyncio
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
+from bot.handlers.admin_check import dm_only
 from bot.services.tnsvt_status import get_client
 from signal_copier.database import get_stats_today, get_stats_since
 
 logger = logging.getLogger("Bot.Handlers.StatsHoy")
 
 
+@dm_only
 async def statshoy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Estadísticas del día (usando signal_copier local SQLite)."""
     try:

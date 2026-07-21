@@ -8,12 +8,13 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR / "scripts"))
 
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ChatMemberHandler
 from config import settings
 from bot.services import trading_economics
 from bot.services.tnsvt_status import send_bot_heartbeat
-from bot.handlers import start, calendar, news, signals, admin, historial, statshoy, canales, cuentas, cerrar
+from bot.handlers import start, calendar, news, signals, admin, historial, statshoy, canales, cuentas, cerrar, greetings, reports, analisis
 from bot.watchdog import watchdog_loop
 from bot.callbacks import button_router
 
@@ -54,14 +55,49 @@ async def tnsvt_heartbeat_loop(bot_app):
 
 
 async def post_init(app):
-    """Hook post-init: arranca heartbeat + watchdog en background."""
+    """Hook post-init: arranca heartbeat + watchdog + reports en background."""
     app.bot_data["heartbeat_task"] = asyncio.create_task(tnsvt_heartbeat_loop(app))
     app.bot_data["watchdog_task"] = asyncio.create_task(watchdog_loop(app))
 
+    from bot.handlers.reports import schedule_reports
+    app.bot_data["report_task"] = asyncio.create_task(_run_reports(app))
+
+    logger.info("AMB Engine, reports, y handlers de privacidad activados")
+
+
+async def _run_reports(app):
+    """Schedule daily and weekly reports."""
+    from bot.handlers.reports import _send_report
+    import pytz
+    from datetime import datetime, timedelta
+
+    ART = pytz.timezone("America/Argentina/Buenos_Aires")
+
+    while True:
+        now_art = datetime.now(ART)
+        tomorrow = now_art + timedelta(days=1)
+        next_daily = ART.localize(
+            datetime(tomorrow.year, tomorrow.month, tomorrow.day, 23, 59, 0)
+        )
+        secs_daily = (next_daily - now_art).total_seconds()
+        await asyncio.sleep(secs_daily)
+
+        try:
+            await _send_report(app.bot, period="daily")
+        except Exception as e:
+            logger.error(f"Reporte diario: {e}")
+
+        now_art = datetime.now(ART)
+        if now_art.weekday() == 6:
+            try:
+                await _send_report(app.bot, period="weekly")
+            except Exception as e:
+                logger.error(f"Reporte semanal: {e}")
+
 
 async def post_shutdown(app):
-    """Hook post-shutdown: cancela tasks de heartbeat + watchdog."""
-    for key in ("heartbeat_task", "watchdog_task"):
+    """Hook post-shutdown: cancela tasks de heartbeat + watchdog + reports."""
+    for key in ("heartbeat_task", "watchdog_task", "report_task"):
         task = app.bot_data.get(key)
         if task:
             task.cancel()
@@ -80,6 +116,18 @@ def initialize_services():
         trading_economics.init()
     except Exception as e:
         logger.warning(f"TradingEconomics no disponible: {e}")
+
+    try:
+        from bot.analytics.calendar import get_calendar_events
+        logger.info("AMB Calendar service initialized")
+    except Exception as e:
+        logger.warning(f"AMB Calendar no disponible: {e}")
+
+    try:
+        from bot.analytics.macro_filter import check_macro_alert
+        logger.info("AMB Macro Filter initialized")
+    except Exception as e:
+        logger.warning(f"AMB Macro Filter no disponible: {e}")
 
 
 def create_application():
@@ -117,6 +165,15 @@ def create_application():
     app.add_handler(CommandHandler("canales", canales.canales))
     app.add_handler(CommandHandler("cerrar", cerrar.cerrar))
     app.add_handler(CommandHandler("cuentas", cuentas.cuentas))
+
+    # Análisis técnico (AMB Engine)
+    app.add_handler(CommandHandler("analisis", analisis.analisis))
+    app.add_handler(CommandHandler("reporte", analisis.reporte))
+    app.add_handler(CommandHandler("r", analisis.r_atajo))
+    app.add_handler(CommandHandler("grafico", analisis.grafico))
+
+    # Greeting handler (nuevos miembros en grupo + DM a admin)
+    app.add_handler(ChatMemberHandler(greetings.greet_new_member, ChatMemberHandler.CHAT_MEMBER))
 
     # Callback query handler (los botones inline llaman callbacks aca)
     app.add_handler(CallbackQueryHandler(button_router))

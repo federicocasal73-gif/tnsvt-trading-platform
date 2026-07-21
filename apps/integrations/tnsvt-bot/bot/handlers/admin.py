@@ -4,7 +4,7 @@ Handler: /resumen, /stats
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from bot.handlers.admin_check import admin_only
+from bot.handlers.admin_check import admin_only, dm_only
 from bot.services import news_api
 from bot.services.tnsvt_status import get_copier_stats_from_tnsvt, get_recent_trades_from_tnsvt
 
@@ -41,6 +41,7 @@ async def resumen(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Error al generar resumen.")
 
 
+@dm_only
 @admin_only
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Estadisticas del copiador (via TNSVT API)"""

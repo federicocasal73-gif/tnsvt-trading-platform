@@ -15,12 +15,14 @@ import logging
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from bot.handlers.admin_check import dm_only
 
 logger = logging.getLogger("Bot.Handlers.Cerrar")
 
 BASE_URL = "http://localhost:8522"
 
 
+@dm_only
 async def cerrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cierra posiciones del símbolo especificado."""
     try:

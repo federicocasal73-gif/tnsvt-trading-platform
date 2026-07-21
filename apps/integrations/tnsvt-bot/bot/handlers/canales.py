@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from telegram import Update
 from telegram.ext import ContextTypes
+from bot.handlers.admin_check import dm_only
 
 logger = logging.getLogger("Bot.Handlers.Canales")
 
@@ -35,6 +36,7 @@ def _read_config():
     return {}
 
 
+@dm_only
 async def canales(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Lista los canales Telegram que el bot esta monitoreando."""
     try:

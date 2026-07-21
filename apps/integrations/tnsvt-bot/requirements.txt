@@ -25,3 +25,8 @@ uvicorn[standard]
 
 # Utilidades
 colorama
+
+# Web scraping & async HTTP
+aiohttp
+beautifulsoup4
+lxml

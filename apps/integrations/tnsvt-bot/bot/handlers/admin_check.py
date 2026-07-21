@@ -24,3 +24,34 @@ def admin_only(handler):
             return
         return await handler(update, context)
     return wrapper
+
+
+def dm_only(handler):
+    """Decorator: solo funciona en mensajes directos (DM) con el bot."""
+    @wraps(handler)
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.message or not update.effective_chat:
+            return
+        if update.effective_chat.type != "private":
+            await update.message.reply_text(
+                "🔒 Este comando solo funciona en mensajes privados con el bot.\n"
+                "Enviame un mensaje directo para usarlo."
+            )
+            return
+        return await handler(update, context)
+    return wrapper
+
+
+def group_only(handler):
+    """Decorator: solo funciona en grupos."""
+    @wraps(handler)
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.message or not update.effective_chat:
+            return
+        if update.effective_chat.type == "private":
+            await update.message.reply_text(
+                "📢 Este comando solo funciona en el grupo."
+            )
+            return
+        return await handler(update, context)
+    return wrapper

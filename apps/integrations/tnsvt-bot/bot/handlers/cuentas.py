@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from bot.handlers.admin_check import dm_only
 import requests
 
 logger = logging.getLogger("Bot.Handlers.Cuentas")
@@ -57,6 +58,7 @@ async def _fetch_snapshots(base_url: str, timeout: int = 4):
     return out
 
 
+@dm_only
 async def cuentas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Muestra todas las cuentas MT5 con snapshots actuales."""
     try:
