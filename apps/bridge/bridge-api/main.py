@@ -978,7 +978,7 @@ def _read_json_safe(path: str) -> dict | list | None:
 
 
 @app.get("/api/v1/bridge/mt5/account")
-def get_mt5_account():
+def get_mt5_account(request: Request):
     """Cuenta MT5 en vivo: balance, equity, margin, leverage, etc.
 
     Acepta ?login=XXXX para pedir una cuenta especifica.
@@ -1085,7 +1085,7 @@ def list_mt5_accounts():
 
 
 @app.get("/api/v1/bridge/mt5/positions")
-def get_mt5_positions():
+def get_mt5_positions(request: Request):
     """Todas las posiciones abiertas en MT5 (bot + manuales).
 
     Acepta ?login=XXXX para pedir posiciones de una cuenta especifica.

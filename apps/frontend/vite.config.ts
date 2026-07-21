@@ -24,10 +24,13 @@ export default defineConfig({
           });
         },
       },
-      // Admin endpoints → auth-service directo (gateway no los enruta).
+      // Admin endpoints (Tenants & Billing demo) -> bridge-api :8522.
+      // El bridge expone /api/v1/admin/{tenants_demo,seed_demo} como
+      // demo data cuando el backend real de auth-service no responde.
       '/api/v1/admin': {
-        target: 'http://localhost:8001',
+        target: bridgeTarget,
         changeOrigin: true,
+        rewrite: (path) => path,
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['cache-control'] = 'no-cache';
