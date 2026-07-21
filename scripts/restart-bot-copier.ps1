@@ -1,4 +1,4 @@
-$dir = "C:\Users\HP 240 inch G9\OneDrive\Desktop\Importante ultimas cosas\Terminal_Financiera_Pro_Completo\Terminal_Financiera_Pro"
+$dir = "E:\TNSVT-V2-Architecture\apps\integrations\tnsvt-bot"
 Set-Location $dir
 
 Start-Process -FilePath "python.exe" -ArgumentList "-m","signal_copier.main" -WorkingDirectory $dir -WindowStyle Hidden

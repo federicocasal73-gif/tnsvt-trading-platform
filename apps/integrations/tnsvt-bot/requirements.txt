@@ -1,0 +1,27 @@
+# Terminal Financiera Pro - Dependencias
+# ==========================================
+
+# Bot de Telegram
+python-telegram-bot==20.3
+pytz
+
+# APIs externas
+requests
+python-dotenv
+tradingeconomics
+
+# Signal Copier
+telethon
+MetaTrader5
+qrcode[pil]
+
+# Dashboard
+streamlit
+pandas
+
+# TNSVT Bridge (FastAPI)
+fastapi
+uvicorn[standard]
+
+# Utilidades
+colorama

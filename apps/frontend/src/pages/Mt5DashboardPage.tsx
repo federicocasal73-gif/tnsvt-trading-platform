@@ -134,18 +134,18 @@ export function Mt5DashboardPage() {
                 )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                <AccountCard icon={DollarSign} label="Balance" value={`$${account.balance.toLocaleString()}`} />
-                <AccountCard icon={TrendingUp} label="Equity" value={`$${account.equity.toLocaleString()}`}
-                  positive={account.equity >= account.balance} negative={account.equity < account.balance} />
-                <AccountCard icon={BarChart3} label="Margen" value={`$${account.margin.toLocaleString()}`}
-                  sub={`Libre: $${account.margin_free.toLocaleString()}`} />
+                <AccountCard icon={DollarSign} label="Balance" value={`$${(account.balance ?? 0).toLocaleString()}`} />
+                <AccountCard icon={TrendingUp} label="Equity" value={`$${(account.equity ?? 0).toLocaleString()}`}
+                  positive={(account.equity ?? 0) >= (account.balance ?? 0)} negative={(account.equity ?? 0) < (account.balance ?? 0)} />
+                <AccountCard icon={BarChart3} label="Margen" value={`$${(account.margin ?? 0).toLocaleString()}`}
+                  sub={`Libre: $${(account.margin_free ?? 0).toLocaleString()}`} />
                 <AccountCard icon={Shield} label="Nivel de Margen"
                   value={account.margin_level != null ? `${account.margin_level.toFixed(2)}%` : '—'}
                   positive={account.margin_level != null && account.margin_level > 100}
                   negative={account.margin_level != null && account.margin_level <= 100} />
-                <AccountCard icon={Activity} label="Flotante" value={`$${account.profit >= 0 ? '+' : ''}${account.profit.toFixed(2)}`}
-                  positive={account.profit > 0} negative={account.profit < 0}
-                  sub={`Apalancamiento: 1:${account.leverage}`} />
+                <AccountCard icon={Activity} label="Flotante" value={`$${(account.profit ?? 0) >= 0 ? '+' : ''}${(account.profit ?? 0).toFixed(2)}`}
+                  positive={(account.profit ?? 0) > 0} negative={(account.profit ?? 0) < 0}
+                  sub={`Apalancamiento: 1:${account.leverage ?? 0}`} />
               </div>
             </div>
           )}
