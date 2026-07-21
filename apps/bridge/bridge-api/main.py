@@ -1110,15 +1110,6 @@ def get_mt5_positions(request: Request):
     return {"ok": True, "data": data, "count": len(data) if data else 0}
 
 
-@app.get("/api/v1/bridge/mt5/positions")
-def get_mt5_positions():
-    """Todas las posiciones abiertas en MT5 (bot + manuales)."""
-    data = _read_json_safe(os.path.join(BOT_SNAPSHOT_DIR, "positions_snapshot.json"))
-    if data is None:
-        raise HTTPException(503, "Positions snapshot not available")
-    return {"ok": True, "data": data, "count": len(data) if data else 0}
-
-
 @app.get("/api/v1/bridge/mt5/signal_copier_status")
 def signal_copier_status():
     """Lee el archivo var/mt5_status.json que escribe el signal_copier (Python).

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, RefreshCw, Terminal } from 'lucide-react';
-import { api, LivePosition } from '../lib/api';
+import { api, LivePosition, Mt5PositionSnapshot } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
 import { Empty } from '../components/common';
@@ -33,21 +33,61 @@ export function Mt5PositionsPage() {
   const fetchData = useCallback(async () => {
     try {
       const acc = selectedLogin ?? undefined;
-      // Filtrar ultimos 30 dias por defecto para evitar que datos viejos
-      // del bot_data.db inunden la vista. Las posiciones OPEN en MT5
-      // siempre se ven (porque su opened_at es hoy).
-      const data = await api.bridge.trades(tab === 'ALL' ? undefined : tab, 30);
-      // Si hay cuenta seleccionada, filtramos por login en cliente
-      const filtered = selectedLogin
-        ? data.filter((t: any) => t.ticket && t.ticket > 0 || true)
-        : data;
+      const [tradesResult, liveResult] = await Promise.allSettled([
+        api.bridge.trades(undefined, 30),
+        api.bridge.accountPositions(acc),
+      ]);
 
-      void acc; void filtered;
+      let merged: LivePosition[] = [];
+
+      if (tradesResult.status === 'fulfilled') {
+        merged = tradesResult.value;
+      }
+
+      if (liveResult.status === 'fulfilled' && liveResult.value?.ok) {
+        const livePositions = (liveResult.value.data as Mt5PositionSnapshot[]) || [];
+        const existingTickets = new Set(merged.map(t => t.ticket));
+        for (const lp of livePositions) {
+          if (!existingTickets.has(lp.ticket)) {
+            const openedAt = typeof lp.time === 'number'
+              ? new Date(lp.time * 1000).toISOString()
+              : lp.time;
+            merged.push({
+              id: lp.ticket,
+              ticket: lp.ticket,
+              symbol: lp.symbol,
+              action: lp.type,
+              volume: lp.volume,
+              open_price: lp.price_open,
+              close_price: null,
+              sl: lp.sl,
+              tp: lp.tp,
+              pnl: lp.profit,
+              commission: lp.commission ?? 0,
+              swap: lp.swap ?? 0,
+              opened_at: openedAt,
+              closed_at: null,
+              channel_id: null,
+              channel_title: null,
+              topic_id: null,
+              status: 'OPEN',
+              received_at: openedAt,
+            });
+          }
+        }
+      }
+
+      void acc;
+      // Filtrar por tab despues del merge
+      const filtered = tab === 'OPEN' ? merged.filter(t => t.status === 'OPEN')
+        : tab === 'CLOSED' ? merged.filter(t => t.status === 'CLOSED')
+        : merged;
+
       setTrades(prev => {
-        if (JSON.stringify(prev) !== JSON.stringify(data)) {
+        if (JSON.stringify(prev) !== JSON.stringify(filtered)) {
           setPulse(true);
           setTimeout(() => setPulse(false), 300);
-          return data;
+          return filtered;
         }
         return prev;
       });
