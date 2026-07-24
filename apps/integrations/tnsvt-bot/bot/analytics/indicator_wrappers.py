@@ -4,43 +4,46 @@ Indicator Wrappers — Secondary confirmation for AMB engine.
 Wraps traditional technical indicators (RSI, MACD, EMA, ATR)
 and structure analysis (market structure, HH/HL, LH/LL) as scoring
 functions that return 0-100 for a given symbol + timeframe.
+
+All calculations are local via pandas/numpy using MT5 real data.
 """
 import asyncio
 import logging
 from typing import Optional
 
-import aiohttp
+import numpy as np
+import pandas as pd
+
+from bot.services.mt5_provider import get_provider
 
 logger = logging.getLogger("Bot.AMB.Indicators")
 
-BRIDGE_URL = "http://localhost:5001"
-
+_CACHE_TTL = 20
 _cache = {}
-_CACHE_TTL = 30
 
 
-async def _fetch_rates(symbol: str) -> Optional[list]:
-    cache_key = f"rates:{symbol}"
+def _rma(series: pd.Series, period: int) -> pd.Series:
+    """Wilder's smoothed moving average (RMA)."""
+    alpha = 1.0 / period
+    return series.ewm(alpha=alpha, adjust=False).mean()
+
+
+async def _get_ohlc(symbol: str, tf: str, bars: int = 200) -> Optional[pd.DataFrame]:
+    cache_key = f"ohlc:{symbol}:{tf}:{bars}"
     import time
     now = time.time()
     cached = _cache.get(cache_key)
     if cached and (now - cached["ts"]) < _CACHE_TTL:
         return cached["data"]
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{BRIDGE_URL}/api/v1/rates",
-                params={"symbol": symbol},
-                timeout=aiohttp.ClientTimeout(total=5),
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    _cache[cache_key] = {"data": data, "ts": now}
-                    return data
-    except Exception as e:
-        logger.debug(f"_fetch_rates error for {symbol}: {e}")
-    return None
+    provider = get_provider()
+    rates = await provider.get_candles(symbol, tf, bars)
+    if not rates:
+        return None
+
+    df = pd.DataFrame(rates)
+    _cache[cache_key] = {"data": df, "ts": now}
+    return df
 
 
 async def score_indicators(symbol: str, tf: str) -> float:
@@ -51,11 +54,11 @@ async def score_indicators(symbol: str, tf: str) -> float:
 
     if rsi_val is not None:
         if 30 <= rsi_val <= 40:
-            score += 15  # oversold-bullish
+            score += 15
         elif 60 <= rsi_val <= 70:
-            score += 10  # overbought-bearish (less weight for bullish bias)
+            score += 10
         elif 40 < rsi_val < 60:
-            score += 5   # neutral
+            score += 5
 
     if macd_val is not None:
         if macd_val > 0:
@@ -73,80 +76,62 @@ async def score_indicators(symbol: str, tf: str) -> float:
 
 
 async def _rsi(symbol: str, tf: str, period: int = 14) -> Optional[float]:
-    try:
-        from bot.services.trading_economics import get_rsi
-        return await asyncio.get_event_loop().run_in_executor(None, get_rsi, symbol, tf, period)
-    except (ImportError, AttributeError):
-        pass
+    df = await _get_ohlc(symbol, tf)
+    if df is None or len(df) < period + 1:
+        return None
 
-    try:
-        import requests
-        resp = requests.get(
-            f"{BRIDGE_URL}/api/v1/rsi",
-            params={"symbol": symbol, "timeframe": tf, "period": period},
-            timeout=5,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            return float(data.get("rsi", 50))
-    except Exception as e:
-        logger.debug(f"_rsi error {symbol} {tf}: {e}")
-    return None
+    closes = df["close"].astype(float)
+    delta = closes.diff()
+    gain = delta.clip(lower=0)
+    loss = (-delta).clip(lower=0)
+
+    avg_gain = _rma(gain, period)
+    avg_loss = _rma(loss, period)
+
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    rsi = 100 - (100 / (1 + rs))
+    return float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else None
 
 
 async def _macd(symbol: str, tf: str) -> Optional[float]:
-    try:
-        import requests
-        resp = requests.get(
-            f"{BRIDGE_URL}/api/v1/macd",
-            params={"symbol": symbol, "timeframe": tf},
-            timeout=5,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            return float(data.get("macd_line", 0))
-    except Exception as e:
-        logger.debug(f"_macd error {symbol} {tf}: {e}")
-    return None
+    df = await _get_ohlc(symbol, tf)
+    if df is None or len(df) < 35:
+        return None
+
+    closes = df["close"].astype(float)
+    ema12 = closes.ewm(span=12, adjust=False).mean()
+    ema26 = closes.ewm(span=26, adjust=False).mean()
+    macd_line = ema12 - ema26
+
+    return float(macd_line.iloc[-1])
 
 
 async def _ema_alignment(symbol: str, tf: str) -> Optional[float]:
-    try:
-        import requests
-        resp = requests.get(
-            f"{BRIDGE_URL}/api/v1/ema",
-            params={"symbol": symbol, "timeframe": tf, "fast": 50, "slow": 200},
-            timeout=5,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            ema_fast = float(data.get("ema_fast", 0))
-            ema_slow = float(data.get("ema_slow", 0))
-            if ema_fast and ema_slow:
-                return ema_fast - ema_slow
-    except Exception as e:
-        logger.debug(f"_ema_alignment error {symbol} {tf}: {e}")
-    return None
+    df = await _get_ohlc(symbol, tf)
+    if df is None or len(df) < 200:
+        return None
+
+    closes = df["close"].astype(float)
+    ema50 = closes.ewm(span=50, adjust=False).mean()
+    ema200 = closes.ewm(span=200, adjust=False).mean()
+
+    return float(ema50.iloc[-1] - ema200.iloc[-1])
 
 
 async def score_structure(symbol: str, tf: str) -> float:
     score = 50.0
-    rates = await _fetch_rates(symbol)
-    if not rates or not isinstance(rates, list) or len(rates) < 20:
+    df = await _get_ohlc(symbol, tf)
+    if df is None or len(df) < 20:
         return score
 
-    prices = []
-    for r in rates:
-        close = r.get("close") or r.get("c") or r.get("price")
-        if close:
-            prices.append(float(close))
-
-    if len(prices) < 10:
+    closes = df["close"].astype(float).values
+    if len(closes) < 10:
         return score
 
-    recent = prices[-10:]
-    highs = [max(prices[i:i+5]) for i in range(0, len(prices)-4, 3)][-3:]
-    lows = [min(prices[i:i+5]) for i in range(0, len(prices)-4, 3)][-3:]
+    recent = closes[-10:]
+    segments = len(recent) // 3
+    highs = [float(max(recent[i*3:(i+1)*3])) for i in range(segments) if i*3+3 <= len(recent)]
+    lows = [float(min(recent[i*3:(i+1)*3])) for i in range(segments) if i*3+3 <= len(recent)]
 
     if len(highs) >= 2 and len(lows) >= 2:
         higher_highs = highs[-1] > highs[-2]
@@ -155,15 +140,15 @@ async def score_structure(symbol: str, tf: str) -> float:
         lower_lows = lows[-1] < lows[-2]
 
         if higher_highs and higher_lows:
-            score = 80  # strong uptrend
+            score = 80
         elif lower_highs and lower_lows:
-            score = 20  # strong downtrend
+            score = 20
         elif higher_highs:
-            score = 65  # weak uptrend
+            score = 65
         elif lower_lows:
-            score = 35  # weak downtrend
+            score = 35
         else:
-            score = 50  # ranging
+            score = 50
 
     return max(0.0, min(100.0, score))
 

@@ -100,6 +100,10 @@ class ConfigManager:
             logger.warning(f"cmd_responses.json read failed: {e}")
             return None
 
+        if not isinstance(payload, dict):
+            logger.warning(f"cmd_responses.json: expected dict, got {type(payload).__name__}")
+            return None
+
         completed_at = payload.get("completed_at", "")
         try:
             ts = time.mktime(time.strptime(completed_at, "%Y-%m-%dT%H:%M:%SZ"))

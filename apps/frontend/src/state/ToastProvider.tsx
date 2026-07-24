@@ -17,7 +17,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const remove = useCallback((id: number) => {
     setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 200);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 250);
   }, []);
 
   const push = useCallback((message: string, kind: Toast['kind'] = 'info', ttl = 4500) => {
@@ -47,8 +47,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={cls(
-              'pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-tnvs-soft transition-all duration-200',
-              t.exiting ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0',
+              't-toast pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-tnvs-soft',
+              !t.exiting && 'is-open',
               t.kind === 'success' ? 'border-tnvs-win/30 bg-tnvs-win/10 text-tnvs-win' : '',
               t.kind === 'error' ? 'border-tnvs-loss/30 bg-tnvs-loss/10 text-tnvs-loss' : '',
               t.kind === 'info' ? 'border-tnvs-blue/30 bg-tnvs-blue/10 text-tnvs-blue' : '',

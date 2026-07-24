@@ -41,6 +41,7 @@ export function Mt5DashboardPage() {
   const [bridgeStatus, setBridgeStatus] = useState<Status>('checking');
   const [accountAvailable, setAccountAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<number>(0);
 
   const fetchAll = async () => {
     const acc = selectedLogin ?? undefined;
@@ -66,19 +67,24 @@ export function Mt5DashboardPage() {
       setAccount(results[5].value.data);
       setAccountAvailable(true);
       setBridgeStatus('online');
+    } else if (results[5].status === 'fulfilled' && !results[5].value.ok) {
+      setBridgeStatus('offline');
     }
     if (results[6].status === 'fulfilled') {
       setOpenCount(results[6].value.count);
     }
     setLoading(false);
+    setLastRefresh(Date.now());
   };
 
   useEffect(() => {
     fetchAll();
-    const id = setInterval(fetchAll, 15000);
+    const id = setInterval(fetchAll, 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLogin]);
+
+  const secondsAgo = lastRefresh ? Math.max(0, Math.floor((Date.now() - lastRefresh) / 1000)) : null;
 
   return (
     <div className="space-y-6">
@@ -104,6 +110,9 @@ export function Mt5DashboardPage() {
         >
           <RefreshCw className="h-3 w-3" />
           Refrescar
+          {secondsAgo !== null && (
+            <span className="text-[10px] text-tnvs-dim">· {secondsAgo}s</span>
+          )}
         </button>
       </div>
 

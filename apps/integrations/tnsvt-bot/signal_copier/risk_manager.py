@@ -12,26 +12,35 @@ logger = logging.getLogger("SignalCopier.RiskManager")
 
 STATE_FILE = "signal_copier/risk_state.json"
 
+# Pares correlacionados por defecto (grupos)
+DEFAULT_CORRELATION_GROUPS = [
+    ["EURUSD", "GBPUSD"],
+    ["USDJPY", "USDCHF"],
+    ["XAUUSD", "USDCAD"],
+    ["GBPJPY", "EURJPY"],
+    ["AUDUSD", "NZDUSD"],
+    ["GBPJPY", "GBPUSD"],
+]
+
 
 class RiskManager:
     """Gestion de riesgo para el copiador de senales"""
 
     def __init__(self):
-        self.config = {
-            "daily_loss_limit": settings.RISK_DAILY_LOSS_LIMIT,
-            "daily_profit_target": settings.RISK_DAILY_PROFIT_TARGET,
-            "weekly_loss_limit": settings.RISK_WEEKLY_LOSS_LIMIT,
-            "max_open_positions": settings.RISK_MAX_OPEN_POSITIONS,
-            "trailing_stop": settings.RISK_TRAILING_STOP,
-            "trailing_step": settings.RISK_TRAILING_STEP,
-            "trailing_start": settings.RISK_TRAILING_START,
-        }
         self.state = self._load_state()
-        logger.info("RiskManager inicializado")
+        self.reload_config()
 
     def reload_config(self):
-        """Recarga la configuración desde .env"""
+        """Recarga la configuración desde .env + override con config.json del bot.
+
+        Prioridad: config.json (UI del bot) > .env (defaults del sistema).
+        Asi el usuario puede setear limites desde el panel Mt5Settings
+        sin necesidad de editar el .env manualmente.
+        """
         from config import settings
+        from pathlib import Path
+        import json
+
         self.config = {
             "daily_loss_limit": settings.RISK_DAILY_LOSS_LIMIT,
             "daily_profit_target": settings.RISK_DAILY_PROFIT_TARGET,
@@ -40,8 +49,78 @@ class RiskManager:
             "trailing_stop": settings.RISK_TRAILING_STOP,
             "trailing_step": settings.RISK_TRAILING_STEP,
             "trailing_start": settings.RISK_TRAILING_START,
+            "max_trades_per_day": settings.RISK_MAX_TRADES_PER_DAY,
+            "breakeven_enabled": settings.RISK_BREAKEVEN_ENABLED,
+            "breakeven_pips": settings.RISK_BREAKEVEN_PIPS,
+            "correlation_guard": settings.RISK_CORRELATION_GUARD_ENABLED,
+            "correlation_groups": settings.RISK_CORRELATION_PAIRS or DEFAULT_CORRELATION_GROUPS,
+            "max_hold_hours": settings.RISK_MAX_HOLD_HOURS,
+            "close_on_friday": settings.RISK_CLOSE_ON_FRIDAY,
+            "no_open_after": settings.RISK_NO_OPEN_AFTER,
+            "scaleout_enabled": settings.SCALEOUT_ENABLED,
+            "scaleout_levels": settings.SCALEOUT_LEVELS,
         }
-        logger.info("RiskManager configuración recargada")
+
+        # Override con config.json del bot (path configurable via env BOT_DATA_DIR)
+        bot_data_dir = os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")
+        cfg_path = Path(bot_data_dir) / "config.json"
+        if cfg_path.exists():
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                risk = cfg.get("risk_management") or {}
+                trailing = cfg.get("trailing_stop") or {}
+
+                if "max_trades_per_day" in risk:
+                    self.config["max_trades_per_day"] = int(risk["max_trades_per_day"])
+                if "daily_loss_limit" in risk:
+                    self.config["daily_loss_limit"] = float(risk["daily_loss_limit"])
+                if "daily_profit_target" in risk:
+                    self.config["daily_profit_target"] = float(risk["daily_profit_target"])
+                if "weekly_loss_limit" in risk:
+                    self.config["weekly_loss_limit"] = float(risk["weekly_loss_limit"])
+                if "max_open_positions" in risk:
+                    self.config["max_open_positions"] = int(risk["max_open_positions"])
+                if "breakeven_enabled" in risk:
+                    self.config["breakeven_enabled"] = bool(risk["breakeven_enabled"])
+                if "breakeven_pips" in risk:
+                    self.config["breakeven_pips"] = float(risk["breakeven_pips"])
+                if "correlation_guard" in risk:
+                    self.config["correlation_guard"] = bool(risk["correlation_guard"])
+                if "max_hold_hours" in risk:
+                    self.config["max_hold_hours"] = int(risk["max_hold_hours"])
+                if "close_on_friday" in risk:
+                    self.config["close_on_friday"] = bool(risk["close_on_friday"])
+
+                scaleout = cfg.get("scale_out") or cfg.get("scaleout") or {}
+                if "enabled" in scaleout:
+                    self.config["scaleout_enabled"] = bool(scaleout["enabled"])
+                if "levels" in scaleout and isinstance(scaleout["levels"], list):
+                    valid = [
+                        l for l in scaleout["levels"]
+                        if isinstance(l, dict) and l.get("pips", 0) > 0 and l.get("percent", 0) > 0
+                    ]
+                    if valid:
+                        self.config["scaleout_levels"] = valid
+
+                if "enabled" in trailing:
+                    self.config["trailing_stop"] = bool(trailing["enabled"])
+                if "start_pips" in trailing:
+                    self.config["trailing_start"] = float(trailing["start_pips"])
+                if "step_pips" in trailing:
+                    self.config["trailing_step"] = float(trailing["step_pips"])
+
+                logger.debug(f"RiskManager: config.json aplicado ({cfg_path})")
+            except Exception as e:
+                logger.error(f"Error leyendo {cfg_path}: {e}")
+
+        logger.info(
+            f"RiskManager config recargada (max_trades_per_day="
+            f"{self.config['max_trades_per_day']}, "
+            f"breakeven={self.config['breakeven_enabled']}, "
+            f"correlation={self.config['correlation_guard']}, "
+            f"scaleout={self.config['scaleout_enabled']})"
+        )
 
     def _load_state(self) -> dict:
         """Carga el estado del risk manager"""
@@ -105,6 +184,14 @@ class RiskManager:
         except Exception as e:
             logger.error(f"Error verificando posiciones: {e}")
 
+        # Verificar maximo de trades por dia (0 = ilimitado)
+        max_n = int(self.config.get("max_trades_per_day", 0))
+        if max_n > 0 and self.state.get("trades_today", 0) >= max_n:
+            msg = (f"Limite diario de trades alcanzado "
+                   f"({self.state['trades_today']}/{max_n})")
+            logger.warning(msg)
+            return False, msg
+
         # Verificar perdida diaria
         try:
             account = mt5.account_info()
@@ -142,13 +229,92 @@ class RiskManager:
 
         return True, "OK"
 
+    def increment_trades_today(self):
+        """Incrementa el contador de trades del dia (al abrir, no al cerrar).
+
+        Llamado desde main.py cuando una senal ejecuta OK.
+        """
+        self._reset_daily_if_needed()
+        self.state["trades_today"] = self.state.get("trades_today", 0) + 1
+        self.state["total_trades"] = self.state.get("total_trades", 0) + 1
+        self._save_state()
+        max_n = int(self.config.get("max_trades_per_day", 0))
+        logger.info(
+            f"Trades hoy: {self.state['trades_today']}"
+            + (f"/{max_n}" if max_n > 0 else "")
+        )
+
+    def check_correlation(self, symbol: str, action: str) -> tuple[bool, str]:
+        """Verifica que no haya posiciones abiertas correlacionadas en direccion opuesta.
+
+        Grupos de pares correlacionados: si ya tenemos EURUSD BUY y llega GBPUSD SELL,
+        se bloquea porque van en direccion opuesta y se cancelan entre si.
+
+        Returns: (ok, reason)
+        """
+        if not self.config.get("correlation_guard"):
+            return True, ""
+
+        groups = self.config.get("correlation_groups", [])
+        if not groups:
+            return True, ""
+
+        symbol_up = symbol.upper()
+        my_group = None
+        for group in groups:
+            if any(symbol_up == p.upper() for p in group):
+                my_group = group
+                break
+
+        if not my_group:
+            return True, ""
+
+        try:
+            positions = mt5.positions_get(magic=20260706) or []
+        except Exception:
+            return True, ""
+
+        for pos in positions:
+            pos_sym = pos.symbol.upper()
+            if pos_sym == symbol_up:
+                continue
+            if pos_sym not in my_group:
+                continue
+
+            pos_action = "BUY" if pos.type == mt5.ORDER_TYPE_BUY else "SELL"
+            if pos_action != action.upper():
+                related = [p for p in my_group if p.upper() != symbol_up]
+                return False, (
+                    f"Correlacion opuesta: {symbol} {action} vs {pos_sym} {pos_action} "
+                    f"en grupo {', '.join(my_group)}"
+                )
+
+        return True, ""
+
+    def can_open_now(self) -> tuple[bool, str]:
+        """Verifica si la hora actual permite abrir nuevas posiciones."""
+        from signal_copier.time_exit import can_open_now as _can_open_now
+        return _can_open_now(self.config)
+
+    def check_daily_trade_limit(self) -> tuple[bool, str]:
+        """Verifica si todavía se puede tradear hoy segun el limite diario."""
+        self._reset_daily_if_needed()
+        max_n = int(self.config.get("max_trades_per_day", 0))
+        if max_n <= 0:
+            return True, ""
+        used = self.state.get("trades_today", 0)
+        if used >= max_n:
+            return False, f"limite diario {used}/{max_n}"
+        return True, ""
+
     def update_pnl(self, pnl: float):
-        """Actualiza el PnL"""
+        """Actualiza el PnL al CERRAR un trade. NO incrementa trades_today
+        (eso se hace en increment_trades_today al abrir el trade).
+        """
         self._reset_daily_if_needed()
 
         self.state["daily_pnl"] += pnl
         self.state["weekly_pnl"] += pnl
-        self.state["trades_today"] += 1
         self.state["total_trades"] += 1
 
         if pnl > 0:
@@ -181,12 +347,19 @@ class RiskManager:
             "daily_limit_pct": self.config["daily_loss_limit"],
             "weekly_limit_pct": self.config["weekly_loss_limit"],
             "max_positions": self.config["max_open_positions"],
+            "max_trades_per_day": self.config.get("max_trades_per_day", 0),
             "balance": balance,
             "daily_loss_remaining": round(
                 (self.config["daily_loss_limit"] / 100 * balance)
                 + self.state["daily_pnl"],
                 2,
             ),
+            "breakeven_enabled": self.config.get("breakeven_enabled", False),
+            "breakeven_pips": self.config.get("breakeven_pips", 8.0),
+            "correlation_guard": self.config.get("correlation_guard", False),
+            "max_hold_hours": self.config.get("max_hold_hours", 48),
+            "close_on_friday": self.config.get("close_on_friday", False),
+            "no_open_after": self.config.get("no_open_after", ""),
         }
 
     def check_trailing_stop(self, symbol: str):

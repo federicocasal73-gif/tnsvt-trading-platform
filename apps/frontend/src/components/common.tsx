@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { cls } from '../utils/format';
 
 export function NameDialog({ open, title, label, initialValue, placeholder, confirmLabel, onSubmit, onClose }: {
@@ -159,6 +159,83 @@ export function Section({ title, description, children }: { title: string; descr
         {description && <p className="text-xs text-tnvs-dim">{description}</p>}
       </div>
       {children}
+    </div>
+  );
+}
+
+export function AnimatedNumber({ value, decimals = 2, prefix = '' }: { value: number | null; decimals?: number; prefix?: string }) {
+  const groupRef = useRef<HTMLSpanElement>(null);
+  const prevRef = useRef('');
+
+  const formatted = value != null ? (value > 0 ? '+' : '') + prefix + Math.abs(value).toFixed(decimals) : '—';
+
+  useEffect(() => {
+    const group = groupRef.current;
+    if (!group || formatted === prevRef.current) return;
+    prevRef.current = formatted;
+
+    group.classList.remove('is-animating');
+    group.replaceChildren();
+    const chars = formatted.split('');
+    chars.forEach((ch, i) => {
+      const span = document.createElement('span');
+      span.className = 't-digit';
+      span.textContent = ch;
+      if (i === chars.length - 2) span.dataset.stagger = '1';
+      else if (i === chars.length - 1) span.dataset.stagger = '2';
+      group.appendChild(span);
+    });
+    void group.offsetHeight;
+    group.classList.add('is-animating');
+  }, [formatted]);
+
+  return <span ref={groupRef} className="t-digit-group" />;
+}
+
+export function TiltCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const reduce = useRef<MediaQueryList>(typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null!);
+
+  const reset = useCallback(() => {
+    const t = tiltRef.current;
+    const c = cardRef.current;
+    if (!t || !c) return;
+    t.classList.remove('is-hover');
+    c.classList.remove('is-tilting');
+    c.style.setProperty('--tilt-rx', '0deg');
+    c.style.setProperty('--tilt-ry', '0deg');
+  }, []);
+
+  const track = useCallback((e: React.PointerEvent) => {
+    if (reduce.current?.matches) return;
+    const t = tiltRef.current;
+    const c = cardRef.current;
+    if (!t || !c) return;
+    const r = t.getBoundingClientRect();
+    const px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    const MAX = 8;
+    t.classList.add('is-hover');
+    c.classList.add('is-tilting');
+    c.style.setProperty('--tilt-ry', ((px - 0.5) * MAX).toFixed(2) + 'deg');
+    c.style.setProperty('--tilt-rx', ((0.5 - py) * MAX).toFixed(2) + 'deg');
+    c.style.setProperty('--tilt-gx', (px * 100).toFixed(1) + '%');
+    c.style.setProperty('--tilt-gy', (py * 100).toFixed(1) + '%');
+  }, []);
+
+  return (
+    <div ref={tiltRef} className={cls('t-tilt', className)}
+      onPointerMove={track}
+      onPointerDown={e => { if (e.pointerType !== 'mouse') try { tiltRef.current?.setPointerCapture(e.pointerId); } catch {} }}
+      onPointerUp={reset}
+      onPointerCancel={reset}
+      onPointerLeave={e => { if (e.pointerType === 'mouse') reset(); }}
+    >
+      <div ref={cardRef} className="t-tilt-card">
+        {children}
+        <div className="t-tilt-glare" />
+      </div>
     </div>
   );
 }

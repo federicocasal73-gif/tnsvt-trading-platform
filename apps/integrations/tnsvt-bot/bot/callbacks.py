@@ -6,9 +6,11 @@ Aca decidimos que comando ejecutar en funcion del callback_data.
 """
 import asyncio
 import logging
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+from config import settings
 from bot.handlers import start, signals, admin, historial, statshoy, canales, cuentas
 from signal_copier.database import get_stats_today, get_stats_since
 
@@ -32,31 +34,9 @@ async def _edit(query, text: str, parse_mode: str = "Markdown", reply_markup=Non
 
 
 def main_menu_keyboard():
-    """Botonera principal del /start."""
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("📊 Panorama", callback_data="cmd:analisis"),
-            InlineKeyboardButton("📈 Equity", callback_data="cmd:grafico"),
-            InlineKeyboardButton("💱 Cripto", callback_data="cmd:cripto"),
-        ],
-        [
-            InlineKeyboardButton("📰 Noticias", callback_data="cmd:noticias"),
-            InlineKeyboardButton("📅 Calendario", callback_data="cmd:calendario"),
-            InlineKeyboardButton("📡 Señales", callback_data="cmd:senales"),
-        ],
-        [
-            InlineKeyboardButton("📈 Historial", callback_data="cmd:historial"),
-            InlineKeyboardButton("📊 Stats", callback_data="cmd:stats"),
-            InlineKeyboardButton("🏦 Cuentas", callback_data="cmd:cuentas"),
-        ],
-        [
-            InlineKeyboardButton("💼 Bot MT5", callback_data="cmd:bot"),
-            InlineKeyboardButton("🆘 Ayuda", callback_data="cmd:ayuda"),
-        ],
-        [
-            InlineKeyboardButton("🔄 Refrescar", callback_data="cmd:refresh"),
-        ],
-    ])
+    """Botonera principal del /start. Re-export desde keyboards.py."""
+    from bot.keyboards import main_menu as _main_menu
+    return _main_menu()
 
 
 async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,10 +67,35 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text=text, parse_mode="Markdown", reply_markup=kbd)
             return
 
+        if cmd == "soporte":
+            text = (
+                "🆘 *Soporte*\n"
+                "━━━━━━━━━━━━━━━━━━━\n"
+                "Si necesitás ayuda con el bot, contactá al admin:\n"
+                "• Admin ID: `1618164175`\n"
+                "• Grupo: Terminal Financiera Pro TNSVT\n"
+            )
+            from bot.handlers.canales import _read_config
+            await query.edit_message_text(
+                text=text, parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📋 Volver al menú", callback_data="cmd:refresh")],
+                ]),
+            )
+            return
+
+        if cmd == "stats":
+            from signal_copier.database import get_stats_today
+            stats = await asyncio.get_event_loop().run_in_executor(None, get_stats_today)
+            await _show_stats_hoy(query, stats)
+            return
+
+        if cmd == "canales":
+            await _show_canales(query)
+            return
+
         # Redirigir a comandos existentes
-        if cmd in ("senales", "stats", "historial", "cripto", "noticias", "calendario"):
-            # Borrar el menú y forzar /cmd — dejamos el user tipear el comando
-            # para mantener consistencia con el flujo /start.
+        if cmd in ("historial", "cripto", "noticias", "calendario"):
             await query.edit_message_text(
                 text=f"💬 Escribí *{cmd}* o tocá `/menu`.",
                 parse_mode="Markdown",
@@ -98,6 +103,44 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     [InlineKeyboardButton("📋 Volver al menú", callback_data="cmd:refresh")],
                 ]),
             )
+            return
+        if cmd == "zona":
+            await query.edit_message_text(
+                text=(
+                    "🎯 *Análisis por Par*\n\n"
+                    "Uso: `/zona SYMBOL` o `/z SYMBOL`\n\n"
+                    "Ejemplos:\n"
+                    "• `/zona XAUUSD`\n"
+                    "• `/zona EURUSD`\n"
+                    "• `/z US30`"
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📋 Volver al menú", callback_data="cmd:refresh")],
+                ]),
+            )
+            return
+        if cmd == "senales":
+            await _submenu_senales(query)
+            return
+        if cmd == "status":
+            from bot.handlers.status import status_command
+            await query.edit_message_text("🔄 Recopilando estado...")
+            await status_command(update, context)
+            return
+        if cmd == "positions":
+            await query.edit_message_text(
+                text="📍 *Posiciones abiertas*\n\nPara ver posiciones usá el Dashboard MT5:\nhttp://localhost:5180/mt5/positions",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 /status", callback_data="cmd:status")],
+                    [InlineKeyboardButton("📋 Menú principal", callback_data="cmd:refresh")],
+                ]),
+            )
+            return
+        if cmd == "menu":
+            text, kbd = start.MENU_TEXT, main_menu_keyboard()
+            await query.edit_message_text(text=text, parse_mode="Markdown", reply_markup=kbd)
             return
         if cmd in ("analisis", "grafico"):
             await query.edit_message_text(
@@ -109,7 +152,63 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+    # Cierre masivo (close:all)
+    if data == "close:all":
+        user_id = update.effective_user.id if update.effective_user else 0
+        admins = settings.BOT_ADMIN_IDS if hasattr(settings, "BOT_ADMIN_IDS") else []
+        if not admins or user_id not in admins:
+            await query.answer("❌ Solo el admin puede cerrar posiciones", show_alert=True)
+            return
+        await query.edit_message_text("🔴 Cerrando todas las posiciones...")
+        from bot.handlers.cerrar import _close_all
+        await _close_all(update, context)
+        return
+
     # Submenú señales
+    if data.startswith("close:symbol:"):
+        symbol = data.split(":", 2)[2].upper().strip()
+        user_id = update.effective_user.id if update.effective_user else 0
+        admins = settings.BOT_ADMIN_IDS if hasattr(settings, "BOT_ADMIN_IDS") else []
+
+        if not admins or user_id not in admins:
+            await query.answer("❌ Solo el admin puede cerrar posiciones", show_alert=True)
+            logger.warning(f"close: no-admin {user_id} intento cerrar {symbol}")
+            return
+
+        try:
+            r = requests.post(
+                "http://localhost:8522/api/v1/bridge/copier/close",
+                json={
+                    "action": "close",
+                    "symbol": symbol,
+                    "by_user": f"telegram:{user_id}",
+                },
+                timeout=5,
+            )
+            data_resp = r.json() if r.status_code == 200 else {}
+        except Exception as e:
+            data_resp = {"ok": False, "detail": str(e)}
+
+        if data_resp.get("ok"):
+            await query.answer(f"✅ Cerrando {symbol}...", show_alert=False)
+            await query.edit_message_reply_markup(reply_markup=None)
+            try:
+                await query.edit_message_text(
+                    text=(
+                        f"⏳ Cerrando *{symbol}*...\n\n"
+                        f"El signal_copier procesará el comando en el próximo poll."
+                    ),
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                pass
+        else:
+            detail = data_resp.get("detail", "sin detalle")
+            await query.answer(
+                f"⚠️ {detail}", show_alert=True
+            )
+        return
+
     if data == "senales:menu":
         await _submenu_senales(query)
         return

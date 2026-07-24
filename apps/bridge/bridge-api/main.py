@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -39,6 +40,11 @@ from syncer import BotSyncer
 from config_manager import ConfigManager
 
 # ─── Config ────────────────────────────────────────────────────────────
+
+# MT5 price provider path
+_BRIDGE_ROOT = Path(__file__).parent.parent.parent
+_TNSVT_BOT = _BRIDGE_ROOT / "integrations" / "tnsvt-bot"
+sys.path.insert(0, str(_TNSVT_BOT))
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = os.getenv("BRIDGE_DB", str(BASE_DIR / "bridge_outbox.db"))
@@ -324,6 +330,119 @@ def copier_close(payload: dict):
     }
 
 
+@app.post("/api/v1/bridge/events")
+def events_enqueue(payload: dict):
+    """Encolar un evento de trade (open/close/blocked) para que el bot lo publique al grupo.
+
+    Body: {type: "trade_open"|"trade_close"|"trade_blocked",
+           symbol, action, price?, sl?, tp?, ticket?, channel?, pnl?, result?, reason?}
+
+    Almacena en events.json (lista append-safe). El bot hace GET cada 2s.
+    Devuelve {"ok": True, "event_id": "..."}
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "payload debe ser dict")
+    event_type = payload.get("type")
+    if event_type not in ("trade_open", "trade_close", "trade_blocked"):
+        raise HTTPException(400, f"type no soportado: {event_type}")
+    if not payload.get("symbol"):
+        raise HTTPException(400, "symbol requerido")
+
+    event_id = f"evt_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+    event = {
+        "event_id": event_id,
+        "ts": time.time(),
+        "delivered": False,
+        **payload,
+    }
+
+    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    existing = []
+    if ev_path.exists():
+        try:
+            with open(ev_path, encoding="utf-8") as f:
+                existing = json.load(f)
+            if not isinstance(existing, list):
+                existing = []
+        except Exception:
+            existing = []
+    existing.append(event)
+    tmp = ev_path.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, ev_path)
+
+    logger.warning("events_enqueue: event_id=%s type=%s symbol=%s",
+                   event_id, event_type, payload.get("symbol"))
+    return {"ok": True, "event_id": event_id}
+
+
+@app.get("/api/v1/bridge/events")
+def events_poll(delim: str = ""):
+    """GET /api/v1/bridge/events - el bot pide eventos pendientes.
+
+    Query: delim=ts - el bot manda el último timestamp que ya procesó
+                        para no recibir duplicados.
+
+    Devuelve {"events": [...], "count": N}
+    """
+    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    if not ev_path.exists():
+        return {"events": [], "count": 0}
+
+    try:
+        with open(ev_path, encoding="utf-8") as f:
+            events = json.load(f)
+    except Exception:
+        return {"events": [], "count": 0}
+
+    if not isinstance(events, list):
+        return {"events": [], "count": 0}
+
+    try:
+        last_ts = float(delim) if delim else 0
+    except Exception:
+        last_ts = 0
+
+    pending = [e for e in events if e.get("ts", 0) > last_ts and not e.get("delivered", False)]
+
+    return {"events": pending, "count": len(pending)}
+
+
+@app.post("/api/v1/bridge/events/{event_id}/delivered")
+def events_mark_delivered(event_id: str):
+    """Marca un evento como entregado para que no se vuelva a enviar."""
+    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    if not ev_path.exists():
+        return {"ok": False}
+
+    try:
+        with open(ev_path, encoding="utf-8") as f:
+            events = json.load(f)
+    except Exception:
+        return {"ok": False}
+
+    if not isinstance(events, list):
+        return {"ok": False}
+
+    found = False
+    for e in events:
+        if e.get("event_id") == event_id:
+            e["delivered"] = True
+            found = True
+            break
+
+    if not found:
+        return {"ok": False, "detail": "event_id no encontrado"}
+
+    tmp = ev_path.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(events, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, ev_path)
+
+    return {"ok": True}
+
+
 @app.get("/api/v1/bridge/copier/dashboard")
 def copier_dashboard():
     """Snapshot consolidado: status + MT5 account + métricas analytics + posiciones.
@@ -436,11 +555,8 @@ def copier_log_trade(payload: dict):
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # extraer canal si viene en notes
     notes = payload.get("notes") or ""
-    channel_title = payload.get("channel_title") or ""
-    if not channel_title and notes:
-        channel_title = notes
+    channel_title = payload.get("channel_title") or "Unknown"
 
     row = {
         "ticket": ticket,
@@ -675,7 +791,8 @@ def analytics_metrics(request: Request, tenant_id: Optional[str] = None):
 
 @app.get("/api/v1/bridge/analytics/equity-curve")
 def analytics_equity(request: Request, tenant_id: Optional[str] = None):
-    closed = trades_db.fetch_closed_trades(_resolve_tenant(request, tenant_id))
+    tid = tenant_id if tenant_id else None
+    closed = trades_db.fetch_closed_trades(tid)
     return _cached(f"equity:{tenant_id or 'all'}",
                    lambda: _build_equity_curve(closed))
 
@@ -734,8 +851,16 @@ def analytics_trades(request: Request, status: Optional[str] = None,
        ?tenant_id=xxx
        ?since_days=N   -> ignorar trades con mas de N dias de antiguedad
                           (para destrabar la vista cuando hay muchos viejos)
+       Si tenant_id no se pasa NI en header, devuelve TODOS los tenants.
     """
-    tid = _resolve_tenant(request, tenant_id)
+    if tenant_id:
+        tid = tenant_id
+    else:
+        header_tenant = request.headers.get("X-Tenant-Id")
+        if header_tenant:
+            tid = header_tenant
+        else:
+            tid = None
     all_trades = trades_db.fetch_all_trades(tid)
     if since_days is not None and since_days > 0:
         from datetime import datetime as _dt, timedelta as _td
@@ -797,6 +922,7 @@ def admin_seed_demo():
             ("EURJPY",  "BUY",  155.40,   154.50,   156.50,  -2.50,  "@canal_test",                999,  "tenant_demo_starter"),
         ]
         for sym, action, price, sl, tp, pnl, channel, cid, tid in demo:
+            ticket = abs(hash(sym + action + str(price) + str(time.time()))) % 900_000_000 + 100_000_000
             conn.execute(
                 """INSERT INTO trades
                    (ticket, symbol, action, volume, open_price, close_price,
@@ -806,7 +932,7 @@ def admin_seed_demo():
                     status, received_at, tenant_id, source)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    abs(hash(sym + action + str(price))) % 1_000_000_000,
+                    ticket,
                     sym, action, 0.01, price, price,
                     sl, tp, pnl, 0.0, 0.0,
                     now, now, cid, channel, None,
@@ -814,7 +940,7 @@ def admin_seed_demo():
                 )
             )
         conn.commit()
-        count = conn.execute("SELECT COUNT(*) FROM trades WHERE tenant_id='admin_demo'").fetchone()[0]
+        count = conn.execute("SELECT COUNT(*) FROM trades WHERE source='admin_demo'").fetchone()[0]
     return {"ok": True, "seeded": count}
 
 
@@ -864,6 +990,7 @@ class ConfigUpdate(BaseModel):
     deviation: Optional[int] = None
     symbol_suffix: Optional[str] = None
     trailing_stop: Optional[dict] = None
+    scale_out: Optional[dict] = None
 
 
 @app.get("/api/v1/bridge/config")
@@ -1217,6 +1344,104 @@ else:
     @app.get("/metrics")
     def metrics_disabled():
         return {"error": "prometheus_client not installed", "pip": "install prometheus-client"}
+
+
+# ─── Live Prices SSE (MT5 real ticks) ──────────────────────────────────
+
+MT5_SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD"]
+_TICK_INTERVAL = 0.5  # seconds
+
+
+def _mt5_provider():
+    from bot.services.mt5_provider import get_provider
+    return get_provider()
+
+
+@app.get("/api/v1/prices/stream")
+async def price_stream(request: Request):
+    """SSE stream of live MT5 prices — 500ms polling."""
+    import asyncio
+
+    mt5 = _mt5_provider()
+    await mt5.connect()
+
+    async def generate():
+        while True:
+            if await request.is_disconnected():
+                break
+            for symbol in MT5_SYMBOLS:
+                tick = await mt5.get_tick(symbol)
+                if tick:
+                    spread = tick.get("spread", 0)
+                    mid = (tick["bid"] + tick["ask"]) / 2
+                    payload = json.dumps({
+                        "symbol": symbol,
+                        "bid": tick["bid"],
+                        "ask": tick["ask"],
+                        "last": tick.get("last") or mid,
+                        "spread": spread,
+                        "volume": tick.get("volume") or 0,
+                        "source": "mt5",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    })
+                    yield f"event: tick\ndata: {payload}\n\n"
+            await asyncio.sleep(_TICK_INTERVAL)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/api/v1/prices/snapshot")
+async def price_snapshot():
+    """Latest tick for all symbols (non-streaming)."""
+    mt5 = _mt5_provider()
+    await mt5.connect()
+    ticks = []
+    for symbol in MT5_SYMBOLS:
+        tick = await mt5.get_tick(symbol)
+        if tick:
+            spread = tick.get("spread", 0)
+            mid = (tick["bid"] + tick["ask"]) / 2
+            ticks.append({
+                "symbol": symbol,
+                "bid": tick["bid"],
+                "ask": tick["ask"],
+                "last": tick.get("last") or mid,
+                "spread": spread,
+                "volume": tick.get("volume") or 0,
+                "source": "mt5",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+    return {"count": len(ticks), "items": ticks}
+
+
+@app.get("/api/v1/prices/{symbol}")
+async def price_symbol(symbol: str):
+    """Latest tick for a specific symbol."""
+    mt5 = _mt5_provider()
+    await mt5.connect()
+    tick = await mt5.get_tick(symbol.upper())
+    if not tick:
+        raise HTTPException(404, f"Symbol {symbol} not found or MT5 disconnected")
+    spread = tick.get("spread", 0)
+    mid = (tick["bid"] + tick["ask"]) / 2
+    return {
+        "symbol": symbol.upper(),
+        "bid": tick["bid"],
+        "ask": tick["ask"],
+        "last": tick.get("last") or mid,
+        "spread": spread,
+        "volume": tick.get("volume") or 0,
+        "source": "mt5",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 if __name__ == "__main__":

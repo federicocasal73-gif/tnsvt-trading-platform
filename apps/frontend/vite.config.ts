@@ -46,7 +46,18 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path,
       },
-      // Catch-all → gateway :8000 (signals, copy, risk, users, prices, etc).
+      // Live prices stream → bridge-api (MT5 real ticks, no gateway)
+      '/api/v1/prices': {
+        target: bridgeTarget,
+        changeOrigin: true,
+        rewrite: (path) => path,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['cache-control'] = 'no-cache';
+          });
+        },
+      },
+      // Catch-all → gateway :8000 (signals, copy, risk, users, etc).
       '/api': {
         target: apiTarget,
         changeOrigin: true,

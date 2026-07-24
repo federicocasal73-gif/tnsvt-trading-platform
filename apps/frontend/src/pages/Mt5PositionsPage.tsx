@@ -29,6 +29,32 @@ export function Mt5PositionsPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterSymbol, setFilterSymbol] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
+  const tabsRef = useRef<HTMLDivElement>(null!);
+  const pillRef = useRef<HTMLSpanElement>(null!);
+  const movePill = useCallback((animate: boolean) => {
+    const bar = tabsRef.current;
+    const pill = pillRef.current;
+    if (!bar || !pill) return;
+    const active = bar.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+    if (!active) return;
+    if (animate) {
+      pill.style.transform = `translateX(${active.offsetLeft}px)`;
+      pill.style.width = `${active.offsetWidth}px`;
+    } else {
+      pill.style.transition = 'none';
+      pill.style.transform = `translateX(${active.offsetLeft}px)`;
+      pill.style.width = `${active.offsetWidth}px`;
+      void pill.offsetWidth;
+      pill.style.transition = '';
+    }
+  }, []);
+  useEffect(() => { movePill(false); }, [movePill]);
+  useEffect(() => { movePill(true); }, [tab, movePill]);
+  useEffect(() => {
+    const onResize = () => movePill(false);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [movePill]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -170,23 +196,23 @@ export function Mt5PositionsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 border-b border-tnvs-border bg-tnvs-surface/50 px-6 py-2">
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={cls(
-              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              tab === t.key ? 'bg-white/[0.08] text-white' : 'text-tnvs-muted hover:text-white'
-            )}
-          >
-            {t.label}
-            {t.key === 'OPEN' && tabSum.open > 0 && (
-              <span className="ml-1.5 rounded-full bg-tnvs-purple/20 px-1.5 py-0.5 text-[10px] text-tnvs-purple">{tabSum.open}</span>
-            )}
-            {t.key === 'CLOSED' && tabSum.closed > 0 && (
-              <span className="ml-1.5 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-tnvs-muted">{tabSum.closed}</span>
-            )}
-          </button>
-        ))}
+      <div className="flex items-center border-b border-tnvs-border bg-tnvs-surface/50 px-6 py-2">
+        <div ref={tabsRef} className="t-tabs" role="tablist">
+          <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
+          {TABS.map(t => (
+            <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+              className="t-tab"
+            >
+              {t.label}
+              {t.key === 'OPEN' && tabSum.open > 0 && (
+                <span className="ml-1.5 rounded-full bg-tnvs-purple/20 px-1.5 py-0.5 text-[10px] text-tnvs-purple">{tabSum.open}</span>
+              )}
+              {t.key === 'CLOSED' && tabSum.closed > 0 && (
+                <span className="ml-1.5 rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-tnvs-muted">{tabSum.closed}</span>
+              )}
+            </button>
+          ))}
+        </div>
         <div className="ml-auto flex items-center gap-3">
           <select value={filterSymbol} onChange={e => setFilterSymbol(e.target.value)}
             className="rounded border border-tnvs-border bg-tnvs-surface px-2 py-1 text-xs text-tnvs-muted outline-none">

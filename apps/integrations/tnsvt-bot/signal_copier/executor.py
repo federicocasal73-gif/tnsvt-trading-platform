@@ -3,6 +3,7 @@ Signal Copier - MT5 Executor
 """
 import asyncio
 import logging
+import math
 import MetaTrader5 as mt5
 
 logger = logging.getLogger("SignalCopier.Executor")
@@ -111,8 +112,10 @@ class MT5Executor:
             self.last_order_ticket = int(result.order)
             logger.info(f"Orden ejecutada: Ticket #{result.order} | Precio: {result.price}")
 
-            # Si múltiples TP, configurar cierre parcial
-            if len(signal.get("tp", [])) > 1:
+            from config import settings
+            has_scaleout = settings.SCALEOUT_ENABLED and settings.SCALEOUT_LEVELS
+            has_multi_tp = len(signal.get("tp", [])) > 1
+            if has_multi_tp or has_scaleout:
                 await self._setup_partial_closes(symbol, result.order, signal)
 
             return True
@@ -162,10 +165,80 @@ class MT5Executor:
             logger.error(f"Error cerrando posiciones: {e}")
             return False
 
+    def _get_pip_value(self, symbol: str) -> float:
+        """Retorna el valor de 1 pip en términos de precio para el símbolo."""
+        sym_info = mt5.symbol_info(symbol)
+        if not sym_info:
+            return 0.0001
+        return sym_info.point * 10
+
+    def _calculate_scaleout_levels(
+        self, total_volume: float, entry_price: float, action: str, symbol: str
+    ) -> tuple:
+        """Calcula niveles de scale-out desde la config.
+
+        Usa floor() sobre lot_step para que volumenes den siempre
+        valores limpios en microlotes (0.01).
+
+        Returns:
+            (tp_levels, percentages, volumes, is_scaleout)
+        """
+        from config import settings
+
+        if not settings.SCALEOUT_ENABLED:
+            return [], [], [], []
+
+        levels_config = settings.SCALEOUT_LEVELS
+        if not levels_config:
+            return [], [], [], []
+
+        sym_info = mt5.symbol_info(symbol)
+        min_lot = sym_info.volume_min if sym_info else 0.01
+        lot_step = sym_info.volume_step if sym_info else 0.01
+        pip_value = self._get_pip_value(symbol)
+        digits = sym_info.digits if sym_info else 5
+
+        remaining = total_volume
+        tp_levels = []
+        percentages = []
+        volumes = []
+        is_scaleout = []
+
+        for i, level in enumerate(levels_config):
+            pips = int(level["pips"])
+            pct = float(level["percent"])
+
+            close_vol = math.floor(remaining * pct / 100 / lot_step) * lot_step
+            close_vol = max(min_lot, close_vol)
+
+            remaining_levels_after = len(levels_config) - len(tp_levels) - 1
+            min_for_signal = min_lot * 1
+            max_close = remaining - min_for_signal - (min_lot * remaining_levels_after)
+            close_vol = min(close_vol, max_close)
+
+            if close_vol < min_lot:
+                continue
+
+            if action == "BUY":
+                tp_price = entry_price + pip_value * pips
+            else:
+                tp_price = entry_price - pip_value * pips
+
+            tp_price = round(tp_price, digits)
+            actual_pct = round(close_vol / total_volume * 100, 1)
+
+            tp_levels.append(tp_price)
+            percentages.append(actual_pct)
+            volumes.append(close_vol)
+            is_scaleout.append(True)
+            remaining -= close_vol
+
+        return tp_levels, percentages, volumes, is_scaleout
+
     async def _setup_partial_closes(self, symbol: str, order_ticket: int, signal: dict):
         """
-        Almacena config de cierres parciales para que MT5Monitor los ejecute
-        TP1: 50% | TP2: 25% | TP3: 25%
+        Configura cierres parciales combinando scale-out (por pips) + TP de la señal.
+        Los scale-out se ejecutan primeros, luego los TP de la señal.
         """
         try:
             await asyncio.sleep(2)
@@ -184,42 +257,71 @@ class MT5Executor:
                 position = positions[-1]
 
             total_volume = position.volume
-            tp_list = signal.get("tp", [])
-            percentages = signal.get("tp_percentages", [100])
+            entry = signal.get("price") or position.price_open
+            action = "BUY" if position.type == mt5.ORDER_TYPE_BUY else "SELL"
 
-            volumes = []
-            for i, (tp_price, pct) in enumerate(zip(tp_list, percentages)):
-                close_volume = round(total_volume * pct / 100, 2)
+            # 1. Calcular niveles de scale-out
+            so_tp, so_pct, so_vol, so_flag = self._calculate_scaleout_levels(
+                total_volume, entry, action, symbol
+            )
+
+            # 2. Calcular niveles de TP de la senal (sobre volumen restante)
+            remaining = total_volume - sum(so_vol)
+            tp_list = signal.get("tp", [])
+            tp_percentages = signal.get("tp_percentages", [100])
+
+            sig_tp = []
+            sig_pct = []
+            sig_vol = []
+
+            if remaining >= 0.01 and tp_list:
                 sym_info = mt5.symbol_info(symbol)
                 min_vol = sym_info.volume_min if sym_info else 0.01
 
-                if close_volume < min_vol:
-                    close_volume = min_vol
+                for i, (tp_price, pct) in enumerate(zip(tp_list, tp_percentages)):
+                    close_vol = round(remaining * pct / 100, 2)
 
-                if i == len(tp_list) - 1:
-                    already = sum(
-                        round(total_volume * p / 100, 2) for p in percentages[:i]
-                    )
-                    close_volume = round(total_volume - already, 2)
+                    if close_vol < min_vol:
+                        close_vol = min_vol
 
-                volumes.append(close_volume)
+                    if i == len(tp_list) - 1:
+                        already = sum(
+                            round(remaining * p / 100, 2) for p in tp_percentages[:i]
+                        )
+                        close_vol = round(remaining - already, 2)
 
-            entry = signal.get("price") or position.price_open
+                    if close_vol >= min_vol:
+                        sig_tp.append(tp_price)
+                        sig_pct.append(pct)
+                        sig_vol.append(close_vol)
+
+            # 3. Combinar: scale-out levels primero, luego signal TP
+            all_tp = so_tp + sig_tp
+            all_pct = so_pct + sig_pct
+            all_vol = so_vol + sig_vol
+            all_flag = so_flag + [False] * len(sig_tp)
+
+            if not all_tp:
+                return
 
             self.partial_configs[int(position.ticket)] = {
                 "symbol": symbol,
-                "action": "BUY" if position.type == mt5.ORDER_TYPE_BUY else "SELL",
+                "action": action,
                 "entry_price": entry,
-                "tp_levels": tp_list,
-                "percentages": percentages,
-                "volumes": volumes,
+                "tp_levels": all_tp,
+                "percentages": all_pct,
+                "volumes": all_vol,
                 "original_volume": total_volume,
                 "executed_indices": [],
+                "is_scaleout": all_flag,
+                "channel": signal.get("channel", ""),
             }
 
             logger.info(f"Cierres parciales configurados para ticket #{position.ticket}:")
-            for i, (tp, vol) in enumerate(zip(tp_list, volumes)):
-                logger.info(f"  TP{i+1} @ {tp}: {vol} ({percentages[i]}%)")
+            so_count = len(so_tp)
+            for i, (tp, vol) in enumerate(zip(all_tp, all_vol)):
+                label = f"SC{i+1}" if i < so_count else f"TP{i+1-so_count}"
+                logger.info(f"  {label} @ {tp}: {vol} ({all_pct[i]}%)")
 
         except Exception as e:
             logger.error(f"Error configurando cierres parciales: {e}")
@@ -314,9 +416,10 @@ class MT5Executor:
 class MT5Monitor:
     """Monitor de posiciones para cierres parciales"""
 
-    def __init__(self, executor: MT5Executor):
+    def __init__(self, executor: MT5Executor, tnsvt_client=None):
         self.running = False
         self.executor = executor
+        self.tnsvt_client = tnsvt_client
 
     async def start(self):
         self.running = True
@@ -347,7 +450,7 @@ class MT5Monitor:
                 logger.error(f"Error en monitor: {e}")
 
     async def _check_partial_close(self, position):
-        """Verifica si hay que cerrar parcial según niveles TP"""
+        """Verifica si hay que cerrar parcial según niveles TP y scale-out."""
         ticket = int(position.ticket)
         config = self.executor.partial_configs.get(ticket)
         if not config:
@@ -359,6 +462,8 @@ class MT5Monitor:
         if not tick:
             return
 
+        is_scaleout_list = config.get("is_scaleout", [])
+        so_count = sum(1 for s in is_scaleout_list if s)
         current_price = tick.bid if action == "BUY" else tick.ask
 
         for i in range(len(config["tp_levels"])):
@@ -385,6 +490,8 @@ class MT5Monitor:
             if not close_price:
                 continue
 
+            label = f"SC{i+1}" if (i < so_count) else f"TP{i+1-so_count}"
+
             close_request = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "symbol": symbol,
@@ -394,7 +501,7 @@ class MT5Monitor:
                 "price": close_price,
                 "deviation": 10,
                 "magic": 20260706,
-                "comment": f"TP{i+1}",
+                "comment": label,
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,
             }
@@ -405,36 +512,72 @@ class MT5Monitor:
 
             if result and result.retcode == mt5.TRADE_RETCODE_DONE:
                 config["executed_indices"].append(i)
+
+                pct = config["percentages"][i]
+                is_so = i < so_count
+                label_type = "SC" if is_so else "TP"
                 logger.info(
-                    f"TP{i+1} ejecutado: {symbol} ticket #{ticket} "
-                    f"@{tp_level} vol={close_volume} (${result.price:.2f})"
+                    f"{label} ejecutado: {symbol} ticket #{ticket} "
+                    f"@{tp_level} vol={close_volume} ({pct}%) (${result.price:.2f})"
                 )
 
-                if i == 0:
-                    await asyncio.sleep(0.5)
-                    sl_request = {
-                        "action": mt5.TRADE_ACTION_SLTP,
-                        "symbol": symbol,
-                        "position": ticket,
-                        "sl": config["entry_price"],
-                        "tp": 0,
-                    }
-                    sl_result = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda: mt5.order_send(sl_request)
+                if self.tnsvt_client and self.tnsvt_client.enabled:
+                    pnl_hit = 0.0
+                    try:
+                        from datetime import datetime, timedelta
+                        deals = mt5.history_deals_get(
+                            datetime.now() - timedelta(hours=1),
+                            datetime.now(),
+                            position=ticket,
+                        ) or []
+                        for d in deals:
+                            if d.entry == mt5.DEAL_ENTRY_OUT and abs(d.volume - close_volume) < 0.001:
+                                pnl_hit = float(getattr(d, "profit", 0) or 0)
+                                break
+                    except Exception:
+                        pass
+                    self.tnsvt_client.log_trade(
+                        symbol=symbol,
+                        action="CLOSE" if action == "BUY" else "CLOSE",
+                        price=close_price,
+                        result=f"{label_type}_PARTIAL:{pct}%",
+                        pnl=pnl_hit,
+                        channel=config.get("channel", ""),
+                        volume=close_volume,
+                        notes=f"{label}: {pct}% vol={close_volume} ticket={ticket}",
                     )
-                    if sl_result and sl_result.retcode == mt5.TRADE_RETCODE_DONE:
-                        logger.info(f"SL movido a breakeven ({config['entry_price']}) para ticket #{ticket}")
-                    else:
-                        logger.warning(f"SL a breakeven falló para ticket #{ticket}: {sl_result}")
+
+                if i >= so_count:
+                    signal_already_executed = any(
+                        idx in config["executed_indices"]
+                        for idx in range(i)
+                        if idx >= so_count
+                    )
+                    if not signal_already_executed:
+                        await asyncio.sleep(0.5)
+                        sl_request = {
+                            "action": mt5.TRADE_ACTION_SLTP,
+                            "symbol": symbol,
+                            "position": ticket,
+                            "sl": config["entry_price"],
+                            "tp": 0,
+                        }
+                        sl_result = await asyncio.get_event_loop().run_in_executor(
+                            None, lambda: mt5.order_send(sl_request)
+                        )
+                        if sl_result and sl_result.retcode == mt5.TRADE_RETCODE_DONE:
+                            logger.info(f"SL movido a breakeven ({config['entry_price']}) para ticket #{ticket}")
+                        else:
+                            logger.warning(f"SL a breakeven falló para ticket #{ticket}: {sl_result}")
             else:
                 err = result.comment if result else "order_send returned None"
-                logger.warning(f"TP{i+1} falló para ticket #{ticket}: {err}")
+                logger.warning(f"{label} falló para ticket #{ticket}: {err}")
 
         executed_count = len(config["executed_indices"])
         total_count = len(config["tp_levels"])
         if executed_count >= total_count:
             self.executor.partial_configs.pop(ticket, None)
-            logger.info(f"Todos los TP ejecutados para ticket #{ticket}")
+            logger.info(f"Todos los niveles ejecutados para ticket #{ticket}")
 
     def stop(self):
         self.running = False

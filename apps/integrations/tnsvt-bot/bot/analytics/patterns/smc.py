@@ -3,16 +3,33 @@ SMC Pattern Detection — Smart Money Concepts for AMB engine.
 
 Detects FVG (Fair Value Gap), Order Blocks, Liquidity Sweeps,
 and CISD (Change in State of Delivery) as primary SMC inputs.
+
+All data sourced from MT5 directly via mt5_provider.
 """
-import asyncio
 import logging
 from typing import Optional
 
-import aiohttp
+from bot.services.mt5_provider import get_provider
 
 logger = logging.getLogger("Bot.AMB.SMC")
 
-BRIDGE_URL = "http://localhost:5001"
+_CACHE_TTL = 20
+_cache = {}
+
+
+async def _get_ohlc(symbol: str, tf: str, bars: int = 50) -> Optional[list]:
+    import time
+    cache_key = f"smc_ohlc:{symbol}:{tf}:{bars}"
+    now = time.time()
+    cached = _cache.get(cache_key)
+    if cached and (now - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
+
+    provider = get_provider()
+    rates = await provider.get_candles(symbol, tf, bars)
+    if rates:
+        _cache[cache_key] = {"data": rates, "ts": now}
+    return rates
 
 
 async def evaluate_smc(symbol: str, tf: str) -> float:
@@ -43,23 +60,8 @@ async def evaluate_smc(symbol: str, tf: str) -> float:
     return max(0.0, min(100.0, score))
 
 
-async def _fetch_ohlc(symbol: str, tf: str, bars: int = 50) -> Optional[list]:
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{BRIDGE_URL}/api/v1/rates",
-                params={"symbol": symbol, "timeframe": tf, "bars": bars},
-                timeout=aiohttp.ClientTimeout(total=5),
-            ) as resp:
-                if resp.status == 200:
-                    return await resp.json()
-    except Exception as e:
-        logger.debug(f"_fetch_ohlc error {symbol} {tf}: {e}")
-    return None
-
-
 async def _detect_fvg(symbol: str, tf: str) -> dict:
-    ohlc = await _fetch_ohlc(symbol, tf)
+    ohlc = await _get_ohlc(symbol, tf)
     if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 3:
         return {"bullish": False, "bearish": False, "count": 0}
 
@@ -78,11 +80,9 @@ async def _detect_fvg(symbol: str, tf: str) -> dict:
         except (TypeError, ValueError):
             continue
 
-        # Bullish FVG: gap up (c1 low > c3 high)
         if l1 > h3:
             bullish_fvg += 1
 
-        # Bearish FVG: gap down (c3 low > c1 high)
         if l3 > h1:
             bearish_fvg += 1
 
@@ -94,7 +94,7 @@ async def _detect_fvg(symbol: str, tf: str) -> dict:
 
 
 async def _detect_order_blocks(symbol: str, tf: str) -> dict:
-    ohlc = await _fetch_ohlc(symbol, tf)
+    ohlc = await _get_ohlc(symbol, tf)
     if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 5:
         return {"bullish": False, "bearish": False}
 
@@ -117,12 +117,10 @@ async def _detect_order_blocks(symbol: str, tf: str) -> dict:
         if total_range == 0:
             continue
 
-        # Bullish OB: bearish candle with large body followed by strong rally
         if close < float(c.get("open", 0)) and body > total_range * 0.6:
             if next_close > high:
                 bullish_ob += 1
 
-        # Bearish OB: bullish candle with large body followed by strong selloff
         if close > float(c.get("open", 0)) and body > total_range * 0.6:
             if next_close < low:
                 bearish_ob += 1
@@ -136,7 +134,7 @@ async def _detect_order_blocks(symbol: str, tf: str) -> dict:
 
 
 async def _detect_liquidity_sweep(symbol: str, tf: str) -> dict:
-    ohlc = await _fetch_ohlc(symbol, tf)
+    ohlc = await _get_ohlc(symbol, tf)
     if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 10:
         return {"bullish": False, "bearish": False}
 
@@ -172,7 +170,7 @@ async def _detect_liquidity_sweep(symbol: str, tf: str) -> dict:
 
 
 async def _detect_cisd(symbol: str, tf: str) -> dict:
-    ohlc = await _fetch_ohlc(symbol, tf)
+    ohlc = await _get_ohlc(symbol, tf)
     if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 15:
         return {"detected": False, "bullish": False}
 
@@ -193,10 +191,13 @@ async def _detect_cisd(symbol: str, tf: str) -> dict:
     first_uptrend = first_half[-1] > first_half[0]
     second_uptrend = second_half[-1] > second_half[0]
 
-    # CISD = change in structure: from uptrend to downtrend or vice versa
     if first_uptrend and not second_uptrend:
         return {"detected": True, "bullish": False}
     elif not first_uptrend and second_uptrend:
         return {"detected": True, "bullish": True}
 
     return {"detected": False, "bullish": False}
+
+
+def clear_cache():
+    _cache.clear()

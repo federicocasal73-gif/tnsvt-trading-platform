@@ -156,6 +156,58 @@ class Settings:
     def RISK_TRAILING_START(self) -> float:
         return float(os.getenv("RISK_TRAILING_START", "50"))
 
+    @property
+    def RISK_MAX_TRADES_PER_DAY(self) -> int:
+        """Maximo de trades ejecutados por dia. 0 = ilimitado."""
+        return int(os.getenv("RISK_MAX_TRADES_PER_DAY", "0"))
+
+    # ============================================
+    # BREAK EVEN (BE)
+    # ============================================
+    @property
+    def RISK_BREAKEVEN_ENABLED(self) -> bool:
+        return os.getenv("RISK_BREAKEVEN_ENABLED", "false").lower() == "true"
+
+    @property
+    def RISK_BREAKEVEN_PIPS(self) -> float:
+        return float(os.getenv("RISK_BREAKEVEN_PIPS", "8.0"))
+
+    # ============================================
+    # CORRELATION GUARD
+    # ============================================
+    @property
+    def RISK_CORRELATION_GUARD_ENABLED(self) -> bool:
+        return os.getenv("RISK_CORRELATION_GUARD_ENABLED", "true").lower() == "true"
+
+    @property
+    def RISK_CORRELATION_PAIRS(self) -> list:
+        """Pares correlacionados agrupados. Formato: EURUSD,GBPUSD;USDJPY,USDCHF;XAUUSD,USDCAD"""
+        raw = os.getenv("RISK_CORRELATION_PAIRS", "")
+        groups = []
+        for group in raw.split(";"):
+            group = group.strip()
+            if not group:
+                continue
+            pairs = [p.strip().upper() for p in group.split(",") if p.strip()]
+            if len(pairs) >= 2:
+                groups.append(pairs)
+        return groups
+
+    # ============================================
+    # TIME-BASED EXIT
+    # ============================================
+    @property
+    def RISK_MAX_HOLD_HOURS(self) -> int:
+        return int(os.getenv("RISK_MAX_HOLD_HOURS", "48"))
+
+    @property
+    def RISK_CLOSE_ON_FRIDAY(self) -> bool:
+        return os.getenv("RISK_CLOSE_ON_FRIDAY", "false").lower() == "true"
+
+    @property
+    def RISK_NO_OPEN_AFTER(self) -> str:
+        return os.getenv("RISK_NO_OPEN_AFTER", "")
+
     # ============================================
     # NEWS FILTER
     # ============================================
@@ -174,6 +226,32 @@ class Settings:
     @property
     def NEWS_FILTER_HIGH_IMPACT_ONLY(self) -> bool:
         return os.getenv("NEWS_FILTER_HIGH_IMPACT_ONLY", "true").lower() == "true"
+
+    # ============================================
+    # SCALEOUT (cierres parciales por pips)
+    # ============================================
+    @property
+    def SCALEOUT_ENABLED(self) -> bool:
+        return os.getenv("SCALEOUT_ENABLED", "false").lower() == "true"
+
+    @property
+    def SCALEOUT_LEVELS(self) -> list:
+        """Niveles de scale-out. Formato JSON: [{"pips":5,"percent":50},{"pips":10,"percent":25}]"""
+        raw = os.getenv("SCALEOUT_LEVELS", "")
+        if not raw.strip():
+            return []
+        try:
+            import json
+            levels = json.loads(raw)
+            if not isinstance(levels, list):
+                return []
+            return [
+                {"pips": int(l.get("pips", 0)), "percent": float(l.get("percent", 0))}
+                for l in levels
+                if l.get("pips", 0) > 0 and l.get("percent", 0) > 0
+            ]
+        except (json.JSONDecodeError, ValueError, TypeError):
+            return []
 
     # ============================================
     # GROUP & PRIVACY
@@ -268,6 +346,13 @@ class Settings:
             "trailing_stop": self.RISK_TRAILING_STOP,
             "trailing_step": self.RISK_TRAILING_STEP,
             "trailing_start": self.RISK_TRAILING_START,
+            "max_trades_per_day": self.RISK_MAX_TRADES_PER_DAY,
+            "breakeven_enabled": self.RISK_BREAKEVEN_ENABLED,
+            "breakeven_pips": self.RISK_BREAKEVEN_PIPS,
+            "correlation_guard": self.RISK_CORRELATION_GUARD_ENABLED,
+            "max_hold_hours": self.RISK_MAX_HOLD_HOURS,
+            "close_on_friday": self.RISK_CLOSE_ON_FRIDAY,
+            "no_open_after": self.RISK_NO_OPEN_AFTER,
             "news_filter_enabled": self.NEWS_FILTER_ENABLED,
             "news_filter_before": self.NEWS_FILTER_MINUTES_BEFORE,
             "news_filter_after": self.NEWS_FILTER_MINUTES_AFTER,

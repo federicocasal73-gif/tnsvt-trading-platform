@@ -13,24 +13,26 @@ MENU_TEXT = """💼 *Terminal Financiera Pro v3*
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📊 *Analisis Tecnico*
+• /zona SYMBOL — Análisis profundo de un par
+• /z SYMBOL — Atajo de /zona
 • /reporte SIMBOLO — Multi-timeframe
-• /r SIMBOLO — Atajo rapido
+• /r SIMBOLO — Atajo de /reporte
 • /analisis — Panorama 5 pares
 • /grafico — Equity curve
 
 📈 *Mercados*
 • /mercados — Resumen global
 • /cripto — Criptomonedas
-• /calendario — Calendario economico
+• /calendario — Calendario economico real
 • /noticias — Ultimas noticias
 
-📡 *Senales*
-• /senales — Senales copiadas (con botones)
-• /statshoy — Stats de hoy
-• /stats — Estadisticas detalladas
-• /historial — Ultima semana
-• /canales — Canales Telegram
-• /cuentas — Cuentas MT5
+📡 *Senales & Trades*
+• /status — Dashboard completo del sistema
+• /statshoy — Stats del dia
+• /historial — Trades 7/30 dias
+• /canales — Canales Telegram monitoreados
+• /cerrar SYMBOL — Cerrar posiciones (solo admin)
+• /cuentas — Cuentas MT5 multi-cuenta
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 

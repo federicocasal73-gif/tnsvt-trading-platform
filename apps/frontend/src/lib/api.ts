@@ -334,6 +334,7 @@ export interface BotConfig {
   channels_data?: ChannelSelection[];
   risk_management?: RiskManagement;
   trailing_stop?: TrailingStopConfig;
+  scale_out?: ScaleOutConfig;
 }
 
 export interface CalendarDay {
@@ -346,6 +347,16 @@ export interface TrailingStopConfig {
   enabled: boolean;
   step_pips: number;
   start_pips: number;
+}
+
+export interface ScaleOutLevel {
+  pips: number;
+  percent: number;
+}
+
+export interface ScaleOutConfig {
+  enabled: boolean;
+  levels: ScaleOutLevel[];
 }
 
 // ─── MT5 Live Snapshot ───────────────────────────────────────────────────

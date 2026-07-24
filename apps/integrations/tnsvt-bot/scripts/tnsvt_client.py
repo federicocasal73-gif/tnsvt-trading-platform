@@ -74,9 +74,11 @@ class TNSVTClient:
         pnl=0.0,
         channel="",
         account_id=None,
+        **extra,
     ) -> Optional[int]:
         """POST /api/v1/bridge/copier/trades — Registra un trade en el journal.
 
+        Accepta kwargs extra (volume, notes, etc) que se pasan al payload del bridge.
         Compat: era `POST /api/copier/trades` en Symphony PHP.
         """
         if not self._enabled:
@@ -93,6 +95,7 @@ class TNSVTClient:
             "channel_title": channel or None,
             "notes": f"Auto-copied from: {channel}" if channel else None,
         }
+        payload.update(extra)
         if account_id is not None:
             payload["tenant_id"] = str(account_id)
 

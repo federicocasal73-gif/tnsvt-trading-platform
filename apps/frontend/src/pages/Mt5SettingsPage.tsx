@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, RotateCcw, AlertTriangle, CheckCircle2, Activity, Zap, Wifi, WifiOff } from 'lucide-react';
+import { Save, RotateCcw, AlertTriangle, CheckCircle2, Activity, Zap, Wifi, WifiOff, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { api, BotConfig } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
@@ -25,6 +25,8 @@ const DEFAULTS = {
   monthly_profit: 15.0,
   active_monthly_loss: false,
   monthly_loss: 10.0,
+  max_trades_per_day: 0,
+  max_open_positions: 5,
 };
 
 export function Mt5SettingsPage() {
@@ -73,6 +75,7 @@ export function Mt5SettingsPage() {
         symbol_suffix: draft.symbol_suffix ?? DEFAULTS.symbol_suffix,
         risk_management: draft.risk_management,
         trailing_stop: (draft as any).trailing_stop || { enabled: false, step_pips: 30, start_pips: 20 },
+        scale_out: (draft as any).scale_out || { enabled: false, levels: [] },
       };
       const res = await api.bridge.updateConfig(patch);
       setToast({ kind: 'ok', msg: `Guardado: ${res.updated_keys.join(', ')}` });
@@ -155,9 +158,23 @@ export function Mt5SettingsPage() {
         >
           {mt5Online ? <Wifi className="h-4 w-4 text-tnvs-win" /> : <WifiOff className="h-4 w-4 text-tnvs-loss" />}
           <div className="text-xs">
-            <div className={mt5Online ? 'text-tnvs-win' : 'text-tnvs-loss'}>MT5 {mt5Online ? 'Conectado' : 'Desconectado'}</div>
+            <div className={mt5Online ? 'text-tnvs-win' : 'text-tnvs-loss'}>
+              MT5 {mt5Online ? 'Conectado' : 'Desconectado'}
+              {bridge.lastUpdate > 0 && (
+                <span className="ml-1.5 text-[9px] text-tnvs-dim">
+                  · {Math.max(0, Math.floor((Date.now() - bridge.lastUpdate) / 1000))}s
+                </span>
+              )}
+            </div>
             <div className="text-tnvs-muted">
-              {bridge.account ? `Balance $${bridge.account.balance.toLocaleString()}` : 'sin snapshot'}
+              {bridge.account ? (
+                <>
+                  Bal ${bridge.account.balance?.toLocaleString() ?? '—'} ·
+                  {' '}Eq ${bridge.account.equity?.toLocaleString() ?? '—'}
+                </>
+              ) : (
+                'sin snapshot'
+              )}
             </div>
           </div>
         </div>
@@ -181,17 +198,27 @@ export function Mt5SettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 rounded-lg border border-tnvs-border bg-tnvs-surface px-3 py-2">
-          <Activity className="h-4 w-4 text-tnvs-cyan" />
-          <div className="text-xs">
-            <div className="text-tnvs-cyan">Posiciones abiertas: {bridge.openPositions}</div>
-            <div className="text-tnvs-muted">
-              P&L flotante:{' '}
-              <span className={cls('font-mono', bridge.unrealizedPnl > 0 ? 'text-tnvs-win' : bridge.unrealizedPnl < 0 ? 'text-tnvs-loss' : 'text-tnvs-muted')}>
-                {bridge.unrealizedPnl >= 0 ? '+' : ''}${bridge.unrealizedPnl.toFixed(2)}
-              </span>
+        <div className="flex items-center justify-between gap-2.5 rounded-lg border border-tnvs-border bg-tnvs-surface px-3 py-2">
+          <div className="flex items-center gap-2.5">
+            <Activity className="h-4 w-4 text-tnvs-cyan" />
+            <div className="text-xs">
+              <div className="text-tnvs-cyan">Posiciones abiertas: {bridge.openPositions}</div>
+              <div className="text-tnvs-muted">
+                P&L flotante:{' '}
+                <span className={cls('font-mono', bridge.unrealizedPnl > 0 ? 'text-tnvs-win' : bridge.unrealizedPnl < 0 ? 'text-tnvs-loss' : 'text-tnvs-muted')}>
+                  {bridge.unrealizedPnl >= 0 ? '+' : ''}${bridge.unrealizedPnl.toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
+          <button
+            onClick={() => bridge.refresh()}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-tnvs-muted hover:bg-white/[0.04] hover:text-white"
+            title="Forzar refresh del snapshot MT5"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refrescar
+          </button>
         </div>
       </div>
 
@@ -352,6 +379,50 @@ export function Mt5SettingsPage() {
                 onChangeLoss={(v) => updateRisk({ monthly_loss: v })}
               />
             </div>
+
+            <div className="mt-4 rounded-md bg-tnvs-void p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-tnvs-muted">Max Trades / dia</div>
+                  <div className="text-[10px] text-tnvs-dim mt-1">
+                    Cantidad maxima de trades ejecutados por dia. 0 = ilimitado.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <NumberInput
+                    value={safeNum(risk.max_trades_per_day ?? DEFAULTS.max_trades_per_day, DEFAULTS.max_trades_per_day)}
+                    onChange={(v) => updateRisk({ max_trades_per_day: v })}
+                    min={0}
+                    step={1}
+                  />
+                  <span className="text-xs text-tnvs-muted">
+                    {risk.max_trades_per_day > 0 ? 'trades/dia' : 'ilimitado'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-md bg-tnvs-void p-3 mt-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-tnvs-muted">Max Posiciones Abiertas</div>
+                  <div className="text-[10px] text-tnvs-dim mt-1">
+                    Limite de posiciones concurrentes. 0 = sin limite.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <NumberInput
+                    value={safeNum(risk.max_open_positions ?? DEFAULTS.max_open_positions, DEFAULTS.max_open_positions)}
+                    onChange={(v) => updateRisk({ max_open_positions: v })}
+                    min={0}
+                    step={1}
+                  />
+                  <span className="text-xs text-tnvs-muted">
+                    {risk.max_open_positions > 0 ? 'posiciones' : 'ilimitado'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -400,6 +471,179 @@ export function Mt5SettingsPage() {
                     <div className="text-[10px] text-tnvs-dim mt-1">
                       Cuántos pips mantiene el SL detrás del precio
                     </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </Card>
+
+        <Card header="Scale-Out (Cierres Parciales)">
+          {(() => {
+            const rawSo = (draft as any).scale_out || {};
+            const so = { enabled: !!rawSo.enabled, levels: Array.isArray(rawSo.levels) ? rawSo.levels : [] };
+            const updateSo = (patch: any) => {
+              setDraft((d) => d ? { ...d, scale_out: { ...(d as any).scale_out, ...patch } } as any : d);
+              setDirty(true);
+            };
+            const updateLevel = (i: number, patch: Partial<{ pips: number; percent: number }>) => {
+              const levels = [...(so.levels || [])];
+              levels[i] = { ...levels[i], ...patch };
+              updateSo({ levels });
+            };
+            const addLevel = () => {
+              const levels = [...(so.levels || []), { pips: 20, percent: 30 }];
+              updateSo({ levels });
+            };
+            const removeLevel = (i: number) => {
+              const levels = so.levels.filter((_: any, idx: number) => idx !== i);
+              updateSo({ levels });
+            };
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-white">Cierres Parciales Escalonados</div>
+                    <div className="text-xs text-tnvs-muted">Vende por partes en niveles predefinidos. Usa piso (floor) para lotes pequeños.</div>
+                  </div>
+                  <Switch
+                    checked={!!so.enabled}
+                    onChange={(v) => updateSo({ enabled: v })}
+                  />
+                </div>
+
+                {so.enabled && (
+                  <div className="space-y-2">
+                    {so.levels.map((lvl: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 rounded-md bg-tnvs-void p-2.5">
+                        <span className="text-[10px] font-mono text-tnvs-dim w-4">{i + 1}.</span>
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <NumberInput
+                            value={lvl.pips}
+                            onChange={(v) => updateLevel(i, { pips: v })}
+                            min={1}
+                            step={5}
+                            suffix="pips"
+                          />
+                          <div className="flex items-center gap-1">
+                            <PercentInput
+                              value={lvl.percent / 100}
+                              onChange={(v) => updateLevel(i, { percent: Math.round(v * 100) })}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeLevel(i)}
+                          className="rounded p-1 text-tnvs-muted hover:bg-white/[0.06] hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={addLevel}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-tnvs-border px-3 py-2 text-xs text-tnvs-muted hover:text-white w-full justify-center"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Agregar nivel
+                    </button>
+                  </div>
+                )}
+
+                {so.enabled && so.levels.length > 0 && (
+                  <div className="rounded-md bg-tnvs-void p-2.5">
+                    <div className="text-[10px] uppercase tracking-wider text-tnvs-muted mb-1.5">Vista previa</div>
+                    <div className="text-xs text-tnvs-dim space-y-0.5">
+                      {so.levels.map((lvl: any, i: number) => (
+                        <div key={i} className="font-mono">
+                          Nivel {i + 1}: {lvl.percent}% a {lvl.pips} pips
+                        </div>
+                      ))}
+                      {(() => {
+                        const totalPct = so.levels.reduce((s: number, l: any) => s + (l.percent || 0), 0);
+                        const rest = Math.max(0, 100 - totalPct);
+                        return (
+                          <div className="font-mono text-tnvs-muted">
+                            Restante: {rest}% se mantiene hasta TP/señal de cierre
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </Card>
+
+        <Card header="Break Even & Protección Avanzada">
+          {(() => {
+            const beEnabled = !!risk.breakeven_enabled;
+            const corrEnabled = !!risk.correlation_guard;
+            return (
+              <div className="space-y-4">
+                {/* Break Even */}
+                <div className="rounded-md bg-tnvs-void p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="text-sm text-white">Break Even automático</div>
+                      <div className="text-xs text-tnvs-muted">Mueve el SL al precio de entrada cuando la ganancia llega a X pips</div>
+                    </div>
+                    <Switch
+                      checked={beEnabled}
+                      onChange={(v) => updateRisk({ breakeven_enabled: v })}
+                    />
+                  </div>
+                  <div className={cls(!beEnabled && 'opacity-40 pointer-events-none')}>
+                    <NumberInput
+                      value={safeNum(risk.breakeven_pips, 8)}
+                      onChange={(v) => updateRisk({ breakeven_pips: v })}
+                      min={1}
+                      step={1}
+                      suffix="pips"
+                    />
+                    <div className="text-[10px] text-tnvs-dim mt-1">
+                      Profit necesario para activar BE (ej: 8 pips)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Correlation Guard */}
+                <div className="rounded-md bg-tnvs-void p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-white">Correlation Guard</div>
+                      <div className="text-xs text-tnvs-muted">Bloquea trades si detecta posiciones correlacionadas en direccion opuesta (ej: EURUSD BUY y GBPUSD SELL)</div>
+                    </div>
+                    <Switch
+                      checked={corrEnabled}
+                      onChange={(v) => updateRisk({ correlation_guard: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Time Exit */}
+                <div className="rounded-md bg-tnvs-void p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="text-sm text-white">Time Exit</div>
+                      <div className="text-xs text-tnvs-muted">Cierra posiciones automaticamente si llevan mas de N horas abiertas</div>
+                    </div>
+                  </div>
+                  <NumberInput
+                    value={safeNum(risk.max_hold_hours, 48)}
+                    onChange={(v) => updateRisk({ max_hold_hours: v })}
+                    min={0}
+                    step={4}
+                    suffix="horas"
+                  />
+                  <div className="mt-2 flex items-center gap-2">
+                    <Switch
+                      checked={!!risk.close_on_friday}
+                      onChange={(v) => updateRisk({ close_on_friday: v })}
+                      label="Cierre viernes 17h"
+                    />
+                    <span className="text-[10px] text-tnvs-dim">Cierra todo el viernes a las 17:00 ART</span>
                   </div>
                 </div>
               </div>
