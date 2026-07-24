@@ -4,23 +4,56 @@ function token(): string | null {
   try { return localStorage.getItem('tnsvt_token'); } catch { return null; }
 }
 
+// Circuit breaker: por endpoint, contar fallos consecutivos.
+// Despues de 3 fallos, marcar el endpoint como abierto por 30s.
+// Mientras esta abierto, devolver el error inmediatamente sin intentar la llamada.
+const _failCount = new Map<string, number>();
+const _openUntil = new Map<string, number>();
+const BREAKER_THRESHOLD = 3;
+const BREAKER_COOLDOWN_MS = 30_000;
+
+function _isOpen(path: string): boolean {
+  const until = _openUntil.get(path);
+  if (!until) return false;
+  if (Date.now() < until) return true;
+  _openUntil.delete(path);
+  _failCount.delete(path);
+  return false;
+}
+
+function _recordSuccess(path: string): void {
+  _failCount.delete(path);
+  _openUntil.delete(path);
+}
+
+function _recordFailure(path: string): void {
+  const c = (_failCount.get(path) || 0) + 1;
+  _failCount.set(path, c);
+  if (c >= BREAKER_THRESHOLD) {
+    _openUntil.set(path, Date.now() + BREAKER_COOLDOWN_MS);
+    console.warn(`[api] circuit breaker abierto para ${path} por ${BREAKER_COOLDOWN_MS / 1000}s`);
+  }
+}
+
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
+  if (_isOpen(path)) {
+    throw new Error(`Circuit open for ${path}`);
+  }
+
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const t = token();
   if (t) headers['Authorization'] = `Bearer ${t}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...((opts?.headers as Record<string, string>) || {}) } });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...((opts?.headers as Record<string, string>) || {}) } });
+  } catch (e) {
+    _recordFailure(path);
+    throw e;
+  }
 
-  // Debug: log every response so we can diagnose auto-logout issues.
   console.debug(`[api] ${opts?.method || 'GET'} ${path} -> ${res.status}`);
 
-  // Auto-logout ONLY when the auth-service itself rejects our token.
-  // A 401 from any other endpoint (downstream services that don't know
-  // our token format, services temporarily unavailable, etc.) is "just" a
-  // data unavailability and MUST NOT kick the user out — safeGet() in
-  // AppStateProvider already swallows these for read-only dashboards.
-  //
-  // Public endpoints (login/register/refresh) take the regular error path.
   const isAuthValidation = path === '/api/v1/auth/me' || path === '/api/v1/auth/refresh';
   if (res.status === 401 && token() && isAuthValidation) {
     console.warn(`[api] 401 on auth validation ${path} - logging out`);
@@ -29,9 +62,11 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
     throw new Error('Unauthorized');
   }
   if (!res.ok) {
+    _recordFailure(path);
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
+  _recordSuccess(path);
   return res.json();
 }
 

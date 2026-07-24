@@ -186,8 +186,15 @@ async def handler(event):
         logger.info(f"Nuevo mensaje en: {chat_name}")
         logger.info(f"Contenido: {event.raw_text}")
 
-        pending = pending_signals.get(chat_name)
-        signal = parser.parse_message(event.raw_text, pending)
+        signal = parser.parse_message(event.raw_text, None)
+        # Key por canal+simbolo si la senal detectada tiene simbolo,
+        # sino por canal (para backward compat de senales sin symbol).
+        symbol = signal.get("symbol", "")
+        pending_key = f"{chat_name}:{symbol}" if symbol else chat_name
+        # Buscar pending que coincida con este simbolo o con el chat_name
+        pending = pending_signals.get(pending_key)
+        if not pending and symbol:
+            pending = pending_signals.get(chat_name)
 
         if signal.get("is_update") and pending:
             logger.info(f"Actualizando SL/TP a senal pendiente: {pending.get('symbol')}")
@@ -201,12 +208,15 @@ async def handler(event):
 
             if parser.has_sl_tp(pending):
                 logger.info(f"Senal completa, ejecutando: {pending['action']} {pending['symbol']}")
-                pending_signals.pop(chat_name, None)
+                # Eliminar ambos keys posibles
+                pending_signals.pop(pending_key, None)
+                if symbol:
+                    pending_signals.pop(chat_name, None)
                 _save_pending_signals()
                 await execute_signal(pending, chat_name)
             else:
                 logger.info("SL/TP actualizado, esperando mas datos")
-                pending_signals[chat_name] = pending
+                pending_signals[pending_key] = pending
                 _save_pending_signals()
             return
 
@@ -231,7 +241,9 @@ async def handler(event):
                 await execute_signal(signal, chat_name)
             else:
                 logger.info("Senal sin SL/TP, guardando como pendiente...")
-                pending_signals[chat_name] = signal
+                if "_pending_ts" not in signal:
+                    signal["_pending_ts"] = asyncio.get_event_loop().time()
+                pending_signals[pending_key] = signal
                 _save_pending_signals()
                 await event.reply(
                     f"✅ Senal recibida: {signal['action']} {signal['symbol']}\n"
@@ -366,6 +378,8 @@ async def mt5_trade_monitor():
     """Monitorea trades abiertos en MT5 y cuando se cierran, actualiza TNSVT con PnL."""
     import MetaTrader5 as mt5
 
+    _last_compaction = 0.0
+
     while True:
         try:
             await asyncio.sleep(10)
@@ -390,6 +404,26 @@ async def mt5_trade_monitor():
                     closed_tickets.append(ticket_str)
 
             if not closed_tickets:
+                # Compactacion periodica: cada 30 min, limpia entradas huerfanas
+                # (opened_at muy viejo sin posicion en MT5) para evitar memory leak
+                now_ts = asyncio.get_event_loop().time()
+                if now_ts - _last_compaction > 1800:
+                    _last_compaction = now_ts
+                    try:
+                        from datetime import datetime, timedelta
+                        cutoff = (datetime.now() - timedelta(days=7)).timestamp()
+                        stale = []
+                        for tk, entry in trade_map.items():
+                            opened_at = entry.get("opened_at", 0)
+                            if opened_at and opened_at < cutoff:
+                                stale.append(tk)
+                        if stale:
+                            for tk in stale:
+                                trade_map.pop(tk, None)
+                            save_trade_map()
+                            logger.info(f"trade_map compaction: removidas {len(stale)} entradas >7d")
+                    except Exception as e:
+                        logger.debug(f"trade_map compaction error: {e}")
                 continue
 
             for ticket_str in closed_tickets:
@@ -670,6 +704,34 @@ async def news_closer():
 
         except Exception as e:
             logger.error(f"Error en news_closer: {e}")
+
+
+async def pending_signal_expirer():
+    """Expira pending signals despues de PENDING_TTL_SECS (default 600s = 10 min)."""
+    while True:
+        try:
+            await asyncio.sleep(15)
+            if not pending_signals:
+                continue
+            from config import settings
+            ttl = int(os.getenv("PENDING_SIGNAL_TTL_SECS", "600"))
+            now = asyncio.get_event_loop().time()
+            expired = []
+            for key, sig in list(pending_signals.items()):
+                ts = sig.get("_pending_ts", 0)
+                if ts and now - ts > ttl:
+                    expired.append(key)
+            for key in expired:
+                sig = pending_signals.pop(key, None)
+                if sig:
+                    logger.warning(
+                        f"Pending signal expirado: {sig.get('symbol', '?')} {sig.get('action', '?')} "
+                        f"en {key} (> {ttl}s sin respuesta)"
+                    )
+            if expired:
+                _save_pending_signals()
+        except Exception as e:
+            logger.debug(f"pending_signal_expirer error: {e}")
 
 
 async def config_watcher():
@@ -1013,6 +1075,7 @@ async def main():
     asyncio.create_task(config_watcher())
     asyncio.create_task(news_closer())
     asyncio.create_task(tnsvt_heartbeat())
+    asyncio.create_task(pending_signal_expirer())
     asyncio.create_task(mt5_trade_monitor())
     asyncio.create_task(mt5_status_writer())
     asyncio.create_task(cmd_worker())

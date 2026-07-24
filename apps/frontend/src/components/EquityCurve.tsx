@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { EquityPoint } from '../lib/api';
 import { cls } from '../utils/format';
 import { Empty } from './common';
@@ -40,6 +40,27 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
   const lastX = P + ((data.length - 1) / (data.length - 1 || 1)) * (W - 2 * P);
   const lastY = P + (1 - (last.equity - minE) / range) * (H - 2 * P);
 
+  const [hover, setHover] = useState<{ idx: number; x: number; y: number } | null>(null);
+
+  const scaleY = (v: number) => P + (1 - (v - minE) / range) * (H - 2 * P);
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const svgX = xRatio * W;
+    const idx = Math.round(((svgX - P) / (W - 2 * P)) * (data.length - 1));
+    if (idx < 0 || idx >= data.length) {
+      setHover(null);
+      return;
+    }
+    setHover({
+      idx,
+      x: P + (idx / (data.length - 1 || 1)) * (W - 2 * P),
+      y: scaleY(data[idx].equity),
+    });
+  };
+
   return (
     <div className="rounded-lg border border-tnvs-border bg-tnvs-surface p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -59,7 +80,14 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
           </span>
         </div>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto"
+        preserveAspectRatio="xMidYMid meet"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHover(null)}
+        style={{ cursor: 'crosshair' }}
+      >
         <defs>
           <linearGradient id="eq-gradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="rgb(16, 185, 129)" stopOpacity="0.35" />
@@ -87,7 +115,30 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
         <polyline points={points.join(' ')} fill="none" stroke="rgb(16, 185, 129)" strokeWidth="2" strokeLinejoin="round" />
 
         <circle cx={lastX} cy={lastY} r="3" fill="rgb(16, 185, 129)" stroke="#0f172a" strokeWidth="1.5" />
+
+        {hover && (
+          <g>
+            <line
+              x1={hover.x}
+              y1={P}
+              x2={hover.x}
+              y2={H - P}
+              stroke="rgba(255,255,255,0.4)"
+              strokeWidth="1"
+              strokeDasharray="3,3"
+            />
+            <circle cx={hover.x} cy={hover.y} r="4" fill="rgb(16, 185, 129)" stroke="#0f172a" strokeWidth="1.5" />
+          </g>
+        )}
       </svg>
+
+      {hover && data[hover.idx] && (
+        <div className="mt-2 inline-flex items-center gap-3 rounded-md bg-tnvs-void px-3 py-1.5 text-[10px] font-mono text-tnvs-muted">
+          <span>idx: {hover.idx}</span>
+          <span>equity: ${data[hover.idx].equity.toFixed(2)}</span>
+          <span>DD: -${data[hover.idx].drawdown.toFixed(2)}</span>
+        </div>
+      )}
     </div>
   );
 }

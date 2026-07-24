@@ -228,6 +228,15 @@ class Settings:
         return os.getenv("NEWS_FILTER_HIGH_IMPACT_ONLY", "true").lower() == "true"
 
     # ============================================
+    # SPREAD GATE (max spread para abrir)
+    # ============================================
+    @property
+    def MAX_SPREAD_POINTS(self) -> float:
+        """Max spread en points (ej: 30 = 3.0 pips en pares 5-digit).
+        0 = deshabilitado."""
+        return float(os.getenv("MAX_SPREAD_POINTS", "0"))
+
+    # ============================================
     # SCALEOUT (cierres parciales por pips)
     # ============================================
     @property

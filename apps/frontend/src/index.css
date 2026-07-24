@@ -436,4 +436,29 @@ html, body, #root {
   .t-skel-skeleton, .t-skel-content { transition: none !important; }
   .t-skel-skeleton.is-pulsing > * { animation: none !important; }
   .t-tilt-card { transform: none !important; transition: none !important; }
+  .t-skeleton { animation: none !important; }
+}
+
+.t-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.t-skeleton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: t-skeleton-shimmer 1.6s infinite;
+}
+
+@keyframes t-skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }

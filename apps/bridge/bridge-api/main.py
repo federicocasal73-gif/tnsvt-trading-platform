@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -244,8 +244,55 @@ def root():
 
 import threading as _threading
 from typing import Any as _Any
+import asyncio as _asyncio
 
 _status_lock = _threading.Lock()
+
+
+# ============================================================
+# WebSocket pubsub para eventos en tiempo real
+# ============================================================
+
+class _EventBus:
+    """Bus simple para broadcast de eventos a clientes WebSocket.
+
+    Cualquier productor (syncers, copier endpoints, etc) puede llamar
+    a `publish()` para notificar a todos los clientes conectados.
+    """
+    def __init__(self):
+        self._clients: set = set()
+        self._lock = _threading.Lock()
+
+    def subscribe(self) -> "asyncio.Queue":
+        q: _asyncio.Queue = _asyncio.Queue(maxsize=200)
+        with self._lock:
+            self._clients.add(q)
+        return q
+
+    def unsubscribe(self, q) -> None:
+        with self._lock:
+            self._clients.discard(q)
+
+    def publish(self, event: dict) -> None:
+        with self._lock:
+            queues = list(self._clients)
+        for q in queues:
+            try:
+                q.put_nowait(event)
+            except _asyncio.QueueFull:
+                try:
+                    q.get_nowait()
+                    q.put_nowait(event)
+                except Exception:
+                    pass
+
+
+event_bus = _EventBus()
+
+
+def emit_event(event_type: str, data: dict) -> None:
+    """Helper para emitir eventos al bus desde cualquier punto."""
+    event_bus.publish({"type": event_type, "ts": _time.time(), "data": data})
 
 
 def _init_status_table():
@@ -1442,6 +1489,36 @@ async def price_symbol(symbol: str):
         "source": "mt5",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ============================================================
+# WebSocket: stream de eventos en tiempo real
+# ============================================================
+
+@app.websocket("/ws/events")
+async def ws_events(ws: WebSocket):
+    """Stream de eventos del bridge (trade_open, trade_close, blocked, etc).
+
+    El cliente se conecta y recibe eventos mientras este abierto.
+    Envia un ping cada 30s para mantener la conexion viva.
+    """
+    await ws.accept()
+    queue = event_bus.subscribe()
+    try:
+        await ws.send_json({"type": "hello", "ts": _time.time()})
+        while True:
+            try:
+                event = await _asyncio.wait_for(queue.get(), timeout=30.0)
+                await ws.send_json(event)
+            except _asyncio.TimeoutError:
+                # Mantener la conexion viva con un ping
+                await ws.send_json({"type": "ping", "ts": _time.time()})
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.debug(f"ws_events error: {e}")
+    finally:
+        event_bus.unsubscribe(queue)
 
 
 if __name__ == "__main__":

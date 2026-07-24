@@ -2,11 +2,37 @@
 Signal Copier - MT5 Executor
 """
 import asyncio
+import json
 import logging
 import math
+import os
+from pathlib import Path
 import MetaTrader5 as mt5
 
 logger = logging.getLogger("SignalCopier.Executor")
+
+
+_PARTIAL_CFG_FILE = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "partial_configs.json"
+
+
+def _persist_partial_configs(cfg: dict) -> None:
+    """Serializa partial_configs a disco para sobrevivir reinicios."""
+    try:
+        _PARTIAL_CFG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _PARTIAL_CFG_FILE.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    except Exception as e:
+        logger.debug(f"persist_partial_configs error: {e}")
+
+
+def _load_partial_configs() -> dict:
+    """Carga partial_configs desde disco."""
+    if not _PARTIAL_CFG_FILE.exists():
+        return {}
+    try:
+        return json.loads(_PARTIAL_CFG_FILE.read_text(encoding="utf-8") or "{}")
+    except Exception as e:
+        logger.warning(f"load_partial_configs error: {e}")
+        return {}
 
 
 class MT5Executor:
@@ -14,7 +40,9 @@ class MT5Executor:
         self.connected = False
         self.last_order_ticket = None
         self._last_symbol = ""
-        self.partial_configs = {}
+        self.partial_configs = _load_partial_configs()
+        if self.partial_configs:
+            logger.info(f"Restaurados {len(self.partial_configs)} cierres parciales desde disco")
 
     def connect(self) -> bool:
         try:
@@ -59,8 +87,17 @@ class MT5Executor:
 
             lot = signal.get("lot") or self._get_default_lot(symbol)
             price_info = self._get_price(symbol)
-            
+
             if not price_info:
+                return False
+
+            from config import settings
+            spread_points = price_info.get("spread_points", 0)
+            max_spread = settings.MAX_SPREAD_POINTS
+            if max_spread > 0 and spread_points > max_spread:
+                logger.warning(
+                    f"BLOQUEADO por spread: {symbol} spread={spread_points:.1f}pts > max={max_spread:.0f}pts"
+                )
                 return False
 
             price = signal.get("price")
@@ -316,6 +353,7 @@ class MT5Executor:
                 "is_scaleout": all_flag,
                 "channel": signal.get("channel", ""),
             }
+            _persist_partial_configs(self.partial_configs)
 
             logger.info(f"Cierres parciales configurados para ticket #{position.ticket}:")
             so_count = len(so_tp)
@@ -357,11 +395,16 @@ class MT5Executor:
         if tick is None:
             logger.error(f"No se pudo obtener precio de {symbol}")
             return None
-        
+
+        sym_info = mt5.symbol_info(symbol)
+        point = sym_info.point if sym_info else 0.00001
+        spread_points = (tick.ask - tick.bid) / point if point > 0 else 0
+
         return {
             "bid": tick.bid,
             "ask": tick.ask,
-            "spread": (tick.ask - tick.bid) * 10000 if "JPY" not in symbol else (tick.ask - tick.bid) * 100,
+            "spread": spread_points / 10 if "JPY" not in symbol else spread_points / 100,
+            "spread_points": spread_points,
         }
 
     def _get_default_lot(self, symbol: str) -> float:
@@ -439,6 +482,7 @@ class MT5Monitor:
                     ticket = int(ticket_str)
                     if ticket not in open_tickets:
                         self.executor.partial_configs.pop(ticket_str, None)
+                        _persist_partial_configs(self.executor.partial_configs)
                         logger.info(f"Ticket #{ticket} ya no existe, removido de cierres parciales")
                         continue
 
@@ -577,7 +621,11 @@ class MT5Monitor:
         total_count = len(config["tp_levels"])
         if executed_count >= total_count:
             self.executor.partial_configs.pop(ticket, None)
+            _persist_partial_configs(self.executor.partial_configs)
             logger.info(f"Todos los niveles ejecutados para ticket #{ticket}")
+        elif len(config["executed_indices"]) > 0:
+            # Persistir progreso de indices ejecutados
+            _persist_partial_configs(self.executor.partial_configs)
 
     def stop(self):
         self.running = False

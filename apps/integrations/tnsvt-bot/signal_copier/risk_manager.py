@@ -134,9 +134,11 @@ class RiskManager:
         return {
             "daily_pnl": 0,
             "weekly_pnl": 0,
+            "monthly_pnl": 0,
             "trades_today": 0,
             "last_reset_date": "",
             "last_week_reset": "",
+            "last_month_reset": "",
             "total_trades": 0,
             "winning_trades": 0,
         }
@@ -153,20 +155,27 @@ class RiskManager:
             logger.error(f"Error guardando estado: {e}")
 
     def _reset_daily_if_needed(self):
-        """Resetea contadores diarios si es necesario"""
-        today = datetime.date.today().isoformat()
+        """Resetea contadores diarios, semanales (lunes) y mensuales (dia 1)."""
+        today = datetime.date.today()
+        today_iso = today.isoformat()
 
-        if self.state.get("last_reset_date") != today:
-            logger.info(f"Reseteando contadores diarios para {today}")
+        if self.state.get("last_reset_date") != today_iso:
+            logger.info(f"Reseteando contadores diarios para {today_iso}")
             self.state["daily_pnl"] = 0
             self.state["trades_today"] = 0
-            self.state["last_reset_date"] = today
+            self.state["last_reset_date"] = today_iso
 
-            # Reset semanal si es lunes
-            if datetime.date.today().weekday() == 0:
+            # Reset semanal si es lunes (weekday() == 0)
+            if today.weekday() == 0:
                 logger.info("Reseteando contadores semanales (lunes)")
                 self.state["weekly_pnl"] = 0
-                self.state["last_week_reset"] = today
+                self.state["last_week_reset"] = today_iso
+
+            # Reset mensual si es dia 1 del mes
+            if today.day == 1:
+                logger.info("Reseteando contadores mensuales (dia 1)")
+                self.state["monthly_pnl"] = 0
+                self.state["last_month_reset"] = today_iso
 
             self._save_state()
 
@@ -315,6 +324,7 @@ class RiskManager:
 
         self.state["daily_pnl"] += pnl
         self.state["weekly_pnl"] += pnl
+        self.state["monthly_pnl"] = self.state.get("monthly_pnl", 0) + pnl
         self.state["total_trades"] += 1
 
         if pnl > 0:
@@ -335,6 +345,7 @@ class RiskManager:
         return {
             "daily_pnl": round(self.state["daily_pnl"], 2),
             "weekly_pnl": round(self.state["weekly_pnl"], 2),
+            "monthly_pnl": round(self.state.get("monthly_pnl", 0), 2),
             "trades_today": self.state["trades_today"],
             "total_trades": self.state["total_trades"],
             "winning_trades": self.state["winning_trades"],
@@ -435,9 +446,11 @@ class RiskManager:
         self.state = {
             "daily_pnl": 0,
             "weekly_pnl": 0,
+            "monthly_pnl": 0,
             "trades_today": 0,
             "last_reset_date": "",
             "last_week_reset": "",
+            "last_month_reset": "",
             "total_trades": 0,
             "winning_trades": 0,
         }
