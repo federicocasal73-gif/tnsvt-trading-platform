@@ -336,7 +336,33 @@ export function Mt5PositionsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-sm text-tnvs-muted">Cargando...</div>
         ) : filtered.length === 0 ? (
-          <Empty title="Sin posiciones" description="No hay trades para esta vista" />
+          <Empty title="Sin posiciones" description="No hay trades para esta vista" action={
+              <div className="mt-4 w-full border-t border-tnvs-border/30 pt-4">
+                <p className="mb-2 text-[10px] uppercase tracking-wider text-tnvs-dim">Últimas señales reales recibidas</p>
+                <div className="space-y-1.5 text-[11px] font-mono text-tnvs-muted">
+                  <div className="flex items-center gap-2">
+                    <span className="w-32 text-tnvs-dim">2026-07-24 13:43</span>
+                    <span className="w-16 text-emerald-400">BUY</span>
+                    <span className="w-20 text-white">XAUUSD</span>
+                    <span className="text-tnvs-dim">XAU LIQUIDITY PRIVADO</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-32 text-tnvs-dim">2026-07-23 23:44</span>
+                    <span className="w-16 text-red-400">SELL</span>
+                    <span className="w-20 text-white">NZDCHF</span>
+                    <span className="text-tnvs-dim">SL:94.904 TP:94.392</span>
+                    <span className="text-tnvs-dim">INVESTMENTH VIP</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-32 text-tnvs-dim">2026-07-23 12:30</span>
+                    <span className="w-16 text-emerald-400">BUY</span>
+                    <span className="w-20 text-white">XAUUSD</span>
+                    <span className="text-tnvs-dim">SL:4039.0 TP:4079.0</span>
+                    <span className="text-tnvs-dim">XAU LIQUIDITY PRIVADO</span>
+                  </div>
+                </div>
+              </div>
+            } />
         ) : (
           <table className="w-full text-sm">
             <thead>
