@@ -20,11 +20,15 @@ function toCandleData(raw: BridgeCandle[]) {
   }));
 }
 
+const TF_OPTIONS = ['5m', '15m', '30m', '1h'] as const;
+type TfValue = (typeof TF_OPTIONS)[number];
+
 export function TradePreviewChart({ trade, candles: preCandles, onClose, inline }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tf, setTf] = useState<TfValue>('15m');
 
   const symbol = trade.symbol;
   const entry = trade.open_price;
@@ -32,12 +36,13 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
   const tp = trade.tp;
   const isBuy = trade.action === 'BUY';
 
-  const fetchCandles = useCallback(async () => {
+  const fetchCandles = useCallback(async (tfOverride?: TfValue) => {
     if (!symbol) return null;
+    const activeTf = tfOverride ?? tf;
 
     if (trade.ticket) {
       try {
-        const res = await api.bridge.tradeCandles(trade.ticket);
+        const res = await api.bridge.tradeCandles(trade.ticket, activeTf);
         if (res.ok && res.candles?.length > 0) return res.candles;
       } catch { /* fallback to range query */ }
     }
@@ -54,7 +59,7 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
     } catch { /* noop */ }
 
     return null;
-  }, [symbol, trade.ticket, trade.opened_at, trade.closed_at]);
+  }, [symbol, trade.ticket, trade.opened_at, trade.closed_at, tf]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -215,7 +220,7 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
       {!inline && (
         <div className="flex items-center justify-between border-b border-tnvs-border px-3 py-2">
           <span className="text-xs font-medium text-white">
-            {symbol} · M5
+            {symbol} · {tf.toUpperCase()}
             <span className="ml-2 text-tnvs-dim">Preview</span>
           </span>
           {onClose && (
@@ -231,6 +236,22 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
           {tp && <span className="text-green-400">TP: {tp}</span>}
         </div>
       )}
+      <div className={cls(inline ? 'flex items-center gap-1 px-2 pt-1' : 'flex items-center gap-1 border-b border-tnvs-border/30 px-3 py-1.5')}>
+        {TF_OPTIONS.map(opt => (
+          <button
+            key={opt}
+            onClick={() => setTf(opt)}
+            className={cls(
+              'px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors',
+              tf === opt
+                ? 'bg-tnvs-accent/20 text-tnvs-accent'
+                : 'text-tnvs-dim hover:text-white',
+            )}
+          >
+            {opt.toUpperCase()}
+          </button>
+        ))}
+      </div>
       <div ref={containerRef} className={inline ? 'h-[180px] w-[400px]' : 'h-[240px]'} />
       {error && (
         <div className="flex items-center justify-center py-4 text-xs text-tnvs-dim">

@@ -846,16 +846,28 @@ def analytics_equity(request: Request, tenant_id: Optional[str] = None):
 
 
 @app.get("/api/v1/bridge/analytics/by-channel")
-def analytics_by_channel(request: Request, tenant_id: Optional[str] = None):
-    all_trades = trades_db.fetch_all_trades(_resolve_tenant(request, tenant_id))
-    return _cached(f"by_channel:{tenant_id or 'all'}",
+def analytics_by_channel(request: Request, tenant_id: Optional[str] = None,
+                         since_days: Optional[int] = None):
+    tid = _resolve_tenant(request, tenant_id)
+    all_trades = trades_db.fetch_all_trades(tid)
+    if since_days is not None and since_days > 0:
+        from datetime import datetime as _dt, timedelta as _td
+        cutoff = (_dt.now(timezone.utc) - _td(days=since_days)).isoformat()
+        all_trades = [t for t in all_trades if (t.get("opened_at") or "") >= cutoff]
+    return _cached(f"by_channel:{tid}:{since_days}",
                    lambda: _aggregate_by_channel(all_trades))
 
 
 @app.get("/api/v1/bridge/analytics/by-symbol")
-def analytics_by_symbol(request: Request, tenant_id: Optional[str] = None):
-    all_trades = trades_db.fetch_all_trades(_resolve_tenant(request, tenant_id))
-    return _cached(f"by_symbol:{tenant_id or 'all'}",
+def analytics_by_symbol(request: Request, tenant_id: Optional[str] = None,
+                        since_days: Optional[int] = None):
+    tid = _resolve_tenant(request, tenant_id)
+    all_trades = trades_db.fetch_all_trades(tid)
+    if since_days is not None and since_days > 0:
+        from datetime import datetime as _dt, timedelta as _td
+        cutoff = (_dt.now(timezone.utc) - _td(days=since_days)).isoformat()
+        all_trades = [t for t in all_trades if (t.get("opened_at") or "") >= cutoff]
+    return _cached(f"by_symbol:{tid}:{since_days}",
                    lambda: _aggregate_by_symbol(all_trades))
 
 
@@ -1310,9 +1322,34 @@ async def get_mt5_candles(symbol: str, tf: str = "M5",
 _TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
 
 
+TF_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}
+
+def _aggregate_candles(m1_candles: list, tf: str) -> list:
+    """Aggregate 1m candles into target timeframe."""
+    minutes = TF_MINUTES.get(tf, 5)
+    bucket_size = minutes * 60
+    groups: dict[int, list] = {}
+    for c in m1_candles:
+        bucket = (c["time"] // bucket_size) * bucket_size
+        groups.setdefault(bucket, []).append(c)
+    result = []
+    for t in sorted(groups):
+        batch = groups[t]
+        result.append({
+            "time": t,
+            "open": batch[0]["open"],
+            "high": max(x["high"] for x in batch),
+            "low": min(x["low"] for x in batch),
+            "close": batch[-1]["close"],
+        })
+    return result
+
+
 @app.get("/api/v1/bridge/trades/{ticket}/candles")
-async def get_trade_candles(ticket: int):
-    """Velas M5 para un trade: snapshots de disco o fallback MT5."""
+async def get_trade_candles(ticket: int, tf: str = "5m"):
+    """Velas M1-M1h para un trade: snapshots de disco o fallback MT5."""
+    if tf not in TF_MINUTES:
+        raise HTTPException(status_code=400, detail=f"Invalid timeframe: {tf}")
     entry_path = _TRADE_CANDLES_DIR / f"{ticket}_entry.json"
     close_path = _TRADE_CANDLES_DIR / f"{ticket}_close.json"
 
@@ -1343,12 +1380,13 @@ async def get_trade_candles(ticket: int):
                     seen.add(t)
                     merged.append(c)
         merged.sort(key=lambda c: c["time"])
+        aggregated = _aggregate_candles(merged, tf)
         return {
             "ok": True,
             "symbol": "",
-            "tf": "M5",
-            "count": len(merged),
-            "candles": merged,
+            "tf": tf.upper(),
+            "count": len(aggregated),
+            "candles": aggregated,
         }
 
     # Fallback: symbol + entry time from MT5 history
@@ -1375,10 +1413,13 @@ async def get_trade_candles(ticket: int):
     if candles is None:
         return {"ok": False, "error": "No candles from MT5 fallback", "candles": []}
 
+    if tf != "5m":
+        candles = _aggregate_candles(candles, tf)
+
     return {
         "ok": True,
         "symbol": symbol,
-        "tf": "M5",
+        "tf": tf.upper(),
         "count": len(candles),
         "candles": candles,
     }
