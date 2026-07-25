@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createChart, CandlestickSeries, LineStyle } from 'lightweight-charts';
+import { createChart, CandlestickSeries, BaselineSeries, LineStyle } from 'lightweight-charts';
 import { api, BridgeCandle, LivePosition } from '../lib/api';
 import { cls } from '../utils/format';
 
@@ -91,6 +91,52 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
     });
+
+    // Position zones (colored fills between entry and SL/TP)
+    if (entry) {
+      if (tp && tp !== entry) {
+        const isGreenAbove = isBuy === (tp > entry);
+        const opacity = isGreenAbove ? 0.12 : 0.04;
+        const color = isGreenAbove ? '34,197,94' : '34,197,94';
+        const zone = chart.addSeries(BaselineSeries, {
+          baseValue: { type: 'price', price: entry },
+          topFillColor1: `rgba(${color},${opacity})`,
+          topFillColor2: `rgba(${color},${opacity * 0.3})`,
+          topLineColor: 'transparent',
+          bottomFillColor1: 'transparent',
+          bottomFillColor2: 'transparent',
+          bottomLineColor: 'transparent',
+          lineWidth: 1,
+          lastValueVisible: false,
+          priceFormat: { type: 'custom', minMove: 0, formatter: () => '' },
+        });
+        zone.setData([
+          { time: 0 as any, value: tp },
+          { time: 9999999999 as any, value: tp },
+        ]);
+      }
+      if (sl && sl !== entry) {
+        const isRedBelow = isBuy === (sl > entry);
+        const opacity = isRedBelow ? 0.10 : 0.03;
+        const color = '239,68,68';
+        const zone = chart.addSeries(BaselineSeries, {
+          baseValue: { type: 'price', price: entry },
+          topFillColor1: `rgba(${color},${opacity * 0.3})`,
+          topFillColor2: `rgba(${color},${opacity * 0.1})`,
+          topLineColor: 'transparent',
+          bottomFillColor1: `rgba(${color},${opacity})`,
+          bottomFillColor2: `rgba(${color},${opacity * 0.3})`,
+          bottomLineColor: 'transparent',
+          lineWidth: 1,
+          lastValueVisible: false,
+          priceFormat: { type: 'custom', minMove: 0, formatter: () => '' },
+        });
+        zone.setData([
+          { time: 0 as any, value: sl },
+          { time: 9999999999 as any, value: sl },
+        ]);
+      }
+    }
 
     chartRef.current = chart;
     seriesRef.current = series;
