@@ -156,6 +156,14 @@ export const api = {
         '/bridge/control',
         { method: 'POST', body: JSON.stringify({ action }) },
       ),
+    candles: (symbol: string, tf = 'M5', from?: string, to?: string, bars = 60) => {
+      const params = new URLSearchParams({ symbol, tf, bars: String(bars) });
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      return request<{ ok: boolean; symbol: string; tf: string; count: number; candles: BridgeCandle[] }>(
+        `/bridge/mt5/candles?${params}`,
+      );
+    },
   },
   // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
   admin: {
@@ -288,6 +296,17 @@ export interface SymbolAgg {
   pnl: number;
   best?: boolean;
   worst?: boolean;
+}
+
+export interface BridgeCandle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  spread: number;
+  real_volume: number;
 }
 
 export interface LivePosition {
