@@ -79,8 +79,8 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
         borderColor: 'rgba(255,255,255,0.08)',
       },
       crosshair: { mode: 0 },
-      handleScroll: false,
-      handleScale: false,
+      handleScroll: { vertTouchDrag: true, horzTouchDrag: true, pressedMouseMove: true, mouseWheel: true },
+      handleScale: { axisPressedMouseMove: true, pinch: true, mouseWheel: true, axisDoubleClickReset: true },
     });
 
     const series = chart.addSeries(CandlestickSeries, {
