@@ -1,12 +1,15 @@
-import { memo } from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { memo, useState } from 'react';
+import { ArrowUp, ArrowDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '../state/AppStateProvider';
 import { cls, fmtUsd, fmtPct, fmtDate } from '../utils/format';
+import { TradePreviewChart } from '../components/TradePreviewChart';
+import type { LivePosition } from '../lib/api';
 
 export const PositionsPage = memo(function PositionsPage() {
   const { positions, loading } = useApp();
   const open = positions.filter(p => p.status === 'open');
   const closed = positions.filter(p => p.status !== 'open');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <div className="space-y-6">
@@ -16,23 +19,65 @@ export const PositionsPage = memo(function PositionsPage() {
       <Section title={`Open (${open.length})`}>
         {open.length === 0 ? <Empty /> : (
           <table className="tnvs-table">
-            <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Current</th><th>SL</th><th>TP</th><th>P&L</th><th>Opened</th></tr></thead>
+            <thead><tr><th></th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Current</th><th>SL</th><th>TP</th><th>P&L</th><th>Opened</th></tr></thead>
             <tbody>
-              {open.map(p => (
-                <tr key={p.id}>
-                  <td className="font-medium">{p.symbol}</td>
-                  <td><SideBadge side={p.side} /></td>
-                  <td>{p.quantity}</td>
-                  <td className="font-mono">{fmtUsd(p.entry_price)}</td>
-                  <td className="font-mono">{fmtUsd(p.current_price)}</td>
-                  <td className="font-mono text-tnvs-dim">{fmtUsd(p.stop_loss)}</td>
-                  <td className="font-mono text-tnvs-dim">{p.take_profit ? fmtUsd(p.take_profit) : '-'}</td>
-                  <td className={cls('font-mono', (p.unrealized_pnl || 0) >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
-                    {(p.unrealized_pnl || 0) >= 0 ? '+' : ''}{fmtUsd(p.unrealized_pnl)}
-                  </td>
-                  <td className="text-xs text-tnvs-muted">{fmtDate(p.created_at)}</td>
-                </tr>
-              ))}
+              {open.map(p => {
+                const isExpanded = expandedId === p.id;
+                const isBuy = p.side?.toLowerCase() === 'buy' || p.side?.toLowerCase() === 'long';
+                const trade: LivePosition = {
+                  id: 0,
+                  ticket: 0,
+                  symbol: p.symbol,
+                  action: isBuy ? 'BUY' : 'SELL',
+                  volume: p.quantity,
+                  open_price: p.entry_price,
+                  close_price: null,
+                  sl: p.stop_loss,
+                  tp: p.take_profit ?? null,
+                  pnl: p.unrealized_pnl,
+                  commission: 0,
+                  swap: 0,
+                  opened_at: p.created_at,
+                  closed_at: null,
+                  channel_id: null,
+                  channel_title: null,
+                  topic_id: null,
+                  status: p.status,
+                  received_at: p.created_at,
+                };
+                return (
+                  <>
+                    <tr key={p.id}>
+                      <td className="w-6">
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                          className="text-tnvs-dim hover:text-white"
+                        >
+                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        </button>
+                      </td>
+                      <td className="font-medium">{p.symbol}</td>
+                      <td><SideBadge side={p.side} /></td>
+                      <td>{p.quantity}</td>
+                      <td className="font-mono">{fmtUsd(p.entry_price)}</td>
+                      <td className="font-mono">{fmtUsd(p.current_price)}</td>
+                      <td className="font-mono text-tnvs-dim">{fmtUsd(p.stop_loss)}</td>
+                      <td className="font-mono text-tnvs-dim">{p.take_profit ? fmtUsd(p.take_profit) : '-'}</td>
+                      <td className={cls('font-mono', (p.unrealized_pnl || 0) >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
+                        {(p.unrealized_pnl || 0) >= 0 ? '+' : ''}{fmtUsd(p.unrealized_pnl)}
+                      </td>
+                      <td className="text-xs text-tnvs-muted">{fmtDate(p.created_at)}</td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={10} className="p-0">
+                          <TradePreviewChart trade={trade} inline />
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -41,21 +86,63 @@ export const PositionsPage = memo(function PositionsPage() {
       <Section title={`Closed (${closed.length})`}>
         {closed.length === 0 ? <Empty /> : (
           <table className="tnvs-table">
-            <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>P&L</th><th>Status</th><th>Closed</th></tr></thead>
+            <thead><tr><th></th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>P&L</th><th>Status</th><th>Closed</th></tr></thead>
             <tbody>
-              {closed.slice().reverse().map(p => (
-                <tr key={p.id}>
-                  <td className="font-medium">{p.symbol}</td>
-                  <td><SideBadge side={p.side} /></td>
-                  <td>{p.quantity}</td>
-                  <td className="font-mono">{fmtUsd(p.entry_price)}</td>
-                  <td className={cls('font-mono', (p.unrealized_pnl || 0) >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
-                    {(p.unrealized_pnl || 0) >= 0 ? '+' : ''}{fmtUsd(p.unrealized_pnl)}
-                  </td>
-                  <td><StatusBadge status={p.status} /></td>
-                  <td className="text-xs text-tnvs-muted">{p.closed_at ? fmtDate(p.closed_at) : '-'}</td>
-                </tr>
-              ))}
+              {closed.slice().reverse().map(p => {
+                const isExpanded = expandedId === p.id;
+                const isBuy = p.side?.toLowerCase() === 'buy' || p.side?.toLowerCase() === 'long';
+                const trade: LivePosition = {
+                  id: 0,
+                  ticket: 0,
+                  symbol: p.symbol,
+                  action: isBuy ? 'BUY' : 'SELL',
+                  volume: p.quantity,
+                  open_price: p.entry_price,
+                  close_price: null,
+                  sl: p.stop_loss,
+                  tp: p.take_profit ?? null,
+                  pnl: p.unrealized_pnl,
+                  commission: 0,
+                  swap: 0,
+                  opened_at: p.created_at,
+                  closed_at: p.closed_at ?? null,
+                  channel_id: null,
+                  channel_title: null,
+                  topic_id: null,
+                  status: p.status,
+                  received_at: p.created_at,
+                };
+                return (
+                  <>
+                    <tr key={p.id}>
+                      <td className="w-6">
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                          className="text-tnvs-dim hover:text-white"
+                        >
+                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        </button>
+                      </td>
+                      <td className="font-medium">{p.symbol}</td>
+                      <td><SideBadge side={p.side} /></td>
+                      <td>{p.quantity}</td>
+                      <td className="font-mono">{fmtUsd(p.entry_price)}</td>
+                      <td className={cls('font-mono', (p.unrealized_pnl || 0) >= 0 ? 'text-tnvs-win' : 'text-tnvs-loss')}>
+                        {(p.unrealized_pnl || 0) >= 0 ? '+' : ''}{fmtUsd(p.unrealized_pnl)}
+                      </td>
+                      <td><StatusBadge status={p.status} /></td>
+                      <td className="text-xs text-tnvs-muted">{p.closed_at ? fmtDate(p.closed_at) : '-'}</td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={8} className="p-0">
+                          <TradePreviewChart trade={trade} inline />
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         )}
