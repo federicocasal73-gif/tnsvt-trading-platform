@@ -5,6 +5,7 @@ from MetaTrader 5. Replaces the dead legacy API on port 5001.
 import asyncio
 import logging
 import time
+from datetime import datetime
 from typing import Optional
 
 import MetaTrader5 as mt5
@@ -101,6 +102,50 @@ class MT5Provider:
 
         except Exception as e:
             logger.error(f"get_candles error {symbol} {tf}: {e}")
+            return None
+
+    async def get_candles_range(self, symbol: str, tf: str,
+                                 from_dt: datetime, to_dt: datetime) -> Optional[list[dict]]:
+        """Devuelve velas OHLCV en un rango de fechas.
+
+        Usa mt5.copy_rates_range() que es eficiente para rangos.
+        Acepta datetime objects (con/timezone-naive asume UTC).
+        """
+        mtf = TF_MAP.get(tf)
+        if mtf is None:
+            logger.warning(f"Unknown timeframe: {tf}")
+            return None
+
+        if not await self.ensure_connected():
+            return None
+
+        try:
+            rates = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: mt5.copy_rates_range(symbol, mtf,
+                                                    from_dt.timestamp(),
+                                                    to_dt.timestamp())
+            )
+            if rates is None or len(rates) == 0:
+                logger.warning(f"No rates for {symbol} {tf} [{from_dt} → {to_dt}]")
+                return None
+
+            result = []
+            for r in rates:
+                result.append({
+                    "time": int(r[0]),
+                    "open": float(r[1]),
+                    "high": float(r[2]),
+                    "low": float(r[3]),
+                    "close": float(r[4]),
+                    "volume": int(r[5]),
+                    "spread": int(r[6]),
+                    "real_volume": int(r[7]),
+                })
+
+            return result
+
+        except Exception as e:
+            logger.error(f"get_candles_range error {symbol} {tf}: {e}")
             return None
 
     async def get_tick(self, symbol: str) -> Optional[dict]:

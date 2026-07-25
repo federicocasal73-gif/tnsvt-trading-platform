@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -230,6 +230,7 @@ def root():
             "POST /api/v1/bridge/copier/status",
             "GET  /api/v1/bridge/copier/status",
             "GET  /api/v1/bridge/copier/dashboard",
+            "GET  /api/v1/bridge/mt5/candles",
         ],
     }
 
@@ -1311,6 +1312,75 @@ def signal_copier_status():
             except Exception as e:
                 return {"ok": False, "error": str(e)}
     return {"ok": False, "error": "signal_copier status file not found", "connected": False}
+
+
+# ─── MT5 Candles (para preview de trades) ──────────────────────────────
+
+
+MT5_TF_MAP = {
+    "M1": 1, "M5": 5, "M15": 15, "H1": 60, "H4": 240, "D1": 1440,
+}
+
+
+@app.get("/api/v1/bridge/mt5/candles")
+async def get_mt5_candles(symbol: str, tf: str = "M5",
+                           from_: Optional[str] = Query(None, alias="from"),
+                           to: Optional[str] = Query(None),
+                           bars: int = Query(60, ge=5, le=1000)):
+    """Velas OHLCV desde MT5 para un símbolo y timeframe.
+
+    Dos modos:
+      1. Rango: ?symbol=XAUUSD&from=2026-07-24T10:00:00&to=2026-07-24T12:00:00
+      2. Últimas N: ?symbol=XAUUSD&bars=100 (default 60)
+
+    Argumentos:
+      symbol  — símbolo MT5 (EURUSD, XAUUSD, etc)
+      tf      — timeframe: M1|M5|M15|H1|H4|D1 (default M5)
+      from    — ISO datetime inicio (opcional)
+      to      — ISO datetime fin (opcional)
+      bars    — cantidad de velas recientes (default 60, usado sin from/to)
+
+    Returns:
+      {"ok": true, "symbol": "...", "tf": "...", "count": N, "candles": [...]}
+      o {"ok": false, "error": "..."}
+    """
+    symbol = symbol.upper().strip()
+    if symbol not in MT5_SYMBOLS:
+        raise HTTPException(400, f"Symbol no soportado: {symbol}. Soportados: {MT5_SYMBOLS}")
+
+    tf = tf.upper().strip()
+    if tf not in MT5_TF_MAP:
+        raise HTTPException(400, f"Timeframe no soportado: {tf}. Soportados: {list(MT5_TF_MAP.keys())}")
+
+    mt5 = _mt5_provider()
+
+    if from_ and to:
+        try:
+            from_dt = datetime.fromisoformat(from_)
+            to_dt = datetime.fromisoformat(to)
+        except ValueError as e:
+            raise HTTPException(400, f"Formato ISO inválido: {e}")
+        candles = await mt5.get_candles_range(symbol, tf, from_dt, to_dt)
+    else:
+        candles = await mt5.get_candles(symbol, tf, bars)
+
+    if candles is None:
+        return {
+            "ok": False,
+            "error": f"No se obtuvieron velas para {symbol} {tf} (MT5 desconectado?)",
+            "symbol": symbol,
+            "tf": tf,
+            "count": 0,
+            "candles": [],
+        }
+
+    return {
+        "ok": True,
+        "symbol": symbol,
+        "tf": tf,
+        "count": len(candles),
+        "candles": candles,
+    }
 
 
 # ─── Prometheus /metrics ──────────────────────────────────────────────────
