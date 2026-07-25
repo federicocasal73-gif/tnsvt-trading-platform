@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createChart, CandlestickSeries, LineStyle } from 'lightweight-charts';
 import { api, BridgeCandle, LivePosition } from '../lib/api';
+import { cls } from '../utils/format';
 
 interface Props {
   trade: LivePosition;
   candles?: BridgeCandle[];
   onClose?: () => void;
+  inline?: boolean;
 }
 
 function toCandleData(raw: BridgeCandle[]) {
@@ -18,7 +20,7 @@ function toCandleData(raw: BridgeCandle[]) {
   }));
 }
 
-export function TradePreviewChart({ trade, candles: preCandles, onClose }: Props) {
+export function TradePreviewChart({ trade, candles: preCandles, onClose, inline }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
@@ -163,23 +165,27 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose }: Props
   }, [fetchCandles, entry, sl, tp, preCandles]);
 
   return (
-    <div className="relative rounded-lg border border-tnvs-border bg-tnvs-surface shadow-tnvs-strong">
-      <div className="flex items-center justify-between border-b border-tnvs-border px-3 py-2">
-        <span className="text-xs font-medium text-white">
-          {symbol} · M5
-          <span className="ml-2 text-tnvs-dim">Preview</span>
-        </span>
-        {onClose && (
-          <button onClick={onClose} className="text-tnvs-dim hover:text-white text-xs">✕</button>
-        )}
-      </div>
-      <div className="flex items-center gap-2 border-b border-tnvs-border/30 px-3 py-1.5 text-[10px] text-tnvs-dim font-mono">
-        <span className={isBuy ? 'text-tnvs-win' : 'text-tnvs-loss'}>{isBuy ? '▲ BUY' : '▼ SELL'}</span>
-        <span>Entry: {entry}</span>
-        {sl && <span className="text-red-400">SL: {sl}</span>}
-        {tp && <span className="text-green-400">TP: {tp}</span>}
-      </div>
-      <div ref={containerRef} className="h-[240px]" />
+    <div className={cls(inline ? '' : 'relative rounded-lg border border-tnvs-border bg-tnvs-surface shadow-tnvs-strong')}>
+      {!inline && (
+        <div className="flex items-center justify-between border-b border-tnvs-border px-3 py-2">
+          <span className="text-xs font-medium text-white">
+            {symbol} · M5
+            <span className="ml-2 text-tnvs-dim">Preview</span>
+          </span>
+          {onClose && (
+            <button onClick={onClose} className="text-tnvs-dim hover:text-white text-xs">✕</button>
+          )}
+        </div>
+      )}
+      {!inline && (
+        <div className="flex items-center gap-2 border-b border-tnvs-border/30 px-3 py-1.5 text-[10px] text-tnvs-dim font-mono">
+          <span className={isBuy ? 'text-tnvs-win' : 'text-tnvs-loss'}>{isBuy ? '▲ BUY' : '▼ SELL'}</span>
+          <span>Entry: {entry}</span>
+          {sl && <span className="text-red-400">SL: {sl}</span>}
+          {tp && <span className="text-green-400">TP: {tp}</span>}
+        </div>
+      )}
+      <div ref={containerRef} className={inline ? 'h-[180px] w-[400px]' : 'h-[240px]'} />
       {error && (
         <div className="flex items-center justify-center py-4 text-xs text-tnvs-dim">
           {error}
