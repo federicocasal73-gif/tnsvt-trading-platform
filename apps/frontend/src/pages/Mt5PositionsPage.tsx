@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, RefreshCw, Terminal } from 'lucide-react';
 import { api, BridgeCandle, LivePosition, Mt5PositionSnapshot } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
@@ -7,6 +7,20 @@ import { Empty } from '../components/common';
 import { TradePreviewChart } from '../components/TradePreviewChart';
 
 const _previewCache = new Map<number, BridgeCandle[]>();
+
+function _formatDuration(opened_at: string, closed_at: string | null): string {
+  if (!closed_at) return 'Abierto';
+  const start = new Date(opened_at).getTime();
+  const end = new Date(closed_at).getTime();
+  const diff = end - start;
+  if (diff < 0) return '—';
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
 
 async function _previewFetch(trade: LivePosition): Promise<BridgeCandle[] | null> {
   const cached = _previewCache.get(trade.ticket);
@@ -197,6 +211,10 @@ export function Mt5PositionsPage() {
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const previewRef = useRef<HTMLDivElement>(null);
 
+  const [expandedTicket, setExpandedTicket] = useState<number | null>(null);
+  const [expandedCandles, setExpandedCandles] = useState<BridgeCandle[] | null>(null);
+  const [expandedLoading, setExpandedLoading] = useState(false);
+
   const handleRowEnter = useCallback((trade: LivePosition, ev: React.MouseEvent) => {
     clearTimeout(leaveTimer.current);
     clearTimeout(hoverTimer.current);
@@ -228,6 +246,31 @@ export function Mt5PositionsPage() {
     setPreviewPos(null);
     setPreviewCandles(null);
   }, []);
+
+  const handleRowClick = useCallback(async (ticket: number) => {
+    if (expandedTicket === ticket) {
+      setExpandedTicket(null);
+      setExpandedCandles(null);
+      return;
+    }
+    setExpandedTicket(ticket);
+    setExpandedCandles(null);
+    setExpandedLoading(true);
+    const cached = _previewCache.get(ticket);
+    if (cached) {
+      setExpandedCandles(cached);
+      setExpandedLoading(false);
+      return;
+    }
+    try {
+      const res = await api.bridge.tradeCandles(ticket);
+      if (res.ok && res.candles?.length > 0) {
+        _previewCache.set(ticket, res.candles);
+        setExpandedCandles(res.candles);
+      }
+    } catch { /* noop */ }
+    setExpandedLoading(false);
+  }, [expandedTicket]);
 
   return (
     <div className="flex h-full flex-col">
@@ -325,13 +368,16 @@ export function Mt5PositionsPage() {
             </thead>
             <tbody>
               {filtered.map((t, i) => (
+                <React.Fragment key={t.ticket || i}>
                 <tr key={t.ticket || i} className={cls(
-                  'border-b border-tnvs-border/30 hover:bg-white/[0.02]',
+                  'border-b border-tnvs-border/30 hover:bg-white/[0.02] cursor-pointer',
                   t.status === 'OPEN' && 'bg-tnvs-win/[0.02]',
                   hoveredTrade?.ticket === t.ticket && 'bg-white/[0.04]',
+                  expandedTicket === t.ticket && 'bg-white/[0.06]',
                 )}
                   onMouseEnter={(ev) => handleRowEnter(t, ev)}
                   onMouseLeave={handleRowLeave}
+                  onClick={() => handleRowClick(t.ticket)}
                 >
                   <td className="px-4 py-2.5 font-mono text-white">{t.symbol}</td>
                   <td className="px-4 py-2.5">
@@ -367,6 +413,55 @@ export function Mt5PositionsPage() {
                     {t.closed_at ? new Date(t.closed_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
                   </td>
                 </tr>
+                {expandedTicket === t.ticket && (
+                  <tr className="border-b border-tnvs-border/30">
+                    <td colSpan={11} className="px-4 py-3">
+                      {expandedLoading ? (
+                        <div className="flex items-center gap-3">
+                          <div className="h-[180px] w-[400px] animate-pulse rounded bg-white/[0.04]" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-24 animate-pulse rounded bg-white/[0.04]" />
+                            <div className="h-4 w-32 animate-pulse rounded bg-white/[0.04]" />
+                            <div className="h-4 w-20 animate-pulse rounded bg-white/[0.04]" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-4">
+                          <TradePreviewChart trade={t} candles={expandedCandles ?? undefined} inline />
+                          <div className="flex-1 space-y-2 text-xs font-mono text-tnvs-muted">
+                            <div className="flex items-center gap-2">
+                              <span className={cls('rounded px-1.5 py-0.5 text-[10px] font-medium',
+                                t.pnl > 0 ? 'bg-emerald-500/15 text-emerald-400' :
+                                t.pnl < 0 ? 'bg-red-500/15 text-red-400' :
+                                'bg-white/[0.08] text-tnvs-muted'
+                              )}>
+                                {t.pnl > 0 ? 'WIN' : t.pnl < 0 ? 'LOSS' : 'BE'}
+                              </span>
+                              <span className={t.pnl > 0 ? 'text-tnvs-win' : t.pnl < 0 ? 'text-tnvs-loss' : 'text-tnvs-muted'}>
+                                {t.pnl > 0 ? '+' : ''}${t.pnl.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                              <span>Duration: <span className="text-white">{_formatDuration(t.opened_at, t.closed_at)}</span></span>
+                              <span>Entry: <span className="text-white">{t.open_price.toFixed(5)}</span></span>
+                              <span>Close: <span className="text-white">{t.close_price != null ? t.close_price.toFixed(5) : '\u2014'}</span></span>
+                              <span>SL: <span className="text-red-400">{t.sl ?? '\u2014'}</span></span>
+                              <span>TP: <span className="text-green-400">{t.tp ?? '\u2014'}</span></span>
+                              <span>Commission: <span className="text-white">${t.commission.toFixed(2)}</span></span>
+                              <span>Swap: <span className="text-white">${t.swap.toFixed(2)}</span></span>
+                              <span>Canal: <span className="text-white">{t.channel_title || 'Directo'}</span></span>
+                            </div>
+                            <div className="text-[10px] text-tnvs-dim">
+                              Abierto: {new Date(t.opened_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              {t.closed_at && <> · Cerrado: {new Date(t.closed_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
