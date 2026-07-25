@@ -164,6 +164,10 @@ export const api = {
         `/bridge/mt5/candles?${params}`,
       );
     },
+    tradeCandles: (ticket: number) =>
+      request<{ ok: boolean; symbol: string; tf: string; count: number; candles: BridgeCandle[] }>(
+        `/bridge/trades/${ticket}/candles`,
+      ),
   },
   // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
   admin: {

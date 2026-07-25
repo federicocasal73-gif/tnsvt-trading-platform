@@ -1383,6 +1383,86 @@ async def get_mt5_candles(symbol: str, tf: str = "M5",
     }
 
 
+# ─── Trade Candles (snapshot on-disk + fallback MT5) ───────────────────
+
+
+_TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
+
+
+@app.get("/api/v1/bridge/trades/{ticket}/candles")
+async def get_trade_candles(ticket: int):
+    """Velas M5 para un trade: snapshots de disco o fallback MT5."""
+    entry_path = _TRADE_CANDLES_DIR / f"{ticket}_entry.json"
+    close_path = _TRADE_CANDLES_DIR / f"{ticket}_close.json"
+
+    entry_data: list | None = None
+    close_data: list | None = None
+
+    try:
+        if entry_path.exists():
+            with open(entry_path) as f:
+                entry_data = json.load(f)
+    except Exception as e:
+        logger.debug("Failed to read entry snapshot for %s: %s", ticket, e)
+
+    try:
+        if close_path.exists():
+            with open(close_path) as f:
+                close_data = json.load(f)
+    except Exception as e:
+        logger.debug("Failed to read close snapshot for %s: %s", ticket, e)
+
+    if entry_data is not None and close_data is not None:
+        seen: set[int] = set()
+        merged = []
+        for batch in (entry_data, close_data):
+            for c in batch:
+                t = c["time"]
+                if t not in seen:
+                    seen.add(t)
+                    merged.append(c)
+        merged.sort(key=lambda c: c["time"])
+        return {
+            "ok": True,
+            "symbol": "",
+            "tf": "M5",
+            "count": len(merged),
+            "candles": merged,
+        }
+
+    # Fallback: symbol + entry time from MT5 history
+    mt5 = _mt5_provider()
+    try:
+        import MetaTrader5 as mt5_lib
+        from datetime import datetime, timedelta
+
+        since = datetime.now() - timedelta(days=30)
+        deals = mt5_lib.history_deals_get(since, datetime.now(), position=ticket) or []
+        entry_deal = next((d for d in deals if d.entry == mt5_lib.DEAL_ENTRY_IN), None)
+        if entry_deal is None:
+            return {"ok": False, "error": f"No entry deal for ticket {ticket}", "candles": []}
+        symbol = getattr(entry_deal, "symbol", "")
+        if not symbol or symbol not in MT5_SYMBOLS:
+            return {"ok": False, "error": f"Symbol {symbol} not supported", "candles": []}
+        from_dt = datetime.fromtimestamp(getattr(entry_deal, "time", 0))
+        to_dt = datetime.now()
+        candles = await mt5.get_candles_range(symbol, "M5", from_dt, to_dt)
+    except Exception as e:
+        logger.warning("Fallback candle query failed for %s: %s", ticket, e)
+        return {"ok": False, "error": f"Fallback failed: {e}", "candles": []}
+
+    if candles is None:
+        return {"ok": False, "error": "No candles from MT5 fallback", "candles": []}
+
+    return {
+        "ok": True,
+        "symbol": symbol,
+        "tf": "M5",
+        "count": len(candles),
+        "candles": candles,
+    }
+
+
 # ─── Prometheus /metrics ──────────────────────────────────────────────────
 
 

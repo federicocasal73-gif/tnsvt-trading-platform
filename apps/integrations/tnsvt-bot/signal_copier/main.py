@@ -12,6 +12,7 @@ from pathlib import Path
 import requests
 
 ROOT_DIR = Path(__file__).parent.parent
+_TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
 sys.path.insert(0, str(ROOT_DIR))
 sys.path.insert(0, str(ROOT_DIR / "scripts"))
 
@@ -374,6 +375,45 @@ async def execute_signal(signal: dict, channel: str):
         logger.error(f"Error ejecutando senal: {e}", exc_info=True)
 
 
+def _save_close_candles(ticket: int, symbol: str, deals: list) -> None:
+    """Capture M5 candles from entry to close time and save snapshot."""
+    import MetaTrader5 as mt5
+
+    try:
+        entry_deal = next((d for d in deals if d.entry == mt5.DEAL_ENTRY_IN), None)
+        if entry_deal is None:
+            logger.warning("No entry deal found for close capture %s", ticket)
+            return
+        from_ts = datetime.fromtimestamp(getattr(entry_deal, "time", 0))
+        to_ts = datetime.now()
+        if from_ts >= to_ts:
+            return
+        rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M5, from_ts, to_ts)
+        if rates is None or len(rates) == 0:
+            logger.warning("No rates for close capture %s %s", symbol, ticket)
+            return
+        _TRADE_CANDLES_DIR.mkdir(parents=True, exist_ok=True)
+        data = [
+            {
+                "time": int(r[0]),
+                "open": float(r[1]),
+                "high": float(r[2]),
+                "low": float(r[3]),
+                "close": float(r[4]),
+                "tick_volume": int(r[5]),
+                "spread": int(r[6]),
+                "real_volume": int(r[7]),
+            }
+            for r in rates
+        ]
+        path = _TRADE_CANDLES_DIR / f"{ticket}_close.json"
+        with open(path, "w") as f:
+            json.dump(data, f)
+        logger.info("Close candles saved -> %s (%d bars)", path, len(data))
+    except Exception as exc:
+        logger.warning("Failed to save close candles for %s: %s", ticket, exc)
+
+
 async def mt5_trade_monitor():
     """Monitorea trades abiertos en MT5 y cuando se cierran, actualiza TNSVT con PnL."""
     import MetaTrader5 as mt5
@@ -443,6 +483,8 @@ async def mt5_trade_monitor():
                 except Exception as e:
                     logger.debug(f"history_deals_get error: {e}")
                     deals = []
+
+                _save_close_candles(int(ticket_str), entry.get("symbol", ""), deals)
 
                 pnl = 0.0
                 result_label = "CLOSED"

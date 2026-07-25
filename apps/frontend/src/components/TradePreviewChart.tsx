@@ -33,6 +33,13 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose }: Props
   const fetchCandles = useCallback(async () => {
     if (!symbol) return null;
 
+    if (trade.ticket) {
+      try {
+        const res = await api.bridge.tradeCandles(trade.ticket);
+        if (res.ok && res.candles?.length > 0) return res.candles;
+      } catch { /* fallback to range query */ }
+    }
+
     const openedAt = new Date(trade.opened_at);
     const from = new Date(openedAt.getTime() - 30 * 60 * 1000).toISOString();
     const to = trade.closed_at
@@ -41,13 +48,11 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose }: Props
 
     try {
       const res = await api.bridge.candles(symbol, 'M5', from, to, 100);
-      if (res.ok && res.candles?.length > 0) {
-        return res.candles;
-      }
-    } catch { /* fallback */ }
+      if (res.ok && res.candles?.length > 0) return res.candles;
+    } catch { /* noop */ }
 
     return null;
-  }, [symbol, trade.opened_at, trade.closed_at]);
+  }, [symbol, trade.ticket, trade.opened_at, trade.closed_at]);
 
   useEffect(() => {
     if (!containerRef.current) return;

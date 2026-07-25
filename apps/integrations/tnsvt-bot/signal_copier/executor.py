@@ -6,6 +6,7 @@ import json
 import logging
 import math
 import os
+from datetime import datetime
 from pathlib import Path
 import MetaTrader5 as mt5
 
@@ -13,6 +14,7 @@ logger = logging.getLogger("SignalCopier.Executor")
 
 
 _PARTIAL_CFG_FILE = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "partial_configs.json"
+_TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
 
 
 def _persist_partial_configs(cfg: dict) -> None:
@@ -155,6 +157,8 @@ class MT5Executor:
             if has_multi_tp or has_scaleout:
                 await self._setup_partial_closes(symbol, result.order, signal)
 
+            self._save_entry_candles(int(result.order), symbol)
+
             return True
 
         except Exception as e:
@@ -271,6 +275,34 @@ class MT5Executor:
             remaining -= close_vol
 
         return tp_levels, percentages, volumes, is_scaleout
+
+    def _save_entry_candles(self, ticket: int, symbol: str) -> None:
+        """Capture ~10 M5 candles on trade-open and save snapshot."""
+        try:
+            rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 10)
+            if rates is None or len(rates) == 0:
+                logger.warning("No rates for entry capture %s %s", symbol, ticket)
+                return
+            _TRADE_CANDLES_DIR.mkdir(parents=True, exist_ok=True)
+            data = [
+                {
+                    "time": int(r[0]),
+                    "open": float(r[1]),
+                    "high": float(r[2]),
+                    "low": float(r[3]),
+                    "close": float(r[4]),
+                    "tick_volume": int(r[5]),
+                    "spread": int(r[6]),
+                    "real_volume": int(r[7]),
+                }
+                for r in rates
+            ]
+            path = _TRADE_CANDLES_DIR / f"{ticket}_entry.json"
+            with open(path, "w") as f:
+                json.dump(data, f)
+            logger.info("Entry candles saved → %s (%d bars)", path, len(data))
+        except Exception as exc:
+            logger.warning("Failed to save entry candles for %s: %s", ticket, exc)
 
     async def _setup_partial_closes(self, symbol: str, order_ticket: int, signal: dict):
         """
