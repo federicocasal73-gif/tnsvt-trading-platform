@@ -4,6 +4,7 @@ import { api, BridgeCandle, LivePosition } from '../lib/api';
 
 interface Props {
   trade: LivePosition;
+  candles?: BridgeCandle[];
   onClose?: () => void;
 }
 
@@ -17,7 +18,7 @@ function toCandleData(raw: BridgeCandle[]) {
   }));
 }
 
-export function TradePreviewChart({ trade, onClose }: Props) {
+export function TradePreviewChart({ trade, candles: preCandles, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
@@ -97,18 +98,23 @@ export function TradePreviewChart({ trade, onClose }: Props) {
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return;
 
-    fetchCandles().then(candles => {
+    const load = async () => {
       const series = seriesRef.current;
       const chart = chartRef.current;
       if (!series || !chart) return;
 
-      if (!candles || candles.length === 0) {
+      let data: BridgeCandle[] | null = preCandles ?? null;
+      if (!data) {
+        try { data = await fetchCandles(); } catch { /* noop */ }
+      }
+
+      if (!data || data.length === 0) {
         setError('No hay velas disponibles');
         return;
       }
 
-      const data = toCandleData(candles);
-      series.setData(data);
+      const raw = toCandleData(data);
+      series.setData(raw);
       chart.timeScale().fitContent();
 
       const dashed = 2;
@@ -146,10 +152,10 @@ export function TradePreviewChart({ trade, onClose }: Props) {
       }
 
       setError(null);
-    }).catch(() => {
-      setError('Error al cargar velas');
-    });
-  }, [fetchCandles, entry, sl, tp]);
+    };
+
+    load();
+  }, [fetchCandles, entry, sl, tp, preCandles]);
 
   return (
     <div className="relative rounded-lg border border-tnvs-border bg-tnvs-surface shadow-tnvs-strong">

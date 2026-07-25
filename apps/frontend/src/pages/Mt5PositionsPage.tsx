@@ -1,9 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, RefreshCw, Terminal } from 'lucide-react';
-import { api, LivePosition, Mt5PositionSnapshot } from '../lib/api';
+import { api, BridgeCandle, LivePosition, Mt5PositionSnapshot } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
 import { Empty } from '../components/common';
+import { TradePreviewChart } from '../components/TradePreviewChart';
+
+const _previewCache = new Map<number, BridgeCandle[]>();
+
+async function _previewFetch(trade: LivePosition): Promise<BridgeCandle[] | null> {
+  const cached = _previewCache.get(trade.ticket);
+  if (cached) return cached;
+
+  const openedAt = new Date(trade.opened_at);
+  const from = new Date(openedAt.getTime() - 30 * 60 * 1000).toISOString();
+  const to = trade.closed_at
+    ? new Date(new Date(trade.closed_at).getTime() + 5 * 60 * 1000).toISOString()
+    : new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  try {
+    const res = await api.bridge.candles(trade.symbol, 'M5', from, to, 100);
+    if (res.ok && res.candles?.length > 0) {
+      _previewCache.set(trade.ticket, res.candles);
+      return res.candles;
+    }
+  } catch { /* fallback */ }
+  return null;
+}
 
 type Tab = 'OPEN' | 'CLOSED' | 'ALL';
 const TABS: { key: Tab; label: string }[] = [
@@ -167,6 +190,45 @@ export function Mt5PositionsPage() {
   const totalRealized = trades.filter(t => t.status === 'CLOSED').reduce((s, t) => s + (t.pnl || 0), 0);
   const totalUnrealized = openPositions.reduce((s, t) => s + (t.pnl || 0), 0);
 
+  const [hoveredTrade, setHoveredTrade] = useState<LivePosition | null>(null);
+  const [previewPos, setPreviewPos] = useState<{ top: number; left: number } | null>(null);
+  const [previewCandles, setPreviewCandles] = useState<BridgeCandle[] | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout>>();
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleRowEnter = useCallback((trade: LivePosition, ev: React.MouseEvent) => {
+    clearTimeout(leaveTimer.current);
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(async () => {
+      const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+      setPreviewPos({ top: rect.top, left: rect.right + 8 });
+      setHoveredTrade(trade);
+      const candles = await _previewFetch(trade);
+      setPreviewCandles(candles);
+    }, 150);
+  }, []);
+
+  const handleRowLeave = useCallback(() => {
+    clearTimeout(hoverTimer.current);
+    clearTimeout(leaveTimer.current);
+    leaveTimer.current = setTimeout(() => {
+      setHoveredTrade(null);
+      setPreviewPos(null);
+      setPreviewCandles(null);
+    }, 200);
+  }, []);
+
+  const handlePreviewEnter = useCallback(() => {
+    clearTimeout(leaveTimer.current);
+  }, []);
+
+  const handlePreviewLeave = useCallback(() => {
+    setHoveredTrade(null);
+    setPreviewPos(null);
+    setPreviewCandles(null);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-tnvs-border px-6 py-4">
@@ -265,8 +327,12 @@ export function Mt5PositionsPage() {
               {filtered.map((t, i) => (
                 <tr key={t.ticket || i} className={cls(
                   'border-b border-tnvs-border/30 hover:bg-white/[0.02]',
-                  t.status === 'OPEN' && 'bg-tnvs-win/[0.02]'
-                )}>
+                  t.status === 'OPEN' && 'bg-tnvs-win/[0.02]',
+                  hoveredTrade?.ticket === t.ticket && 'bg-white/[0.04]',
+                )}
+                  onMouseEnter={(ev) => handleRowEnter(t, ev)}
+                  onMouseLeave={handleRowLeave}
+                >
                   <td className="px-4 py-2.5 font-mono text-white">{t.symbol}</td>
                   <td className="px-4 py-2.5">
                     <span className={cls('rounded px-1.5 py-0.5 text-[10px] font-medium', t.action === 'BUY' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400')}>
@@ -304,6 +370,17 @@ export function Mt5PositionsPage() {
               ))}
             </tbody>
           </table>
+        )}
+        {hoveredTrade && previewPos && (
+          <div
+            ref={previewRef}
+            onMouseEnter={handlePreviewEnter}
+            onMouseLeave={handlePreviewLeave}
+            className="fixed z-50"
+            style={{ top: previewPos.top, left: previewPos.left }}
+          >
+            <TradePreviewChart trade={hoveredTrade} candles={previewCandles ?? undefined} onClose={handlePreviewLeave} />
+          </div>
         )}
       </div>
     </div>
