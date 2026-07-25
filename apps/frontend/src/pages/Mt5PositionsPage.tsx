@@ -219,7 +219,9 @@ export function Mt5PositionsPage() {
     clearTimeout(leaveTimer.current);
     clearTimeout(hoverTimer.current);
     hoverTimer.current = setTimeout(async () => {
-      const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+      const target = ev.currentTarget as HTMLElement | null;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
       setPreviewPos({ top: rect.top, left: rect.right + 8 });
       setHoveredTrade(trade);
       const candles = await _previewFetch(trade);

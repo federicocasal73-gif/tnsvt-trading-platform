@@ -23,6 +23,13 @@ function toCandleData(raw: BridgeCandle[]) {
 const TF_OPTIONS = ['5m', '15m', '30m', '1h'] as const;
 type TfValue = (typeof TF_OPTIONS)[number];
 
+const TF_TO_MT5_TF_MAP: Record<TfValue, string> = {
+  '5m': 'M5',
+  '15m': 'M15',
+  '30m': 'M30',
+  '1h': 'H1',
+};
+
 export function TradePreviewChart({ trade, candles: preCandles, onClose, inline }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -39,8 +46,9 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
   const fetchCandles = useCallback(async (tfOverride?: TfValue) => {
     if (!symbol) return null;
     const activeTf = tfOverride ?? tf;
+    const mt5Tf = TF_TO_MT5_TF_MAP[activeTf];
 
-    if (trade.ticket) {
+    if (trade.ticket && trade.ticket > 0) {
       try {
         const res = await api.bridge.tradeCandles(trade.ticket, activeTf);
         if (res.ok && res.candles?.length > 0) return res.candles;
@@ -54,7 +62,7 @@ export function TradePreviewChart({ trade, candles: preCandles, onClose, inline 
       : new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     try {
-      const res = await api.bridge.candles(symbol, 'M5', from, to, 100);
+      const res = await api.bridge.candles(symbol, mt5Tf, from, to, 100);
       if (res.ok && res.candles?.length > 0) return res.candles;
     } catch { /* noop */ }
 
