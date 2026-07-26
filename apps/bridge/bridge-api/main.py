@@ -1254,6 +1254,90 @@ MT5_TF_MAP = {
     "M1": 1, "M5": 5, "M15": 15, "H1": 60, "H4": 240, "D1": 1440,
 }
 
+_DEMO_BASE_PRICES = {
+    "EURUSD": 1.0850,
+    "GBPUSD": 1.2650,
+    "USDJPY": 156.50,
+    "XAUUSD": 2380.00,
+    "BTCUSD": 67500.00,
+}
+
+_DEMO_SIGMA = {
+    "EURUSD": 0.0005,
+    "GBPUSD": 0.0006,
+    "USDJPY": 0.05,
+    "XAUUSD": 1.5,
+    "BTCUSD": 50.0,
+}
+
+
+def _generate_demo_candles(symbol: str, tf: str, bars: int = 60,
+                            from_dt: Optional[datetime] = None,
+                            to_dt: Optional[datetime] = None) -> list[dict]:
+    """Generate synthetic OHLCV candles when MT5 is unavailable (demo mode).
+
+    Uses realistic base prices and random walk with symbol-appropriate sigma.
+    Generates M1 as base resolution then aggregates to the requested timeframe.
+    """
+    import random
+    random.seed(hash(symbol + tf + str(datetime.now().date())))
+
+    base_price = _DEMO_BASE_PRICES.get(symbol, 1.0)
+    sigma = _DEMO_SIGMA.get(symbol, 0.01)
+    tf_minutes = MT5_TF_MAP.get(tf, 5)
+
+    now = datetime.now(timezone.utc)
+    if from_dt and to_dt:
+        start_ts = int(from_dt.timestamp())
+        end_ts = int(to_dt.timestamp())
+    else:
+        end_ts = int(now.timestamp())
+        start_ts = end_ts - (bars * tf_minutes * 60)
+
+    # Generate M1 candles
+    m1_start = (start_ts // 60) * 60
+    m1_end = (end_ts // 60) * 60
+    m1_candles: list[dict] = []
+    price = base_price
+    ts = m1_start
+    while ts <= m1_end:
+        o = price + random.gauss(0, sigma * 0.3)
+        c = o + random.gauss(0, sigma * 0.4)
+        h = max(o, c) + abs(random.gauss(0, sigma * 0.2))
+        l = min(o, c) - abs(random.gauss(0, sigma * 0.2))
+        price = c
+        m1_candles.append({
+            "time": ts,
+            "open": round(o, 5),
+            "high": round(h, 5),
+            "low": round(l, 5),
+            "close": round(c, 5),
+        })
+        ts += 60
+
+    # Aggregate to requested TF
+    if tf == "M1":
+        return m1_candles
+
+    bucket_seconds = tf_minutes * 60
+    groups: dict[int, list] = {}
+    for c in m1_candles:
+        bucket = (c["time"] // bucket_seconds) * bucket_seconds
+        groups.setdefault(bucket, []).append(c)
+
+    result = []
+    for t in sorted(groups):
+        batch = groups[t]
+        result.append({
+            "time": t,
+            "open": round(batch[0]["open"], 5),
+            "high": round(max(x["high"] for x in batch), 5),
+            "low": round(min(x["low"] for x in batch), 5),
+            "close": round(batch[-1]["close"], 5),
+        })
+
+    return result
+
 
 @app.get("/api/v1/bridge/mt5/candles")
 async def get_mt5_candles(symbol: str, tf: str = "M5",
@@ -1265,6 +1349,8 @@ async def get_mt5_candles(symbol: str, tf: str = "M5",
     Dos modos:
       1. Rango: ?symbol=XAUUSD&from=2026-07-24T10:00:00&to=2026-07-24T12:00:00
       2. Últimas N: ?symbol=XAUUSD&bars=100 (default 60)
+
+    Cuando MT5 no está conectado, genera velas sintéticas (demo mode).
 
     Argumentos:
       symbol  — símbolo MT5 (EURUSD, XAUUSD, etc)
@@ -1287,24 +1373,37 @@ async def get_mt5_candles(symbol: str, tf: str = "M5",
 
     mt5 = _mt5_provider()
 
-    if from_ and to:
-        try:
-            from_dt = datetime.fromisoformat(from_)
-            to_dt = datetime.fromisoformat(to)
-        except ValueError as e:
-            raise HTTPException(400, f"Formato ISO inválido: {e}")
-        candles = await mt5.get_candles_range(symbol, tf, from_dt, to_dt)
-    else:
-        candles = await mt5.get_candles(symbol, tf, bars)
+    candles = None
+    try:
+        if from_ and to:
+            try:
+                from_dt = datetime.fromisoformat(from_)
+                to_dt = datetime.fromisoformat(to)
+            except ValueError as e:
+                raise HTTPException(400, f"Formato ISO inválido: {e}")
+            candles = await mt5.get_candles_range(symbol, tf, from_dt, to_dt)
+        else:
+            candles = await mt5.get_candles(symbol, tf, bars)
+    except Exception as e:
+        logger.warning(f"MT5 provider error para {symbol} {tf}: {e}")
 
     if candles is None:
+        logger.info(f"Generando velas demo para {symbol} {tf}")
+        try:
+            if from_ and to:
+                candles = _generate_demo_candles(symbol, tf, from_dt=from_dt, to_dt=to_dt)
+            else:
+                candles = _generate_demo_candles(symbol, tf, bars=bars)
+        except Exception as e:
+            logger.error(f"Error generando velas demo: {e}")
+            raise HTTPException(500, f"Error generando velas demo: {e}")
         return {
-            "ok": False,
-            "error": f"No se obtuvieron velas para {symbol} {tf} (MT5 desconectado?)",
+            "ok": True,
             "symbol": symbol,
             "tf": tf,
-            "count": 0,
-            "candles": [],
+            "count": len(candles),
+            "candles": candles,
+            "demo": True,
         }
 
     return {

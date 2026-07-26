@@ -87,7 +87,7 @@ class MT5Provider:
             result = []
             for r in rates:
                 result.append({
-                    "time": r[0],
+                    "time": int(r[0]),
                     "open": float(r[1]),
                     "high": float(r[2]),
                     "low": float(r[3]),
