@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "8c5f76992b65e77737a0f4f39e1b51f34b720c86351a551993481758d552a83c"
+    },
+    "loop-budget": {
+      "source": "cobusgreyling/loop-engineering",
+      "sourceType": "github",
+      "skillPath": "skills/loop-budget/SKILL.md",
+      "computedHash": "1ce8a7974bea5cf684cba1b6c5601ae5e951bc4a1b1626478a30bdff0164b7cd"
+    },
+    "loop-triage": {
+      "source": "cobusgreyling/loop-engineering",
+      "sourceType": "github",
+      "skillPath": "skills/loop-triage/SKILL.md",
+      "computedHash": "377b060b6e2754c524aea668045eccc279a14d3a40bddd2a323641c8fd94eb39"
+    },
+    "loop-verifier": {
+      "source": "cobusgreyling/loop-engineering",
+      "sourceType": "github",
+      "skillPath": "skills/loop-verifier/SKILL.md",
+      "computedHash": "11d630f72be75a3969e8ba66ecc750f3c2b4c75fcd355f3071152bf3840f4652"
+    },
+    "minimal-fix": {
+      "source": "cobusgreyling/loop-engineering",
+      "sourceType": "github",
+      "skillPath": "skills/minimal-fix/SKILL.md",
+      "computedHash": "8ba0f9676d359b599ae7e6767d39085d71a37f952d0dcf68923e4b559f0e72f4"
+    }
+  }
+}
