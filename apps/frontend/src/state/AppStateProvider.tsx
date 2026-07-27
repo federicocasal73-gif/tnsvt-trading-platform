@@ -66,10 +66,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (!mounted.current) return;
       if (prof.status === 'fulfilled' && prof.value) setProfile(prof.value);
-      if (sig.status === 'fulfilled') setSignals(sig.value.signals);
-      if (pos.status === 'fulfilled') setPositions(pos.value.positions);
-      if (tr.status === 'fulfilled') setTrades(tr.value.executions);
-      if (cj.status === 'fulfilled') setCopyJobs(cj.value.jobs);
+      if (sig.status === 'fulfilled') setSignals(sig.value.signals ?? []);
+      if (pos.status === 'fulfilled') setPositions(pos.value.positions ?? []);
+      if (tr.status === 'fulfilled') setTrades(tr.value.executions ?? []);
+      if (cj.status === 'fulfilled') setCopyJobs(cj.value.jobs ?? []);
       if (cs.status === 'fulfilled' && cs.value) setCopyStats(cs.value);
     } catch (e: any) {
       if (mounted.current) setError(e.message);

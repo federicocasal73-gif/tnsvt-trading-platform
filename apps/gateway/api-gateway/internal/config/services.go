@@ -121,6 +121,15 @@ func LoadServices(path string) []ServiceConfig {
 			HealthPath: "/health",
 			Required:   false,
 		},
+		{
+			Name:       "bridge-api",
+			PathPrefix: "/api/v1/bridge",
+			Instances:  []string{"http://localhost:8522"},
+			Timeout:    10000,
+			RateLimit:  200,
+			HealthPath: "/health",
+			Required:   false,
+		},
 	}
 
 	// Intentar cargar desde archivo

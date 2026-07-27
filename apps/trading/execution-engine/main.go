@@ -35,6 +35,7 @@ import (
 
 	"github.com/tnsvt/execution-engine/internal/broker"
 	"github.com/tnsvt/execution-engine/internal/handlers"
+	"github.com/tnsvt/execution-engine/internal/models"
 	"github.com/tnsvt/execution-engine/internal/repository"
 	"github.com/tnsvt/execution-engine/internal/service"
 	"github.com/tnsvt/execution-engine/internal/subscriber"
@@ -106,7 +107,7 @@ func main() {
 	execService := service.NewExecutionService(
 		repo, redisClient, natsConn, brokerFactory, riskEngineURL, log,
 		service.Config{
-			DefaultBroker:  cfg.Get("DEFAULT_BROKER", "mt5"),
+			DefaultBroker:  models.BrokerName(cfg.Get("DEFAULT_BROKER", "mt5")),
 			DefaultAccount: cfg.Get("DEFAULT_ACCOUNT_ID", "default"),
 			Timeout:        time.Duration(cfg.GetInt("EXECUTION_TIMEOUT_SECONDS", 30)) * time.Second,
 			RetryMax:       cfg.GetInt("EXECUTION_RETRY_MAX", 3),

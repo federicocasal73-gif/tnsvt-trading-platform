@@ -18,7 +18,7 @@ func newJSONReader(v any) *jsonReader {
 }
 
 func (r *jsonReader) Read(p []byte) (int, error) {
-	if r.pos >= len(r.data) {
+	if r == nil || r.pos >= len(r.data) {
 		return 0, io.EOF
 	}
 	n := copy(p, r.data[r.pos:])

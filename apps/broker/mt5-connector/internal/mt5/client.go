@@ -234,7 +234,7 @@ func (c *Client) GetAccountInfo(ctx context.Context, accountID string) (*Account
 
 	info := &AccountInfo{
 		AccountID: accountID,
-		Login:     c.config.Login,
+		Login:     int64(c.config.Login),
 		Server:    c.config.Server,
 	}
 
@@ -432,8 +432,7 @@ type bridgeResult struct {
 //
 // Formato: python mt5_bridge.py <op> [--json <args>]
 func (c *Client) callBridge(ctx context.Context, operation string, args map[string]any) (*bridgeResult, error) {
-	if !c.IsConnected() {
-		// Intentar reconectar
+	if operation != "initialize" && !c.IsConnected() {
 		if err := c.Connect(ctx); err != nil {
 			return nil, fmt.Errorf("not connected to MT5: %w", err)
 		}
