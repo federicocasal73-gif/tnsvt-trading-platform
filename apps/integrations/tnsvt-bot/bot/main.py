@@ -20,6 +20,7 @@ from bot.callbacks import button_router
 from bot.events_watcher import events_watcher_loop
 from bot.calendar_watchdog import calendar_watchdog_loop
 from bot.news_alerts import news_alerts_loop
+from bot.risk_alerts import risk_alerts_loop
 from bot.handlers.about import about_command, send_about_pinned
 from bot.handlers.weekly_poll import (
     weekly_poll_loop,
@@ -76,6 +77,7 @@ async def post_init(app):
     app.bot_data["news_alerts_task"] = asyncio.create_task(news_alerts_loop(app))
     app.bot_data["weekly_poll_task"] = asyncio.create_task(weekly_poll_loop(app))
     app.bot_data["weekly_calendar_task"] = asyncio.create_task(weekly_calendar_loop(app))
+    app.bot_data["risk_alerts_task"] = asyncio.create_task(risk_alerts_loop(app))
 
     app.bot_data["report_task"] = asyncio.create_task(_run_reports(app))
 
@@ -83,7 +85,8 @@ async def post_init(app):
 
     logger.info(
         "AMB Engine, reports, events_watcher, calendar_job, calendar_watchdog, "
-        "news_alerts, weekly_poll, weekly_calendar y handlers de privacidad activados"
+        "news_alerts, weekly_poll, weekly_calendar, risk_alerts "
+        "y handlers de privacidad activados"
     )
 
 
@@ -179,6 +182,7 @@ async def post_shutdown(app):
         "heartbeat_task", "watchdog_task", "report_task",
         "events_task", "calendar_task", "calendar_watchdog_task",
         "news_alerts_task", "weekly_poll_task", "weekly_calendar_task",
+        "risk_alerts_task",
     ):
         task = app.bot_data.get(key)
         if task:

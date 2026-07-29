@@ -1,18 +1,24 @@
 """
 Signal Copier - Gestor de Riesgo
+
+Incluye:
+- Adaptive lot sizing (DD > 10% reduce lot al 50%, DD > 15% bloquea)
+- Circuit breaker (3 perdidas consecutivas -> pause 1h)
+- Correlation guard mejorado
+- Cooldown por simbolo despues de SL
 """
 import MetaTrader5 as mt5
 import datetime
 import json
 import os
 import logging
+import time
 from config import settings
 
 logger = logging.getLogger("SignalCopier.RiskManager")
 
 STATE_FILE = "signal_copier/risk_state.json"
 
-# Pares correlacionados por defecto (grupos)
 DEFAULT_CORRELATION_GROUPS = [
     ["EURUSD", "GBPUSD"],
     ["USDJPY", "USDCHF"],
@@ -22,12 +28,21 @@ DEFAULT_CORRELATION_GROUPS = [
     ["GBPJPY", "GBPUSD"],
 ]
 
+DD_WARNING_PCT = 8.0
+DD_REDUCE_LOT_PCT = 10.0
+DD_BLOCK_PCT = 15.0
+CONSECUTIVE_LOSS_BREAKER = 3
+BREAKER_PAUSE_SECONDS = 3600
+COOLDOWN_AFTER_SL_SECONDS = 1800
+
 
 class RiskManager:
     """Gestion de riesgo para el copiador de senales"""
 
     def __init__(self):
         self.state = self._load_state()
+        self._breaker_until = 0.0
+        self._cooldown_until: dict[str, float] = {}
         self.reload_config()
 
     def reload_config(self):
@@ -127,7 +142,13 @@ class RiskManager:
         if os.path.exists(STATE_FILE):
             try:
                 with open(STATE_FILE, "r") as f:
-                    return json.load(f)
+                    state = json.load(f)
+                for k, v in {
+                    "consecutive_losses": 0,
+                    "breaker_triggered_at": 0.0,
+                }.items():
+                    state.setdefault(k, v)
+                return state
             except Exception as e:
                 logger.error(f"Error cargando estado: {e}")
 
@@ -141,6 +162,8 @@ class RiskManager:
             "last_month_reset": "",
             "total_trades": 0,
             "winning_trades": 0,
+            "consecutive_losses": 0,
+            "breaker_triggered_at": 0.0,
         }
 
     def _save_state(self):
@@ -233,6 +256,15 @@ class RiskManager:
                     logger.warning(msg)
                     return False, msg
 
+                # Adaptive DD block: si DD >= 15%, bloquear trades por hoy
+                if total_risk >= daily_loss_abs * 1.5:
+                    msg = (
+                        f"DD critico ({self.config['daily_loss_limit'] * 1.5:.1f}%), "
+                        f"trades bloqueados"
+                    )
+                    logger.warning(msg)
+                    return False, msg
+
         except Exception as e:
             logger.error(f"Error verificando cuenta: {e}")
 
@@ -304,6 +336,93 @@ class RiskManager:
         """Verifica si la hora actual permite abrir nuevas posiciones."""
         from signal_copier.time_exit import can_open_now as _can_open_now
         return _can_open_now(self.config)
+
+    def compute_adaptive_lot(self, base_lot: float) -> float:
+        """Ajusta el lot segun DD actual.
+
+        - DD < 10%: lot completo
+        - 10% <= DD < 15%: lot * 0.5
+        - DD >= 15%: lot * 0.0 (bloqueado en can_open_trade)
+        """
+        try:
+            account = mt5.account_info()
+            if not account:
+                return base_lot
+            balance = account.balance
+            dd_abs = abs(min(0.0, self.state.get("daily_pnl", 0)))
+            dd_pct = (dd_abs / balance * 100) if balance > 0 else 0
+
+            if dd_pct >= DD_BLOCK_PCT:
+                return 0.0
+            if dd_pct >= DD_REDUCE_LOT_PCT:
+                return round(base_lot * 0.5, 2)
+            return base_lot
+        except Exception as e:
+            logger.debug(f"compute_adaptive_lot error: {e}")
+            return base_lot
+
+    def can_open_trade_extended(self, symbol: str) -> tuple[bool, str]:
+        """Chequeos adicionales antes de abrir: circuit breaker + cooldown.
+
+        Llamado desde main.py DESPUES de can_open_trade.
+        """
+        if self._breaker_until > time.time():
+            remaining = int(self._breaker_until - time.time())
+            return False, f"Circuit breaker activo ({remaining}s restantes)"
+
+        cooldown_until = self._cooldown_until.get(symbol.upper(), 0.0)
+        if cooldown_until > time.time():
+            remaining = int(cooldown_until - time.time())
+            return False, (
+                f"Cooldown {symbol} activo "
+                f"tras SL reciente ({remaining}s restantes)"
+            )
+
+        return True, ""
+
+    def record_trade_result(self, symbol: str, pnl: float) -> dict:
+        """Registra resultado de trade cerrado.
+
+        Returns dict con info del circuit breaker (si se activo).
+        """
+        info = {"breaker_triggered": False}
+        if pnl < 0:
+            self.state["consecutive_losses"] = (
+                self.state.get("consecutive_losses", 0) + 1
+            )
+            self._cooldown_until[symbol.upper()] = (
+                time.time() + COOLDOWN_AFTER_SL_SECONDS
+            )
+            if self.state["consecutive_losses"] >= CONSECUTIVE_LOSS_BREAKER:
+                self._breaker_until = time.time() + BREAKER_PAUSE_SECONDS
+                self.state["breaker_triggered_at"] = time.time()
+                info["breaker_triggered"] = True
+                logger.warning(
+                    f"CIRCUIT BREAKER: {CONSECUTIVE_LOSS_BREAKER} perdidas "
+                    f"consecutivas. Pausa 1h."
+                )
+        elif pnl > 0:
+            self.state["consecutive_losses"] = 0
+
+        self._save_state()
+        return info
+
+    def reset_breaker(self) -> None:
+        """Resetea manualmente el circuit breaker (admin)."""
+        self._breaker_until = 0.0
+        self.state["consecutive_losses"] = 0
+        self._save_state()
+        logger.info("Circuit breaker reseteado manualmente")
+
+    def get_drawdown_pct(self) -> float:
+        """DD actual basado en daily_pnl / balance."""
+        try:
+            account = mt5.account_info()
+            if not account or account.balance <= 0:
+                return 0.0
+            return abs(min(0.0, self.state.get("daily_pnl", 0))) / account.balance * 100
+        except Exception:
+            return 0.0
 
     def check_daily_trade_limit(self) -> tuple[bool, str]:
         """Verifica si todavía se puede tradear hoy segun el limite diario."""

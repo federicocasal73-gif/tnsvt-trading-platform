@@ -17,6 +17,7 @@ import { Mt5PositionsPage } from './pages/Mt5PositionsPage';
 import { Mt5ChannelsPage } from './pages/Mt5ChannelsPage';
 import { Mt5SettingsPage } from './pages/Mt5SettingsPage';
 import { Mt5ControlPage } from './pages/Mt5ControlPage';
+import { Mt5RiskPage } from './pages/Mt5RiskPage';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
 import { SignupWizard } from './pages/SignupWizard';
@@ -38,6 +39,7 @@ export const ROUTES = [
   { path: '/mt5-channels', name: 'mt5-channels', label: 'MT5 Channels', icon: 'live' },
   { path: '/mt5-settings', name: 'mt5-settings', label: 'MT5 Settings', icon: 'settings' },
   { path: '/mt5-control', name: 'mt5-control', label: 'MT5 Control', icon: 'bot' },
+  { path: '/mt5-risk', name: 'mt5-risk', label: 'Risk Dashboard', icon: 'shield' },
   { path: '/admin', name: 'admin', label: 'Admin', icon: 'settings' },
   { path: '/settings', name: 'settings', label: 'Settings', icon: 'settings' },
 ] as const;
@@ -66,6 +68,7 @@ const router = createBrowserRouter([
       { path: 'mt5-channels', element: <Mt5ChannelsPage /> },
       { path: 'mt5-settings', element: <Mt5SettingsPage /> },
       { path: 'mt5-control', element: <Mt5ControlPage /> },
+      { path: 'mt5-risk', element: <Mt5RiskPage /> },
       { path: 'admin', element: <AdminPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

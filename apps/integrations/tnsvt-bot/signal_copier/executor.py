@@ -1,5 +1,8 @@
 """
 Signal Copier - MT5 Executor
+
+Incluye retry queue con backoff exponencial (3 intentos: 200ms/500ms/1s)
+y dead-letter queue para senales que fallan 3 veces.
 """
 import asyncio
 import json
@@ -10,11 +13,22 @@ from datetime import datetime
 from pathlib import Path
 import MetaTrader5 as mt5
 
+from signal_copier import dead_letter
+
 logger = logging.getLogger("SignalCopier.Executor")
 
 
 _PARTIAL_CFG_FILE = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "partial_configs.json"
 _TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
+
+RETRY_DELAYS = (0.2, 0.5, 1.0)
+RETRYABLE_RET_CODES = {
+    mt5.TRADE_RETCODE_REQUOTE,
+    mt5.TRADE_RETCODE_PRICE_CHANGED,
+    mt5.TRADE_RETCODE_PRICE_OFF,
+    mt5.TRADE_RETCODE_TOO_MANY_REQUESTS,
+    mt5.TRADE_RETCODE_TIMEOUT,
+}
 
 
 def _persist_partial_configs(cfg: dict) -> None:
@@ -135,21 +149,52 @@ class MT5Executor:
                 logger.info(f"Usando precio rango: {mid}")
 
             logger.info(f"Enviando orden: {action} {lot} {symbol} @ {request['price']}")
-            
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: mt5.order_send(request)
-            )
 
-            if result is None:
-                logger.error("order_send devolvió None")
-                return False
+            result = None
+            last_err = None
+            for attempt in range(len(RETRY_DELAYS) + 1):
+                if attempt > 0:
+                    await asyncio.sleep(RETRY_DELAYS[attempt - 1])
+                    logger.info(
+                        f"Retry #{attempt} para {symbol} {action} "
+                        f"(delay={RETRY_DELAYS[attempt - 1]}s)"
+                    )
 
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
-                logger.error(f"Error MT5 [{result.retcode}]: {result.comment}")
+                result = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: mt5.order_send(request)
+                )
+
+                if result is None:
+                    last_err = "order_send devolvio None"
+                    logger.error(f"Intento {attempt + 1}: {last_err}")
+                    continue
+
+                if result.retcode == mt5.TRADE_RETCODE_DONE:
+                    break
+
+                last_err = f"[{result.retcode}]: {result.comment}"
+                if result.retcode not in RETRYABLE_RET_CODES:
+                    logger.error(f"Error MT5 no-retryable: {last_err}")
+                    break
+
+                logger.warning(
+                    f"Intento {attempt + 1} fallo (retryable): {last_err}"
+                )
+
+            if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+                logger.error(
+                    f"Ejecucion fallida despues de {len(RETRY_DELAYS) + 1} intentos: "
+                    f"{last_err}"
+                )
+                dead_letter.push(signal, last_err or "unknown")
                 return False
 
             self.last_order_ticket = int(result.order)
-            logger.info(f"Orden ejecutada: Ticket #{result.order} | Precio: {result.price}")
+            logger.info(
+                f"Orden ejecutada: Ticket #{result.order} | "
+                f"Precio: {result.price} | "
+                f"intento={attempt + 1}/{len(RETRY_DELAYS) + 1}"
+            )
 
             from config import settings
             has_scaleout = settings.SCALEOUT_ENABLED and settings.SCALEOUT_LEVELS

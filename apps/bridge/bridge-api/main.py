@@ -1071,6 +1071,216 @@ def control_bot(req: BotControlRequest):
     return {"ok": True, "status": new_status}
 
 
+# ============================================================
+# RISK STATE — DD, exposure, kill switch
+# ============================================================
+
+_RISK_HISTORY_PATH = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "risk_history.json"
+_RISK_HISTORY_MAX = 100
+
+
+def _read_risk_history() -> list[dict]:
+    if not _RISK_HISTORY_PATH.exists():
+        return []
+    try:
+        return json.loads(_RISK_HISTORY_PATH.read_text(encoding="utf-8") or "[]")
+    except Exception:
+        return []
+
+
+def _append_risk_event(event_type: str, value: dict, reason: str = "") -> None:
+    history = _read_risk_history()
+    history.insert(0, {
+        "ts": time.time(),
+        "iso": datetime.now(timezone.utc).isoformat(),
+        "type": event_type,
+        "value": value,
+        "reason": reason,
+    })
+    history = history[:_RISK_HISTORY_MAX]
+    try:
+        _RISK_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _RISK_HISTORY_PATH.write_text(
+            json.dumps(history, indent=2, default=str), encoding="utf-8"
+        )
+    except Exception as e:
+        logger.error(f"_append_risk_event error: {e}")
+
+
+@app.get("/api/v1/bridge/risk/state")
+def get_risk_state():
+    """Estado de riesgo en vivo: DD, peak, equity, exposicion por simbolo."""
+    try:
+        # Equity/balance snapshot
+        account = _read_json_safe(
+            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "account_snapshot.json")
+        )
+        positions = _read_json_safe(
+            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json")
+        ) or []
+
+        balance = float(account.get("balance", 0)) if account else 0
+        equity = float(account.get("equity", 0)) if account else 0
+        peak = float(account.get("peak_equity", balance)) if account else balance
+
+        open_pnl = sum(float(p.get("profit", 0) or 0) for p in positions)
+        open_count = len(positions)
+
+        # Exposure por simbolo
+        by_symbol: dict[str, dict] = {}
+        for p in positions:
+            sym = str(p.get("symbol", "?")).upper()
+            entry = by_symbol.setdefault(sym, {
+                "symbol": sym,
+                "volume": 0.0,
+                "pnl": 0.0,
+                "positions": 0,
+                "exposure_pct": 0.0,
+            })
+            entry["volume"] += float(p.get("volume", 0) or 0)
+            entry["pnl"] += float(p.get("profit", 0) or 0)
+            entry["positions"] += 1
+
+        # Calcular exposure_pct por simbolo (volume * precio / equity)
+        for sym_data in by_symbol.values():
+            try:
+                notional = sym_data["volume"] * 100000
+                sym_data["exposure_pct"] = (
+                    (notional / equity * 100) if equity > 0 else 0.0
+                )
+            except Exception:
+                sym_data["exposure_pct"] = 0.0
+
+        # DD: equity vs peak
+        dd_pct = 0.0
+        if peak > 0:
+            dd_pct = max(0.0, (peak - equity) / peak * 100)
+
+        # PnL diario (intentar leer de signal_copier risk_state.json)
+        daily_pnl = 0.0
+        risk_state_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "signal_copier" / "risk_state.json"
+        risk_state = _read_json_safe(str(risk_state_path))
+        if risk_state:
+            daily_pnl = float(risk_state.get("daily_pnl", 0))
+
+        return {
+            "ok": True,
+            "dd_pct": round(dd_pct, 2),
+            "peak_equity": round(peak, 2),
+            "equity": round(equity, 2),
+            "balance": round(balance, 2),
+            "open_count": open_count,
+            "open_pnl": round(open_pnl, 2),
+            "daily_pnl": round(daily_pnl, 2),
+            "by_symbol": list(by_symbol.values()),
+            "ts": time.time(),
+        }
+    except Exception as e:
+        logger.error(f"get_risk_state error: {e}")
+        raise HTTPException(500, f"error reading risk state: {e}")
+
+
+@app.post("/api/v1/bridge/risk/kill-switch")
+def kill_switch(req: dict):
+    """Kill switch: cierra todas las posiciones + pausa orchestrator + bot.
+
+    Body: {"reason": "manual|dd_breach|admin"}
+    """
+    reason = req.get("reason", "manual")
+    closed_count = 0
+    errors: list[str] = []
+
+    try:
+        positions = _read_json_safe(
+            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json")
+        ) or []
+        for p in positions:
+            try:
+                ticket = int(p.get("ticket"))
+                close_req = {
+                    "ticket": ticket,
+                    "by_user": "kill_switch",
+                }
+                # Queue via copier/close (procesado por signal_copier)
+                requests.post(
+                    f"http://localhost:8522/api/v1/bridge/copier/close",
+                    json={
+                        "action": "close",
+                        "ticket": ticket,
+                        "by_user": f"kill_switch:{reason}",
+                    },
+                    timeout=3,
+                )
+                closed_count += 1
+            except Exception as e:
+                errors.append(f"ticket {p.get('ticket')}: {e}")
+    except Exception as e:
+        errors.append(f"read positions: {e}")
+
+    # Pausar orchestrator
+    try:
+        requests.post("http://localhost:8060/api/v1/orchestrator/pause", timeout=3)
+    except Exception as e:
+        errors.append(f"pause orchestrator: {e}")
+
+    # Pausar bot
+    try:
+        config_mgr.write_state("STOPPED")
+    except Exception as e:
+        errors.append(f"pause bot: {e}")
+
+    _append_risk_event("kill_switch", {
+        "closed": closed_count,
+        "errors": len(errors),
+    }, reason)
+
+    return {
+        "ok": True,
+        "reason": reason,
+        "closed_positions": closed_count,
+        "errors": errors,
+        "paused": ["orchestrator", "bot"],
+    }
+
+
+@app.get("/api/v1/bridge/risk/history")
+def get_risk_history(limit: int = 50):
+    """Historial de eventos de riesgo."""
+    history = _read_risk_history()
+    return {"count": len(history[:limit]), "items": history[:limit]}
+
+
+@app.post("/api/v1/bridge/copier/retry/{event_id}")
+def retry_dead_letter(event_id: int):
+    """Reintenta una senal del dead-letter queue.
+
+    Marca el item como retried. El signal_copier poll debe detectar el
+    cambio en el estado y volver a ejecutar.
+    """
+    try:
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent / "integrations" / "tnsvt-bot"))
+        from signal_copier import dead_letter
+
+        item = dead_letter.get_one(event_id)
+        if not item:
+            raise HTTPException(404, f"dead_letter id={event_id} not found")
+        if item.get("resolved"):
+            raise HTTPException(409, "already resolved")
+
+        dead_letter.mark_retried(event_id)
+        _append_risk_event("dead_letter_retry", {
+            "event_id": event_id,
+            "symbol": item.get("signal", {}).get("symbol"),
+        }, "admin_retry")
+
+        return {"ok": True, "retried": True, "event_id": event_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"retry_dead_letter error: {e}")
+        raise HTTPException(500, f"retry failed: {e}")
+
+
 # ─── MT5 Live Snapshots (leídos del bot) ─────────────────────────────────
 
 

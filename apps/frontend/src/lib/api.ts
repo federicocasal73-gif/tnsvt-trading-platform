@@ -168,6 +168,21 @@ export const api = {
       request<{ ok: boolean; symbol: string; tf: string; count: number; candles: BridgeCandle[] }>(
         `/bridge/trades/${ticket}/candles${tf ? `?tf=${tf}` : ''}`,
       ),
+    riskState: () => request<RiskState>('/bridge/risk/state'),
+    killSwitch: (reason: string) =>
+      request<{ ok: boolean; closed_positions: number; errors: string[]; paused: string[] }>(
+        '/bridge/risk/kill-switch',
+        { method: 'POST', body: JSON.stringify({ reason }) },
+      ),
+    riskHistory: (limit = 50) =>
+      request<{ count: number; items: RiskHistoryEvent[] }>(
+        `/bridge/risk/history?limit=${limit}`,
+      ),
+    retryDeadLetter: (eventId: number) =>
+      request<{ ok: boolean; retried: boolean; event_id: number }>(
+        `/bridge/copier/retry/${eventId}`,
+        { method: 'POST' },
+      ),
   },
   // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
   admin: {
@@ -175,6 +190,30 @@ export const api = {
       request<AdminTenant[]>(`/admin/tenants?limit=${limit}&offset=${offset}`),
     stats: () =>
       request<AdminStats>('/admin/stats'),
+  },
+  // ─── Brokers (mt5-connector) ─────────────────────────────────
+  brokers: {
+    account: (accountId = 'default') =>
+      request<Mt5AccountInfo>(`/brokers/accounts/${accountId}`),
+    positions: (accountId = 'default') =>
+      request<Mt5PositionsResponse>(`/brokers/accounts/${accountId}/positions`),
+    close: (ticket: string, accountId = 'default') =>
+      request<{ order_id?: string; ticket?: string; filled_price?: number; filled_qty?: number; accepted: boolean; error?: string }>(
+        '/brokers/positions/close',
+        { method: 'POST', body: JSON.stringify({ account_id: accountId, ticket }) },
+      ),
+  },
+  // ─── Orchestrator (multi-symbol) ─────────────────────────────
+  orchestrator: {
+    health: () => request<OrchestratorHealth>('/orchestrator/health'),
+    stats: () => request<OrchestratorStats>('/orchestrator/stats'),
+    signals: (limit = 50, symbol?: string) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (symbol) params.set('symbol', symbol);
+      return request<OrchestratorSignalsResponse>(`/orchestrator/signals?${params}`);
+    },
+    pause: () => request<{ status: string }>('/orchestrator/pause', { method: 'POST' }),
+    resume: () => request<{ status: string }>('/orchestrator/resume', { method: 'POST' }),
   },
 };
 
@@ -374,6 +413,9 @@ export interface RiskManagement {
   monthly_profit: number;
   active_monthly_loss: boolean;
   monthly_loss: number;
+  max_open_positions?: number;
+  correlation_threshold?: number;
+  correlation_guard?: boolean;
 }
 
 export interface BotConfig {
@@ -411,6 +453,37 @@ export interface ScaleOutLevel {
 export interface ScaleOutConfig {
   enabled: boolean;
   levels: ScaleOutLevel[];
+}
+
+// ─── Risk State (F6) ──────────────────────────────────────────────────────
+
+export interface SymbolExposure {
+  symbol: string;
+  volume: number;
+  pnl: number;
+  positions: number;
+  exposure_pct: number;
+}
+
+export interface RiskState {
+  ok: boolean;
+  dd_pct: number;
+  peak_equity: number;
+  equity: number;
+  balance: number;
+  open_count: number;
+  open_pnl: number;
+  daily_pnl: number;
+  by_symbol: SymbolExposure[];
+  ts: number;
+}
+
+export interface RiskHistoryEvent {
+  ts: number;
+  iso: string;
+  type: string;
+  value: Record<string, unknown>;
+  reason: string;
 }
 
 // ─── MT5 Live Snapshot ───────────────────────────────────────────────────
@@ -477,4 +550,89 @@ export interface AdminStats {
   churn_pct: number;
   by_plan: { plan: string; count: number }[];
   pricing_per_plan_usd: Record<string, number>;
+}
+
+// ─── Brokers (mt5-connector) ─────────────────────────────
+export interface Mt5AccountInfo {
+  account_id: string;
+  login: number;
+  balance: number;
+  equity: number;
+  margin: number;
+  free_margin: number;
+  currency: string;
+  leverage: number;
+  open_positions: number;
+  server: string;
+  name: string;
+}
+
+export interface Mt5Position {
+  ticket: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  open_price: number;
+  current_price: number;
+  stop_loss: number;
+  take_profit: number;
+  pnl: number;
+  swap: number;
+  commission: number;
+  opened_at: string;
+  magic: number;
+  comment: string;
+}
+
+export interface Mt5PositionsResponse {
+  account_id: string;
+  count: number;
+  positions: Mt5Position[] | null;
+}
+
+// ─── Orchestrator ─────────────────────────────
+export interface OrchestratorHealth {
+  status: string;
+  service: string;
+  symbols: string[];
+  timeframes: string[];
+}
+
+export interface OrchestratorStats {
+  paused: boolean;
+  pending_signals: number;
+  buffer_sizes: Record<string, number>;
+  published_signals_buffer: number;
+  portfolio: {
+    equity_peak: number;
+    current_equity: number;
+    drawdown: number;
+    open_positions: number;
+    max_drawdown_limit: number;
+    max_positions_limit: number;
+  };
+}
+
+export interface OrchestratorPublishedSignal {
+  id?: string;
+  symbol: string;
+  action: string;
+  lot_size?: number;
+  stop_loss?: number;
+  take_profits?: number[];
+  confidence?: number;
+  source?: string;
+  reasons?: string[];
+  atr?: number;
+  rr_ratio?: number;
+  correlation_count?: number;
+  lot_multiplier?: number;
+  filtered_out?: boolean;
+  published_at?: number;
+}
+
+export interface OrchestratorSignalsResponse {
+  count: number;
+  limit: number;
+  items: OrchestratorPublishedSignal[];
 }
