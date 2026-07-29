@@ -81,7 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  // Cargar profile real desde /auth/me al montar
+  // Cargar profile real desde /auth/me SOLO cuando se llama explicitamente
+  // (no en mount automatico — evita spam de /auth/me en cada dashboard).
   const refreshProfile = useCallback(async () => {
     if (!api.token() || !isTokenValid(api.token()!)) return;
     try {
@@ -107,9 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (initialUser) refreshProfile();
-  }, [refreshProfile, initialUser]);
+  // NOT: useEffect con refreshProfile en mount — eso causaba que /auth/me se
+  // llamara cada vez que se monta el provider (que pasa en cada navegacion
+  // entre paginas del shell). El usuario tiene un boton explicito en Settings
+  // para forzar refresh.
 
   const login = useCallback(async (email: string, password: string) => {
     setState(s => ({ ...s, loading: true, error: null }));

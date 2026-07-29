@@ -140,7 +140,8 @@ export function BridgeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     mounted.current = true;
     fetchAll();
-    const id = setInterval(fetchAll, 5000);
+    // Polling cada 30s (era 5s). 5 requests/30s = 10 req/min en vez de 60.
+    const id = setInterval(fetchAll, 30000);
     return () => {
       mounted.current = false;
       clearInterval(id);
