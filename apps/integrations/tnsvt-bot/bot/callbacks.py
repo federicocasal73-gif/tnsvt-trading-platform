@@ -142,6 +142,31 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text, kbd = start.MENU_TEXT, main_menu_keyboard()
             await query.edit_message_text(text=text, parse_mode="Markdown", reply_markup=kbd)
             return
+        if cmd == "eventos":
+            try:
+                from bot.handlers.calendar import calendariosolo
+                events = await calendariosolo(None, None)
+                if events:
+                    high = [e for e in events if e.get("impact_level", 0) == 3]
+                    from bot.analytics.calendar import format_calendar_text
+                    text = format_calendar_text(high, max_events=10)
+                    msg = (
+                        "📅 *EVENTOS ECONÓMICOS — Próximos 3 días*\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"{text}\n"
+                        "🔔 Alertas automáticas 15/10/5/1 min antes."
+                    )
+                else:
+                    msg = "📅 No hay eventos ALTO impacto próximos."
+            except Exception as e:
+                msg = f"⚠️ Error consultando calendario: {e}"
+            await query.edit_message_text(
+                text=msg,
+                parse_mode="Markdown",
+                reply_markup=_menu_back(),
+            )
+            return
+
         if cmd in ("analisis", "grafico"):
             await query.edit_message_text(
                 text=f"📊 Para *{cmd}* abrir la Terminal Vite: http://localhost:5180/{cmd}",
@@ -428,6 +453,9 @@ def _help_text():
         "• `/cripto` — Criptomonedas\n"
         "• `/calendario` — Calendario económico\n"
         "• `/noticias` — Últimas noticias\n\n"
+        "*Alertas*\n"
+        "• `/eventos` — Próximos eventos económicos ALTO impacto\n"
+        "• 🔔 Alarmas automáticas 15/10/5/1 min antes\n\n"
         "*Señales*\n"
         "• `/senales` — Señales copiadas (con botones)\n"
         "• `/statshoy` — Estadísticas del día\n"
@@ -465,4 +493,10 @@ def _bot_keyboard():
         [InlineKeyboardButton("📡 Canales", callback_data="senales:canales")],
         [InlineKeyboardButton("🏦 Cuentas", callback_data="cmd:cuentas")],
         [InlineKeyboardButton("🔙 Volver al menú", callback_data="cmd:refresh")],
+    ])
+
+
+def _menu_back():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📋 Menú principal", callback_data="cmd:refresh")],
     ])

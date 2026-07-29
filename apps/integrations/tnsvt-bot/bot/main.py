@@ -19,6 +19,16 @@ from bot.watchdog import watchdog_loop
 from bot.callbacks import button_router
 from bot.events_watcher import events_watcher_loop
 from bot.calendar_watchdog import calendar_watchdog_loop
+from bot.news_alerts import news_alerts_loop
+from bot.handlers.about import about_command, send_about_pinned
+from bot.handlers.weekly_poll import (
+    weekly_poll_loop,
+    force_poll_command,
+)
+from bot.handlers.weekly_calendar import (
+    weekly_calendar_loop,
+    force_calendar_command,
+)
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s",
@@ -63,12 +73,17 @@ async def post_init(app):
     app.bot_data["events_task"] = asyncio.create_task(events_watcher_loop(app))
     app.bot_data["calendar_task"] = asyncio.create_task(_run_daily_calendar(app))
     app.bot_data["calendar_watchdog_task"] = asyncio.create_task(calendar_watchdog_loop(app))
+    app.bot_data["news_alerts_task"] = asyncio.create_task(news_alerts_loop(app))
+    app.bot_data["weekly_poll_task"] = asyncio.create_task(weekly_poll_loop(app))
+    app.bot_data["weekly_calendar_task"] = asyncio.create_task(weekly_calendar_loop(app))
 
     app.bot_data["report_task"] = asyncio.create_task(_run_reports(app))
 
+    asyncio.create_task(send_about_pinned(app))
+
     logger.info(
-        "AMB Engine, reports, events_watcher, calendar_job, calendar_watchdog "
-        "y handlers de privacidad activados"
+        "AMB Engine, reports, events_watcher, calendar_job, calendar_watchdog, "
+        "news_alerts, weekly_poll, weekly_calendar y handlers de privacidad activados"
     )
 
 
@@ -160,7 +175,11 @@ async def _run_daily_calendar(app):
 
 async def post_shutdown(app):
     """Hook post-shutdown: cancela tasks de heartbeat + watchdog + reports + events."""
-    for key in ("heartbeat_task", "watchdog_task", "report_task", "events_task", "calendar_task", "calendar_watchdog_task"):
+    for key in (
+        "heartbeat_task", "watchdog_task", "report_task",
+        "events_task", "calendar_task", "calendar_watchdog_task",
+        "news_alerts_task", "weekly_poll_task", "weekly_calendar_task",
+    ):
         task = app.bot_data.get(key)
         if task:
             task.cancel()
@@ -199,6 +218,7 @@ def create_application():
     # Menu principal
     app.add_handler(CommandHandler("start", start.start))
     app.add_handler(CommandHandler("help", start.start))
+    app.add_handler(CommandHandler("menu", start.start))
 
     # Mercados y cripto
     app.add_handler(CommandHandler("mercados", calendar.mercados))
@@ -212,6 +232,10 @@ def create_application():
     # Calendario y datos
     app.add_handler(CommandHandler("calendario", calendar.calendario))
     app.add_handler(CommandHandler("datos", news.datos))
+
+    # Eventos económicos con alarmas
+    from bot.news_alerts import eventos_command
+    app.add_handler(CommandHandler("eventos", eventos_command))
 
     # Señales
     app.add_handler(CommandHandler("senales", signals.senales))
@@ -248,6 +272,16 @@ def create_application():
 
     # Greeting handler (nuevos miembros en grupo + DM a admin)
     app.add_handler(ChatMemberHandler(greetings.greet_new_member, ChatMemberHandler.CHAT_MEMBER))
+
+    # About — descripción detallada del bot
+    app.add_handler(CommandHandler("about", about_command))
+    app.add_handler(CommandHandler("descripcion", about_command))
+
+    # Weekly poll — encuesta semanal (solo admin)
+    app.add_handler(CommandHandler("encuesta", force_poll_command))
+
+    # Weekly calendar — resumen semanal eventos macro (solo admin)
+    app.add_handler(CommandHandler("resumen_semana", force_calendar_command))
 
     # Callback query handler (los botones inline llaman callbacks aca)
     app.add_handler(CallbackQueryHandler(button_router))

@@ -29,8 +29,11 @@ def main_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton("💼 Bot MT5", callback_data="cmd:bot"),
         ],
         [
+            InlineKeyboardButton("🔔 Alarmas", callback_data="cmd:eventos"),
             InlineKeyboardButton("📊 /status", callback_data="cmd:status"),
             InlineKeyboardButton("🆘 Soporte", callback_data="cmd:soporte"),
+        ],
+        [
             InlineKeyboardButton("🔄 Refrescar", callback_data="cmd:refresh"),
         ],
     ])

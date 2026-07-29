@@ -17,6 +17,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from config import settings
+from bot.handlers.trade_alerts import send_trade_open_alert, send_trade_close_alert, send_blocked_trade_alert
 
 logger = logging.getLogger("Bot.EventsWatcher")
 
@@ -236,6 +237,36 @@ async def _publish_event(context: ContextTypes.DEFAULT_TYPE, evt: dict) -> None:
     except Exception as e:
         logger.error(f"events_watcher: fallo publicando al grupo {target_chat}: {e}")
         return
+
+    # Also send DM to admin for each trade event
+    try:
+        evt_type = evt.get("type", "")
+        if evt_type == "trade_open":
+            await send_trade_open_alert(
+                context,
+                symbol=evt.get("symbol", ""),
+                action=evt.get("action", ""),
+                price=float(evt.get("price", 0) or 0),
+                sl=float(evt.get("sl", 0) or 0),
+                tp=float(evt.get("tp", 0) or 0) if not isinstance(evt.get("tp"), list) else 0,
+            )
+        elif evt_type == "trade_close":
+            await send_trade_close_alert(
+                context,
+                symbol=evt.get("symbol", ""),
+                action=evt.get("action", ""),
+                pnl=float(evt.get("pnl", 0) or 0),
+                result=evt.get("result", ""),
+                price=float(evt.get("price", 0) or 0),
+            )
+        elif evt_type == "trade_blocked":
+            await send_blocked_trade_alert(
+                context,
+                symbol=evt.get("symbol", ""),
+                reason=evt.get("reason", ""),
+            )
+    except Exception as e:
+        logger.debug(f"events_watcher: fallo DM trade alert: {e}")
 
     try:
         requests.post(
