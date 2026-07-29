@@ -268,6 +268,7 @@ def create_application():
 
     # Análisis técnico (AMB Engine)
     app.add_handler(CommandHandler("analisis", analisis.analisis))
+    app.add_handler(CommandHandler("veredicto", analisis.veredicto))
     app.add_handler(CommandHandler("reporte", analisis.reporte))
     app.add_handler(CommandHandler("r", analisis.r_atajo))
     app.add_handler(CommandHandler("grafico", analisis.grafico))

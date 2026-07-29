@@ -157,10 +157,11 @@ type JWTValidator interface {
 
 // JWTClaimsLite versión simplificada para middleware
 type JWTClaimsLite struct {
-	UserID   uuid.UUID
-	TenantID uuid.UUID
-	Email    string
-	Role     string
+	UserID    uuid.UUID
+	TenantID  uuid.UUID
+	Email     string
+	Role      string
+	TokenType string // "access" o "refresh" — RequireAuth solo acepta "access"
 }
 
 // ContextKey constants
@@ -202,7 +203,14 @@ func RequireAuth(jwt JWTValidator) gin.HandlerFunc {
 		}
 
 		// Solo aceptar access tokens, no refresh
-		// (esto se valida internamente en el service)
+		if claims.TokenType != "" && claims.TokenType != "access" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "refresh tokens are not accepted as bearer tokens",
+				"code":  "AUTH_REJECTED_REFRESH",
+			})
+			return
+		}
+
 		c.Set(CtxUserID, claims.UserID)
 		c.Set(CtxTenantID, claims.TenantID)
 		c.Set(CtxEmail, claims.Email)

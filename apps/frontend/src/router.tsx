@@ -20,6 +20,7 @@ import { Mt5ControlPage } from './pages/Mt5ControlPage';
 import { Mt5RiskPage } from './pages/Mt5RiskPage';
 import { NewsPage } from './pages/News';
 import { MacroPage } from './pages/Macro';
+import { AnalysisPage } from './pages/Analysis';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
 import { SignupWizard } from './pages/SignupWizard';
@@ -67,6 +68,7 @@ const router = createBrowserRouter([
       { path: 'live', element: <LivePage /> },
       { path: 'news', element: <NewsPage /> },
       { path: 'macro', element: <MacroPage /> },
+      { path: 'analysis/:symbol', element: <AnalysisPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'mt5-bot', element: <Navigate to="/mt5-dashboard" replace /> },
       { path: 'mt5-dashboard', element: <Mt5DashboardPage /> },

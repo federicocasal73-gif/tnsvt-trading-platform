@@ -20,9 +20,10 @@ func (a *JWTServiceAdapter) ValidateToken(tokenString string) (*JWTClaimsLite, e
 		return nil, err
 	}
 	return &JWTClaimsLite{
-		UserID:   claims.UserID,
-		TenantID: claims.TenantID,
-		Email:    claims.Email,
-		Role:     claims.Role,
+		UserID:    claims.UserID,
+		TenantID:  claims.TenantID,
+		Email:     claims.Email,
+		Role:      claims.Role,
+		TokenType: claims.TokenType,
 	}, nil
 }

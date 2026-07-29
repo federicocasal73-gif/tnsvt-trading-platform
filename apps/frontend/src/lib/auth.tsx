@@ -1,5 +1,8 @@
-import { createContext, ReactNode, useContext, useState, useCallback } from 'react';
+import { createContext, ReactNode, useContext, useState, useCallback, useEffect } from 'react';
 import { api } from './api';
+
+const TOKEN_KEY = 'tnsvt_token';
+const REFRESH_KEY = 'tnsvt_refresh';
 
 interface AuthUser {
   user_id: string;
@@ -17,8 +20,9 @@ interface AuthState {
 
 interface AuthCtx extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthCtx = createContext<AuthCtx | null>(null);
@@ -31,58 +35,131 @@ export function useAuth() {
 
 function decodeToken(t: string): AuthUser | null {
   try {
-    // JWT usa base64url (con `-` y `_`) — atob() espera base64 estándar.
     let b64 = t.split('.')[1];
     b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
     const pad = (4 - (b64.length % 4)) % 4;
     b64 += '='.repeat(pad);
     const payload = JSON.parse(atob(b64));
     return {
-      user_id: payload.uid || payload.sub || payload.user_id,
-      tenant_id: payload.tid || payload.tenant_id || '00000000-0000-0000-0000-000000000001',
+      user_id: payload.uid || payload.sub || payload.user_id || '',
+      tenant_id: payload.tid || payload.tenant_id || '',
       email: payload.email || '',
       username: payload.username || '',
       role: payload.role || 'viewer',
     };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
+}
+
+/** Verifica que el JWT sea valido, vigente y de tipo access. */
+function isTokenValid(t: string): boolean {
+  if (!t) return false;
+  try {
+    let b64 = t.split('.')[1];
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = (4 - (b64.length % 4)) % 4;
+    b64 += '='.repeat(pad);
+    const payload = JSON.parse(atob(b64));
+    if (payload.type && payload.type !== 'access') return false;
+    if (payload.exp && Date.now() / 1000 >= payload.exp) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const existing = api.token() ? decodeToken(api.token()!) : null;
-  const [state, setState] = useState<AuthState>({ user: existing, loading: false, error: null });
+  const existingToken = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  const initialUser = existingToken && isTokenValid(existingToken)
+    ? decodeToken(existingToken)
+    : null;
+
+  const [state, setState] = useState<AuthState>({
+    user: initialUser,
+    loading: false,
+    error: null,
+  });
+
+  // Cargar profile real desde /auth/me al montar
+  const refreshProfile = useCallback(async () => {
+    if (!api.token() || !isTokenValid(api.token()!)) return;
+    try {
+      const data = await api.auth.me();
+      setState(s => ({
+        ...s,
+        user: {
+          user_id: data.user_id,
+          tenant_id: data.tenant_id,
+          email: data.email,
+          username: s.user?.username || '',
+          role: data.role,
+        },
+        loading: false,
+        error: null,
+      }));
+    } catch (e) {
+      // Token invalido -> forzar logout
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      setState({ user: null, loading: false, error: null });
+      window.location.href = '/login';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialUser) refreshProfile();
+  }, [refreshProfile, initialUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     setState(s => ({ ...s, loading: true, error: null }));
     try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Login failed' }));
-        throw new Error(err.error || 'Login failed');
+      const data = await api.auth.login(email.trim(), password);
+      if (!data.access_token) {
+        throw new Error('Respuesta invalida del servidor');
       }
-      const data = await res.json();
-      const t = data.access_token || data.token;
-      localStorage.setItem('tnsvt_token', t);
-      const user = decodeToken(t);
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem(REFRESH_KEY, data.refresh_token);
+      }
+      const user: AuthUser = {
+        user_id: data.user.id,
+        tenant_id: data.user.tenant_id,
+        email: data.user.email,
+        username: data.user.username,
+        role: data.user.role,
+      };
       setState({ user, loading: false, error: null });
     } catch (e: any) {
-      setState(s => ({ ...s, loading: false, error: e.message }));
+      const msg = e?.message || 'Login failed';
+      setState(s => ({ ...s, loading: false, error: msg }));
       throw e;
     }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('tnsvt_token');
+  const logout = useCallback(async () => {
+    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    try {
+      await api.auth.logout(refreshToken || undefined);
+    } catch {
+      // best-effort
+    }
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
     setState({ user: null, loading: false, error: null });
-    // Hard redirect so the router unmounts the protected shell.
     window.location.href = '/login';
   }, []);
 
   return (
-    <AuthCtx.Provider value={{ ...state, login, logout, isAuthenticated: !!state.user }}>
+    <AuthCtx.Provider
+      value={{
+        ...state,
+        login,
+        logout,
+        refreshProfile,
+        isAuthenticated: !!state.user,
+      }}
+    >
       {children}
     </AuthCtx.Provider>
   );

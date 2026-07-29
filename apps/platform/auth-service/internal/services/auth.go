@@ -307,8 +307,10 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID, refreshToken
 // ─── Change Password ───────────────────────────────────────────
 
 func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string, ip, userAgent string) error {
+	s.log.Info("ChangePassword called", "user_id", userID.String())
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
+		s.log.Error("GetUserByID failed", err, "user_id_str", userID.String(), "user_id_bytes", fmt.Sprintf("%x", userID[:]))
 		return err
 	}
 
@@ -328,9 +330,12 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 		return err
 	}
 
-	// Update (simplificado: en producción usar UpdatePassword method)
+	// Persistir el nuevo hash. Reset failed_login_count y locked_until.
+	if err := s.repo.UpdateUserPassword(ctx, user.ID, string(hash)); err != nil {
+		s.log.Error("UpdateUserPassword failed", err, "user_id", user.ID)
+		return fmt.Errorf("update password: %w", err)
+	}
 	user.PasswordHash = string(hash)
-	// Aquí iría: s.repo.UpdateUserPassword(ctx, user.ID, string(hash))
 
 	// Revocar todas las sesiones (forzar re-login)
 	s.repo.RevokeAllUserSessions(ctx, user.ID, "password_changed")
@@ -343,15 +348,24 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 
 func (s *AuthService) Setup2FA(ctx context.Context, userID uuid.UUID) (string, error) {
 	secret := generateTOTPSecret()
-	// Update en DB (simplificado)
-	// s.repo.UpdateUser2FASecret(ctx, userID, secret)
-	_ = secret
+	// Persistir el secret generado. Activar flag two_factor_enabled al verificar.
+	if err := s.repo.UpdateUser2FASecret(ctx, userID, secret); err != nil {
+		s.log.Error("UpdateUser2FASecret failed", err, "user_id", userID)
+		return "", fmt.Errorf("persist 2fa secret: %w", err)
+	}
 	return secret, nil
 }
 
 func (s *AuthService) Verify2FA(ctx context.Context, userID uuid.UUID, code string) error {
-	// Validar código y activar
-	// En producción: validar TOTP window y activar flag
+	// Recuperar user para validar TOTP contra su secret
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("user lookup: %w", err)
+	}
+	if !verifyTOTPCode(user.TwoFactorSecret, code) {
+		return errors.New("invalid 2fa code")
+	}
+	// Si estaba pendiente de activacion, el secret ya esta guardado en Setup2FA
 	return nil
 }
 

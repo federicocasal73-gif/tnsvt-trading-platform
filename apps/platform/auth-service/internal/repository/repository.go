@@ -36,6 +36,8 @@ type Repository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	UpdateUserLastLogin(ctx context.Context, id uuid.UUID, ip string) error
+	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error
+	UpdateUser2FASecret(ctx context.Context, id uuid.UUID, secret string) error
 	IncrementFailedLogin(ctx context.Context, id uuid.UUID) (int, error)
 	ResetFailedLogin(ctx context.Context, id uuid.UUID) error
 	LockUser(ctx context.Context, id uuid.UUID, until time.Time) error
@@ -383,6 +385,37 @@ func (r *postgresRepo) UpdateUserLastLogin(ctx context.Context, id uuid.UUID, ip
 		`UPDATE platform.users SET last_login_at = NOW(), last_login_ip = $2, updated_at = NOW() WHERE id = $1`,
 		id, ip)
 	return err
+}
+
+// UpdateUserPassword persists a new password hash for the given user.
+// Returns ErrNotFound if no user matches the id.
+func (r *postgresRepo) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.users SET password_hash = $2, failed_login_count = 0, locked_until = NULL, updated_at = NOW() WHERE id = $1`,
+		id, passwordHash)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateUser2FASecret persists the TOTP secret and flips two_factor_enabled=true.
+// Pass empty string to disable 2FA (clears the secret and sets flag=false).
+func (r *postgresRepo) UpdateUser2FASecret(ctx context.Context, id uuid.UUID, secret string) error {
+	enabled := len(secret) > 0
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.users SET two_factor_secret = $2, two_factor_enabled = $3, updated_at = NOW() WHERE id = $1`,
+		id, secret, enabled)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *postgresRepo) IncrementFailedLogin(ctx context.Context, id uuid.UUID) (int, error) {

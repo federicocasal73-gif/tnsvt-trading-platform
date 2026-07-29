@@ -9,7 +9,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // If we already have a valid token, skip the login form.
+  // Si ya hay token valido, ir al dashboard
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
@@ -17,15 +17,33 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-    if (!email || !password) {
-      setLocalError('Email and password required');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setLocalError('Email y contraseña son requeridos.');
+      return;
+    }
+    if (!trimmedEmail.includes('@')) {
+      setLocalError('Email inválido.');
       return;
     }
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       navigate('/', { replace: true });
     } catch (err: any) {
-      setLocalError(err.message);
+      const msg = String(err?.message || '');
+      let display = msg;
+      if (msg.includes('401') || msg.toLowerCase().includes('invalid email') ||
+          msg.toLowerCase().includes('invalid credentials') ||
+          msg.toLowerCase().includes('invalid email or password')) {
+        display = 'Email o contraseña incorrectos.';
+      } else if (msg.toLowerCase().includes('locked')) {
+        display = 'Cuenta bloqueada por demasiados intentos. Intenta en unos minutos.';
+      } else if (msg.toLowerCase().includes('inactive') || msg.toLowerCase().includes('suspended')) {
+        display = 'Cuenta inactiva. Contacta al administrador.';
+      } else if (!display) {
+        display = 'No se pudo iniciar sesión. Intenta nuevamente.';
+      }
+      setLocalError(display);
     }
   };
 

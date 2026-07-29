@@ -239,6 +239,38 @@ export const api = {
     radar: (days = 7) => request<MacroCalendarResponse>(`/macro/radar?days=${days}`),
     liquidity: () => request<MacroLiquidity>('/macro/liquidity'),
   },
+  // ─── Auth (F1.3) ──────────────────────────────────────────────
+  auth: {
+    login: (email: string, password: string) =>
+      request<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    register: (payload: RegisterRequest) =>
+      request<RegisterResponse>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    me: () => request<AuthMeResponse>('/auth/me'),
+    refresh: (refreshToken: string) =>
+      request<LoginResponse>('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }),
+    logout: (refreshToken?: string) =>
+      request<{ message: string }>('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refreshToken || '' }),
+      }),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      request<{ message: string }>('/auth/password/change', {
+        method: 'POST',
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      }),
+  },
 };
 
 export interface UserProfile {
@@ -685,6 +717,53 @@ export interface SymbolAnalysis {
   macro: MacroAssessment;
   ts?: number;
   error?: string;
+  drivers?: Array<{
+    name: string;
+    status: string;
+    detail: string;
+  }>;
+  price_range?: {
+    current: number;
+    low: number;
+    high: number;
+    midpoint: number;
+    zone: 'barata' | 'fair' | 'cara';
+    barata_pct: number;
+    cara_pct: number;
+  };
+  playbook_daily?: {
+    horizon: string;
+    title: string;
+    action: string;
+    zone?: string;
+    entry?: number;
+    sl?: number;
+    tp1?: number;
+    tp2?: number;
+    invalidation?: string;
+    size_pct?: number;
+    horizon_days?: string;
+  };
+  playbook_intraday?: {
+    horizon: string;
+    title: string;
+    action: string;
+    entry?: number;
+    stop?: number;
+    tp1?: number;
+    tp2?: number;
+    entry_detail?: string;
+    invalidation?: string;
+    size_pct?: number;
+    reglas?: string;
+  };
+  divergences?: Array<{
+    timeframe: string;
+    type: string;
+    score: number;
+    detail: string;
+  }>;
+  narrative?: string;
 }
 
 export interface OrchestratorSignalsResponse {
@@ -789,4 +868,55 @@ export interface MacroLiquidity {
   tga_billion: number | null;
   rrp_billion: number | null;
   fetched_at: string;
+}
+
+// ─── Auth (F1.3) ────────────────────────────────────────────────
+
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  user: {
+    id: string;
+    tenant_id: string;
+    email: string;
+    username: string;
+    role: string;
+    status: string;
+    two_factor_enabled: boolean;
+    email_verified: boolean;
+    created_at?: string;
+  };
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+    status: string;
+  };
+}
+
+export interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
+  tenant_name: string;
+  full_name?: string;
+}
+
+export interface RegisterResponse {
+  access_token?: string;
+  refresh_token?: string;
+  user?: LoginResponse['user'];
+  tenant?: LoginResponse['tenant'];
+  message?: string;
+}
+
+export interface AuthMeResponse {
+  user_id: string;
+  tenant_id: string;
+  email: string;
+  role: string;
+  permissions: string[];
 }

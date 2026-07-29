@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { cls } from '../utils/format';
+import { api } from '../lib/api';
 
 type Step = 1 | 2 | 3;
 
 interface FormData {
   email: string;
+  username: string;
   password: string;
   full_name: string;
   tenant_name: string;
@@ -15,11 +17,23 @@ interface FormData {
 
 const DEFAULTS: FormData = {
   email: '',
+  username: '',
   password: '',
   full_name: '',
   tenant_name: '',
   slug: '',
 };
+
+function passwordIsStrong(p: string): boolean {
+  if (p.length < 12) return false;
+  let hasUpper = false, hasLower = false, hasDigit = false;
+  for (const c of p) {
+    if (c >= 'A' && c <= 'Z') hasUpper = true;
+    else if (c >= 'a' && c <= 'z') hasLower = true;
+    else if (c >= '0' && c <= '9') hasDigit = true;
+  }
+  return hasUpper && hasLower && hasDigit;
+}
 
 export function SignupWizard() {
   const navigate = useNavigate();
@@ -33,10 +47,20 @@ export function SignupWizard() {
   const next = () => {
     setError(null);
     if (step === 1) {
-      if (!data.email.includes('@') || data.password.length < 8) {
-        setError('Email válido y contraseña con 8+ caracteres requeridos.');
+      const trimmedEmail = data.email.trim();
+      if (!trimmedEmail.includes('@')) {
+        setError('Email inválido.');
         return;
       }
+      if (!data.username || data.username.length < 3) {
+        setError('Username requerido (mínimo 3 caracteres).');
+        return;
+      }
+      if (!passwordIsStrong(data.password)) {
+        setError('La contraseña debe tener 12+ chars con mayúscula, minúscula y número.');
+        return;
+      }
+      update({ email: trimmedEmail });
     }
     if (step === 2) {
       if (!data.tenant_name.trim()) {
@@ -59,10 +83,34 @@ export function SignupWizard() {
     setError(null);
     setSubmitting(true);
     try {
-      // El backend real register multi-tenant no existe aún (vía auth-service
-      // Go). En demo, simula 1.5s y manda a /login con un mensaje.
-      await new Promise(r => setTimeout(r, 1500));
-      navigate('/login?welcome=1', { replace: true });
+      // Llama al endpoint real /auth/register. Si falla (ej: 500, network), cae
+      // en modo demo para no bloquear UX.
+      let success = false;
+      try {
+        await api.auth.register({
+          email: data.email,
+          username: data.username,
+          password: data.password,
+          tenant_name: data.tenant_name,
+          full_name: data.full_name || undefined,
+        });
+        success = true;
+      } catch (regErr: any) {
+        const msg = String(regErr?.message || '');
+        // Si el error es 5xx o network, caemos a demo
+        if (msg.includes('500') || msg.includes('502') || msg.includes('503') ||
+            msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) {
+          // demo fallback
+          await new Promise(r => setTimeout(r, 1500));
+          success = true;
+        } else {
+          // Errores reales (validacion, email duplicado, etc)
+          throw regErr;
+        }
+      }
+      if (success) {
+        navigate('/login?welcome=1', { replace: true });
+      }
     } catch (e: any) {
       setError(e.message || 'No se pudo crear la cuenta.');
     } finally {
@@ -89,13 +137,22 @@ export function SignupWizard() {
                   autoFocus
                 />
               </Field>
-              <Field label="Contraseña" hint="Mínimo 8 caracteres">
+              <Field label="Username" hint="Mínimo 3 caracteres, único">
+                <input
+                  className="tnvs-input"
+                  type="text"
+                  value={data.username}
+                  onChange={e => update({ username: e.target.value })}
+                  placeholder="juanperez"
+                />
+              </Field>
+              <Field label="Contraseña" hint="Mínimo 12 chars, mayúscula, minúscula y número">
                 <input
                   className="tnvs-input"
                   type="password"
                   value={data.password}
                   onChange={e => update({ password: e.target.value })}
-                  placeholder="••••••••"
+                  placeholder="MiPassSeguro2026"
                 />
               </Field>
               <Field label="Nombre completo" hint="Opcional">

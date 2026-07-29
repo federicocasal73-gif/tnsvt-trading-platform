@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -161,15 +162,13 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 // Logout POST /api/v1/auth/logout (requires auth)
 func (h *AuthHandler) Logout(c *gin.Context) {
-	userID, _ := c.Get(middleware.CtxUserID)
-	uid, ok := userID.(interface{ String() string })
-	if !ok {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: "invalid user context"})
-		return
+	var req struct {
+		RefreshToken string `json:"refresh_token"`
 	}
-	_ = uid // simplificado
+	// Permitir body vacio (logout best-effort) o JSON con refresh_token
+	_ = c.ShouldBindJSON(&req)
 
-	if err := h.service.Logout(c.Request.Context(), mustUUID(c, middleware.CtxUserID), c.PostForm("refresh_token"), c.ClientIP(), c.Request.UserAgent()); err != nil {
+	if err := h.service.Logout(c.Request.Context(), mustUUID(c, middleware.CtxUserID), req.RefreshToken, c.ClientIP(), c.Request.UserAgent()); err != nil {
 		h.log.Warn("Logout error", "error", err.Error())
 	}
 
@@ -308,17 +307,27 @@ func HealthReady(repo repository.Repository, redis *redis.Client) gin.HandlerFun
 
 // ─── Helper ─────────────────────────────────────────────────────
 
-func mustUUID(c *gin.Context, key string) (out [16]byte) {
-	defer func() { recover() }()
+func mustUUID(c *gin.Context, key string) [16]byte {
 	val, ok := c.Get(key)
 	if !ok {
-		return
+		return [16]byte{}
 	}
-	// Asumimos uuid.UUID que es [16]byte
+	// El middleware guarda uuid.UUID (que es [16]byte).
 	if u, ok := val.([16]byte); ok {
 		return u
 	}
-	return
+	// Fallback: si por algun motivo lo guardo como uuid.UUID directamente.
+	if u, ok := val.(uuid.UUID); ok {
+		return [16]byte(u)
+	}
+	// Fallback: si por algun motivo lo guardo como string, parsearlo.
+	if s, ok := val.(string); ok {
+		parsed, err := uuid.Parse(s)
+		if err == nil {
+			return [16]byte(parsed)
+		}
+	}
+	return [16]byte{}
 }
 
 // Para evitar warning de unused

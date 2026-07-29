@@ -94,9 +94,16 @@ async def resume() -> dict[str, Any]:
 
 @app.get(f"{prefix}/analysis/{{symbol}}")
 async def analysis(symbol: str) -> dict[str, Any]:
-    """Analisis multi-horizonte para un simbolo.
+    """Analisis multi-horizonte + playbook para un simbolo.
 
-    Devuelve bias + score master + breakdown por timeframe (M5/H1/H4/D1).
+    Devuelve:
+    - bias + score master + breakdown por timeframe (M5/H1/H4/D1)
+    - drivers[]: 5 categorias con status
+    - price_range: zona del precio en su rango
+    - playbook_daily + playbook_intraday: accion + entry + SL + TP
+    - divergences[]: macro / H1 / M5
+    - narrative: parrafo institucional
+
     Es el payload que consume el frontend /analysis/:symbol y el bot
     /analisis para mostrar veredicto maestro al usuario.
     """
@@ -105,6 +112,14 @@ async def analysis(symbol: str) -> dict[str, Any]:
         combine_horizons,
     )
     from app.macro_filter import check_macro_conditions
+    from app.playbook import (
+        build_narrative,
+        compute_divergences,
+        compute_drivers,
+        compute_playbook_daily,
+        compute_playbook_intraday,
+        compute_price_range,
+    )
 
     if orchestrator is None:
         return {"error": "not started"}
@@ -146,6 +161,36 @@ async def analysis(symbol: str) -> dict[str, Any]:
 
     sb = combine_horizons(symbol_up, scores)
     macro = await check_macro_conditions()
+
+    # F1: playbook computation
+    h1_dict = scores.get("H1")
+    h4_dict = scores.get("H4")
+    h1_candles = [
+        {"open": c.open, "high": c.high, "low": c.low, "close": c.close}
+        for c in orchestrator._candle_buffer.get(symbol_up, [])
+    ]
+
+    # Compute ATR-14 from H1 candles (simple)
+    atr_h1 = 0.0
+    if len(h1_candles) >= 15:
+        try:
+            from app.risk_manager import OHLC, RiskManager
+            rm = RiskManager()
+            atr_h1 = rm.calculate_atr([OHLC(open=c["open"], high=c["high"],
+                                            low=c["low"], close=c["close"])
+                                       for c in h1_candles])
+        except Exception:
+            pass
+
+    current_price = float(h1_candles[-1]["close"]) if h1_candles else 0.0
+
+    drivers = compute_drivers(sb.master_bias, {tf: h.to_dict() for tf, h in scores.items()})
+    price_range = compute_price_range(h1_candles, current_price)
+    playbook_daily = compute_playbook_daily(sb.master_bias, sb.master_score, h1_candles, atr_h1)
+    playbook_intraday = compute_playbook_intraday(sb.master_bias, sb.master_score, h1_candles, atr_h1)
+    divergences = compute_divergences({tf: h.to_dict() for tf, h in scores.items()})
+    narrative = build_narrative(sb.master_bias, sb.master_score, symbol_up, drivers, price_range)
+
     return {
         "symbol": symbol_up,
         "master_bias": sb.master_bias,
@@ -157,6 +202,12 @@ async def analysis(symbol: str) -> dict[str, Any]:
             "confidence_multiplier": float(macro.get("confidence_multiplier", 1.0)),
             "lot_multiplier": float(macro.get("lot_multiplier", 1.0)),
         },
+        "drivers": drivers,
+        "price_range": price_range,
+        "playbook_daily": playbook_daily,
+        "playbook_intraday": playbook_intraday,
+        "divergences": divergences,
+        "narrative": narrative,
         "ts": _time.time(),
     }
 
