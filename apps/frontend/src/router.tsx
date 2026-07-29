@@ -19,6 +19,7 @@ import { Mt5SettingsPage } from './pages/Mt5SettingsPage';
 import { Mt5ControlPage } from './pages/Mt5ControlPage';
 import { Mt5RiskPage } from './pages/Mt5RiskPage';
 import { NewsPage } from './pages/News';
+import { MacroPage } from './pages/Macro';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
 import { SignupWizard } from './pages/SignupWizard';
@@ -35,6 +36,7 @@ export const ROUTES = [
   { path: '/signals', name: 'signals', label: 'Signals', icon: 'signals' },
   { path: '/live', name: 'live', label: 'Live Ticks', icon: 'live' },
   { path: '/news', name: 'news', label: 'News', icon: 'news' },
+  { path: '/macro', name: 'macro', label: 'Macro', icon: 'macro' },
   { path: '/history', name: 'history', label: 'History', icon: 'history' },
   { path: '/mt5-dashboard', name: 'mt5-dashboard', label: 'MT5 Dashboard', icon: 'dashboard' },
   { path: '/mt5-positions', name: 'mt5-positions', label: 'MT5 Positions', icon: 'positions' },
@@ -64,6 +66,7 @@ const router = createBrowserRouter([
       { path: 'signals', element: <SignalsPage /> },
       { path: 'live', element: <LivePage /> },
       { path: 'news', element: <NewsPage /> },
+      { path: 'macro', element: <MacroPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'mt5-bot', element: <Navigate to="/mt5-dashboard" replace /> },
       { path: 'mt5-dashboard', element: <Mt5DashboardPage /> },

@@ -232,6 +232,13 @@ export const api = {
     refresh: () =>
       request<{ refreshed: boolean; count: number }>('/news/refresh', { method: 'POST' }),
   },
+  // ─── Macro Dashboard (F2) ──────────────────────────────────────
+  macro: {
+    indicators: () => request<MacroIndicatorsResponse>('/macro/indicators'),
+    marketState: () => request<MacroMarketState>('/macro/market-state'),
+    radar: (days = 7) => request<MacroCalendarResponse>(`/macro/radar?days=${days}`),
+    liquidity: () => request<MacroLiquidity>('/macro/liquidity'),
+  },
 };
 
 export interface UserProfile {
@@ -725,4 +732,61 @@ export interface NewsSentimentSummary {
   by_category: Record<string, number>;
   total_news: number;
   last_updated: string;
+}
+
+// ─── Macro Dashboard (F2) ─────────────────────────────────────────
+
+export interface MacroIndicator {
+  key: string;
+  name: string;
+  country: string;
+  previous: string;
+  actual: string;
+  forecast: string;
+  unit: string;
+  direction: 'up' | 'down' | 'flat';
+  vs_forecast: 'beat' | 'miss' | 'in-line' | 'unknown';
+  release_date: string;
+  next_release: string;
+  fetched_at: string;
+}
+
+export interface MacroIndicatorsResponse {
+  count: number;
+  items: MacroIndicator[];
+}
+
+export interface MacroMarketTag {
+  tag: string;
+  label: string;
+  value: string | number | null;
+  source: string;
+}
+
+export interface MacroMarketState {
+  tags: MacroMarketTag[];
+  narrative: string;
+  fetched_at: string;
+}
+
+export interface MacroCalendarEvent {
+  date: string;
+  time: string;
+  currency: string;
+  event: string;
+  forecast: string;
+  previous: string;
+  impact: 'Low' | 'Medium' | 'High';
+}
+
+export interface MacroCalendarResponse {
+  count: number;
+  days: number;
+  events: MacroCalendarEvent[];
+}
+
+export interface MacroLiquidity {
+  tga_billion: number | null;
+  rrp_billion: number | null;
+  fetched_at: string;
 }
