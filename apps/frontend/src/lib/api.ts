@@ -216,6 +216,22 @@ export const api = {
     pause: () => request<{ status: string }>('/orchestrator/pause', { method: 'POST' }),
     resume: () => request<{ status: string }>('/orchestrator/resume', { method: 'POST' }),
   },
+  // ─── News Analyzer (F3) ─────────────────────────────────────────
+  news: {
+    latest: (opts?: { category?: string; limit?: number; minStars?: number; sentiment?: string }) => {
+      const params = new URLSearchParams();
+      params.set('category', opts?.category || 'all');
+      params.set('limit', String(opts?.limit ?? 50));
+      params.set('min_stars', String(opts?.minStars ?? 0));
+      if (opts?.sentiment && opts.sentiment !== 'all') params.set('sentiment', opts.sentiment);
+      return request<NewsListResponse>(`/news/latest?${params}`);
+    },
+    bySymbol: (symbol: string, limit = 20) =>
+      request<NewsListResponse>(`/news/by-symbol/${symbol}?limit=${limit}`),
+    sentimentSummary: () => request<NewsSentimentSummary>('/news/sentiment-summary'),
+    refresh: () =>
+      request<{ refreshed: boolean; count: number }>('/news/refresh', { method: 'POST' }),
+  },
 };
 
 export interface UserProfile {
@@ -668,4 +684,45 @@ export interface OrchestratorSignalsResponse {
   count: number;
   limit: number;
   items: OrchestratorPublishedSignal[];
+}
+
+// ─── News Analyzer (F3) ─────────────────────────────────────────────
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  category: string;
+  published_at?: string;
+  fetched_at: string;
+  sentiment_score: number;
+  sentiment_label: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+  star_rating: number;
+  categories: string[];
+  affected_symbols: string[];
+  reactions: Record<string, string>;
+}
+
+export interface NewsListResponse {
+  count: number;
+  items: NewsItem[];
+}
+
+export interface NewsSentimentBySymbol {
+  symbol: string;
+  sentiment_score: number;
+  sentiment_label: string;
+  news_count: number;
+  last_updated: string;
+}
+
+export interface NewsSentimentSummary {
+  overall_score: number;
+  overall_label: string;
+  by_symbol: NewsSentimentBySymbol[];
+  by_category: Record<string, number>;
+  total_news: number;
+  last_updated: string;
 }
