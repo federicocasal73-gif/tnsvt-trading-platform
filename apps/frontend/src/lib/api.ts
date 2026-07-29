@@ -212,6 +212,7 @@ export const api = {
       if (symbol) params.set('symbol', symbol);
       return request<OrchestratorSignalsResponse>(`/orchestrator/signals?${params}`);
     },
+    analysis: (symbol: string) => request<SymbolAnalysis>(`/orchestrator/analysis/${symbol}`),
     pause: () => request<{ status: string }>('/orchestrator/pause', { method: 'POST' }),
     resume: () => request<{ status: string }>('/orchestrator/resume', { method: 'POST' }),
   },
@@ -629,6 +630,38 @@ export interface OrchestratorPublishedSignal {
   lot_multiplier?: number;
   filtered_out?: boolean;
   published_at?: number;
+  // F5: multi-horizon + macro
+  bias?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  master_score?: number;
+  horizon_scores?: Record<string, HorizonScore>;
+  macro_risk_off?: boolean;
+  macro_reasons?: string[];
+  macro_confidence_multiplier?: number;
+  macro_lot_multiplier?: number;
+}
+
+export interface HorizonScore {
+  timeframe: string;
+  bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  score: number;
+  components?: Record<string, number>;
+}
+
+export interface MacroAssessment {
+  risk_off: boolean;
+  reasons: string[];
+  confidence_multiplier: number;
+  lot_multiplier: number;
+}
+
+export interface SymbolAnalysis {
+  symbol: string;
+  master_bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  master_score: number;
+  horizons: Record<string, HorizonScore>;
+  macro: MacroAssessment;
+  ts?: number;
+  error?: string;
 }
 
 export interface OrchestratorSignalsResponse {
