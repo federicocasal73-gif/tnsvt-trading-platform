@@ -23,13 +23,26 @@ import sys
 import time
 import json
 import uuid
+import requests
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).parent / ".env"
+    if _env_path.exists():
+        load_dotenv(dotenv_path=_env_path, override=True)
+        logger_early = logging.getLogger("bridge.api.bootstrap")
+        logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+        logger_early.info(f"Loaded env from {_env_path}")
+except ImportError:
+    pass
+
+import jwt as pyjwt
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -49,8 +62,10 @@ sys.path.insert(0, str(_TNSVT_BOT))
 BASE_DIR = Path(__file__).parent
 DB_PATH = os.getenv("BRIDGE_DB", str(BASE_DIR / "bridge_outbox.db"))
 GATEWAY_URL = os.getenv("TNSVT_GATEWAY_URL", "http://localhost:8000")
-BRIDGE_API_KEY = os.getenv("BRIDGE_API_KEY", "dev-bridge-key-change-me")
+BRIDGE_API_KEY = os.getenv("BRIDGE_API_KEY", "")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+MT5_DATA_DIR = os.getenv("MT5_DATA_DIR", r"D:\TradingBotMT5")
+MT5_STATUS_PATH = os.getenv("MT5_STATUS_PATH", str(Path(MT5_DATA_DIR) / "var" / "mt5_status.json"))
 
 logging.basicConfig(
     level=LOG_LEVEL,
@@ -58,6 +73,37 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("bridge.api")
+
+if not BRIDGE_API_KEY:
+    logger.warning("BRIDGE_API_KEY not set; publisher will use unauthenticated requests")
+
+
+# ─── Symbol Multiplier ──────────────────────────────────────────────────
+
+def get_symbol_multiplier(symbol: str) -> float:
+    """Devuelve el multiplicador según el instrumento.
+    Forex: 1 lot = 100,000 unidades → 100000.
+    Indices/Crypto: 1 contrato = 1 unidad → 1.
+    XAUUSD: 1 lot = 100 oz → 100. XAGUSD: 1 lot = 5000 oz → 5000.
+    """
+    s = (symbol or "").upper()
+    if not s:
+        return 100000
+    indices = ("US30", "DJI", "DOW", "NAS100", "NAS", "NDX", "USTEC",
+               "SP500", "SPX", "US500", "JP225", "NI225", "JPN225",
+               "UK100", "FTSE", "GER40", "DAX")
+    if any(tok in s for tok in indices):
+        return 1
+    crypto_prefixes = ("BTC", "ETH", "XRP", "LTC", "BCH", "SOL", "ADA",
+                       "DOT", "LINK", "MATIC", "DOGE")
+    if s.endswith("USD") and any(s.startswith(p) for p in crypto_prefixes):
+        return 1
+    if s in ("XAUUSD", "GOLD"):
+        return 100
+    if s in ("XAGUSD", "SILVER"):
+        return 5000
+    return 100000
+
 
 # ─── App ────────────────────────────────────────────────────────────────
 
@@ -103,6 +149,71 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ─── Auth ────────────────────────────────────────────────────────────────
+
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if not JWT_SECRET or len(JWT_SECRET) < 32:
+    logger.warning("JWT_SECRET not set or too short; bridge-api auth disabled")
+    JWT_SECRET = ""
+
+PUBLIC_PATHS = {"/health", "/", "/metrics", "/docs", "/openapi.json", "/redoc"}
+
+
+def _verify_token(auth_header: str) -> dict:
+    """Validate JWT bearer token and return claims."""
+    token = auth_header
+    if token.startswith("Bearer "):
+        token = token[7:]
+    try:
+        payload = pyjwt.decode(
+            token, JWT_SECRET, algorithms=["HS256"],
+            audience=None,
+            options={"require": ["exp", "uid", "type"], "verify_aud": False},
+        )
+        if payload.get("type") != "access":
+            raise HTTPException(401, "refresh tokens not allowed")
+        return payload
+    except pyjwt.ExpiredSignatureError:
+        raise HTTPException(401, "token expired")
+    except pyjwt.InvalidTokenError as e:
+        raise HTTPException(401, f"invalid token: {e}")
+
+
+def _check_admin(payload: dict) -> None:
+    if payload.get("role") not in ("super_admin", "tenant_admin"):
+        raise HTTPException(403, "admin access required")
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path in PUBLIC_PATHS or path.startswith("/metrics"):
+        return await call_next(request)
+
+    if not JWT_SECRET:
+        return await call_next(request)
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return JSONResponse(status_code=401, content={"error": "Authorization header required"})
+
+    try:
+        payload = _verify_token(auth_header)
+        request.state.user_id = payload.get("uid")
+        request.state.tenant_id = payload.get("tid")
+        request.state.role = payload.get("role")
+        request.state.email = payload.get("email")
+
+        if path.startswith("/api/v1/admin/"):
+            _check_admin(payload)
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+    except Exception as e:
+        return JSONResponse(status_code=401, content={"error": str(e)})
+
+    return await call_next(request)
 
 
 # ─── Models ─────────────────────────────────────────────────────────────
@@ -329,7 +440,7 @@ def copier_close(payload: dict):
         raise HTTPException(400, "symbol requerido")
 
     # Verificar posiciones abiertas via MT5 snapshot
-    pos_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json"
+    pos_path = Path(MT5_DATA_DIR) / "positions_snapshot.json"
     open_count = 0
     if pos_path.exists():
         try:
@@ -348,7 +459,7 @@ def copier_close(payload: dict):
 
     # Generar request_id y agregar a cmd_requests.json
     request_id = f"close_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-    cmd_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "cmd_requests.json"
+    cmd_path = Path(MT5_DATA_DIR) / "cmd_requests.json"
     existing = []
     if cmd_path.exists():
         try:
@@ -378,6 +489,82 @@ def copier_close(payload: dict):
     }
 
 
+@app.post("/api/v1/bridge/copier/close-ticket")
+def copier_close_ticket(payload: dict):
+    """Cierra UNA posición específica por ticket MT5.
+
+    Sprint 1.4: este endpoint va directo al mt5-connector (Go :8007) que
+    hace mt5.positions_get(ticket=X) + mt5.order_send(...). A diferencia de
+    /copier/close que cierra TODAS las posiciones del símbolo, este
+    cierra SOLO el ticket solicitado.
+
+    Body: {"ticket": "123456", "account_id": "<uuid>", "by_user": "..."}
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "payload debe ser dict")
+    ticket = (payload.get("ticket") or "").strip()
+    by_user = payload.get("by_user", "anonymous")
+    account_id = payload.get("account_id") or ""
+
+    if not ticket:
+        raise HTTPException(400, "ticket requerido")
+
+    # Resolver account_id si no vino: usar el account_id de la primera
+    # cuenta activa del tenant. Para Fase 1 asumimos single-account.
+    if not account_id:
+        # Tomar del bridge (proxy a account-manager) o fallback a
+        # positions_snapshot.json
+        try:
+            r = requests.get(
+                "http://localhost:8510/api/v1/accounts",
+                headers={"X-Service-Token": os.getenv("ACCOUNT_MGR_SERVICE_TOKEN", "")},
+                timeout=3,
+            )
+            if r.status_code == 200:
+                accs = r.json().get("accounts", [])
+                if accs:
+                    account_id = accs[0].get("id", "")
+        except Exception as e:
+            logger.warning(f"close_ticket: cannot resolve account_id: {e}")
+
+    if not account_id:
+        raise HTTPException(400, "account_id requerido (o configurar DEFAULT_ACCOUNT_ID)")
+
+    # Llamar al mt5-connector via pool (round-robin entre instancias)
+    from mt5_pool import get_pool
+    pool = get_pool()
+    resp, err = pool.call(
+        "POST",
+        "/api/v1/brokers/positions/close",
+        json_body={"account_id": account_id, "ticket": ticket},
+    )
+    if resp is None:
+        logger.error("copier_close_ticket: pool exhausted: %s", err)
+        raise HTTPException(503, f"mt5-connector pool no disponible: {err}")
+    try:
+        data = resp.json()
+        if resp.status_code == 200 and data.get("accepted"):
+            logger.warning("copier_close_ticket: OK ticket=%s account=%s by=%s",
+                           ticket, account_id, by_user)
+            return {
+                "ok": True,
+                "ticket": ticket,
+                "filled_price": data.get("filled_price"),
+                "filled_qty": data.get("filled_qty"),
+            }
+        # 404 o not accepted
+        return {
+            "ok": False,
+            "detail": data.get("error", f"mt5-connector returned {resp.status_code}"),
+            "ticket": ticket,
+        }
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(503, "mt5-connector no disponible")
+    except Exception as e:
+        logger.error(f"copier_close_ticket error: {e}")
+        raise HTTPException(500, f"close_ticket error: {e}")
+
+
 @app.post("/api/v1/bridge/events")
 def events_enqueue(payload: dict):
     """Encolar un evento de trade (open/close/blocked) para que el bot lo publique al grupo.
@@ -404,7 +591,7 @@ def events_enqueue(payload: dict):
         **payload,
     }
 
-    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    ev_path = Path(MT5_DATA_DIR) / "events.json"
     existing = []
     if ev_path.exists():
         try:
@@ -434,7 +621,7 @@ def events_poll(delim: str = ""):
 
     Devuelve {"events": [...], "count": N}
     """
-    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    ev_path = Path(MT5_DATA_DIR) / "events.json"
     if not ev_path.exists():
         return {"events": [], "count": 0}
 
@@ -460,7 +647,7 @@ def events_poll(delim: str = ""):
 @app.post("/api/v1/bridge/events/{event_id}/delivered")
 def events_mark_delivered(event_id: str):
     """Marca un evento como entregado para que no se vuelva a enviar."""
-    ev_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "events.json"
+    ev_path = Path(MT5_DATA_DIR) / "events.json"
     if not ev_path.exists():
         return {"ok": False}
 
@@ -1075,7 +1262,7 @@ def control_bot(req: BotControlRequest):
 # RISK STATE — DD, exposure, kill switch
 # ============================================================
 
-_RISK_HISTORY_PATH = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "risk_history.json"
+_RISK_HISTORY_PATH = Path(MT5_DATA_DIR) / "risk_history.json"
 _RISK_HISTORY_MAX = 100
 
 
@@ -1113,10 +1300,10 @@ def get_risk_state():
     try:
         # Equity/balance snapshot
         account = _read_json_safe(
-            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "account_snapshot.json")
+            str(Path(MT5_DATA_DIR) / "account_snapshot.json")
         )
         positions = _read_json_safe(
-            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json")
+            str(Path(MT5_DATA_DIR) / "positions_snapshot.json")
         ) or []
 
         balance = float(account.get("balance", 0)) if account else 0
@@ -1144,7 +1331,7 @@ def get_risk_state():
         # Calcular exposure_pct por simbolo (volume * precio / equity)
         for sym_data in by_symbol.values():
             try:
-                notional = sym_data["volume"] * 100000
+                notional = sym_data["volume"] * get_symbol_multiplier(sym_data.get("symbol", ""))
                 sym_data["exposure_pct"] = (
                     (notional / equity * 100) if equity > 0 else 0.0
                 )
@@ -1158,7 +1345,7 @@ def get_risk_state():
 
         # PnL diario (intentar leer de signal_copier risk_state.json)
         daily_pnl = 0.0
-        risk_state_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "signal_copier" / "risk_state.json"
+        risk_state_path = Path(MT5_DATA_DIR) / "signal_copier" / "risk_state.json"
         risk_state = _read_json_safe(str(risk_state_path))
         if risk_state:
             daily_pnl = float(risk_state.get("daily_pnl", 0))
@@ -1192,7 +1379,7 @@ def kill_switch(req: dict):
 
     try:
         positions = _read_json_safe(
-            str(Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "positions_snapshot.json")
+            str(Path(MT5_DATA_DIR) / "positions_snapshot.json")
         ) or []
         for p in positions:
             try:
@@ -1243,6 +1430,118 @@ def kill_switch(req: dict):
     }
 
 
+@app.post("/api/v1/accounts/{account_id}/kill-switch")
+def account_kill_switch(account_id: str, req: dict = None):
+    """Sprint 1.5: Kill switch por cuenta.
+
+    Cierra SOLO las posiciones de la cuenta especificada. NO pausa
+    orchestrator ni el bot global — solo la cuenta. Body opcional:
+    {"reason": "admin|dd_breach|manual"}.
+    """
+    if req is None:
+        req = {}
+    reason = req.get("reason", "manual")
+
+    # Resolver account_id → MT5 login (el positions_snapshot.json
+    # tiene el campo "login" en cada posición; lo que recibimos en el
+    # path es el account-manager UUID).
+    target_login = _resolve_login_from_account_id(account_id)
+
+    closed_count = 0
+    errors: list[str] = []
+
+    try:
+        positions = _read_json_safe(
+            str(Path(MT5_DATA_DIR) / "positions_snapshot.json")
+        ) or []
+    except Exception as e:
+        errors.append(f"read positions: {e}")
+        positions = []
+
+    # Filtrar por cuenta: si target_login está resuelto, comparar login;
+    # si no, intentar por alias (compatibilidad con accounts.json legacy).
+    target_alias = _resolve_alias_from_account_id(account_id)
+
+    for p in positions:
+        try:
+            pos_login = p.get("login")
+            pos_alias = p.get("alias") or p.get("account_alias")
+            matches = False
+            if target_login and pos_login == target_login:
+                matches = True
+            elif target_alias and pos_alias == target_alias:
+                matches = True
+            elif not target_login and not target_alias:
+                # No pudimos resolver nada: cerrar todas (modo seguro)
+                matches = True
+            if not matches:
+                continue
+            ticket = str(p.get("ticket"))
+            # Llamar al nuevo close-ticket via pool (round-robin entre workers)
+            from mt5_pool import get_pool
+            r, _ = get_pool().call(
+                "POST",
+                "/api/v1/brokers/positions/close",
+                json_body={"account_id": target_login or "default", "ticket": ticket},
+            )
+            if r is None:
+                errors.append(f"ticket {ticket}: pool exhausted")
+                continue
+            resp = r
+            if r.status_code == 200 and r.json().get("accepted"):
+                closed_count += 1
+            else:
+                errors.append(f"ticket {ticket}: {r.json().get('error', r.status_code)}")
+        except Exception as e:
+            errors.append(f"ticket {p.get('ticket')}: {e}")
+
+    _append_risk_event("account_kill_switch", {
+        "account_id": account_id,
+        "target_login": target_login,
+        "target_alias": target_alias,
+        "closed": closed_count,
+        "errors": len(errors),
+    }, reason)
+
+    return {
+        "ok": True,
+        "reason": reason,
+        "account_id": account_id,
+        "closed_positions": closed_count,
+        "errors": errors,
+    }
+
+
+def _resolve_login_from_account_id(account_id: str) -> int | None:
+    """Devuelve el MT5 login numérico asociado al account-manager UUID."""
+    try:
+        r = requests.get(
+            f"http://localhost:8510/api/v1/accounts/{account_id}",
+            headers={"X-Service-Token": os.getenv("ACCOUNT_MGR_SERVICE_TOKEN", "")},
+            timeout=3,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            return int(data.get("login", 0)) or None
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_alias_from_account_id(account_id: str) -> str | None:
+    try:
+        r = requests.get(
+            f"http://localhost:8510/api/v1/accounts/{account_id}",
+            headers={"X-Service-Token": os.getenv("ACCOUNT_MGR_SERVICE_TOKEN", "")},
+            timeout=3,
+        )
+        if r.status_code == 200:
+            return r.json().get("alias")
+    except Exception:
+        pass
+    return None
+
+
 @app.get("/api/v1/bridge/risk/history")
 def get_risk_history(limit: int = 50):
     """Historial de eventos de riesgo."""
@@ -1284,7 +1583,7 @@ def retry_dead_letter(event_id: int):
 # ─── MT5 Live Snapshots (leídos del bot) ─────────────────────────────────
 
 
-BOT_SNAPSHOT_DIR = os.getenv("BOT_SNAPSHOT_DIR", r"D:\TradingBotMT5")
+BOT_SNAPSHOT_DIR = MT5_DATA_DIR
 
 
 def _read_json_safe(path: str) -> dict | list | None:
@@ -1310,7 +1609,7 @@ def get_mt5_account(request: Request):
             pass
 
     if login_param is not None:
-        snap_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / f"account_snapshot_{login_param}.json"
+        snap_path = Path(MT5_DATA_DIR) / f"account_snapshot_{login_param}.json"
         data = _read_json_safe(str(snap_path))
         if data is None:
             raise HTTPException(404, f"No hay snapshot para login {login_param}")
@@ -1323,13 +1622,62 @@ def get_mt5_account(request: Request):
 
 
 @app.get("/api/v1/bridge/mt5/accounts")
-def list_mt5_accounts():
-    """Lista todas las cuentas configuradas en accounts.json con sus snapshots.
+def list_mt5_accounts(tenant_id: Optional[str] = None):
+    """Lista todas las cuentas del tenant.
 
-    Multi-cuenta: detecta cada account_snapshot_<login>.json y lo combina
-    con el alias y nombre del accounts.json.
+    Multi-cuenta: ahora consume account-manager (PostgreSQL + AES-GCM).
+    Mantiene shape compatible con el frontend (login/alias/name/server/balance/...).
     """
-    base_dir = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5"))
+    headers = {}
+    if tenant_id:
+        headers["X-Tenant-ID"] = tenant_id
+    elif v := os.getenv("DEFAULT_TENANT_ID"):
+        headers["X-Tenant-ID"] = v
+
+    try:
+        resp = requests.get(
+            f"http://localhost:8510/api/v1/accounts",
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            # Normalizar a la shape que espera el frontend
+            accounts_out = []
+            for a in data.get("accounts", []):
+                accounts_out.append({
+                    "id": a.get("id"),
+                    "login": a.get("login"),
+                    "alias": a.get("alias") or f"acc_{a.get('login')}",
+                    "name": a.get("name") or f"Account {a.get('login')}",
+                    "server": a.get("server"),
+                    "broker": a.get("broker"),
+                    "status": a.get("status"),
+                    "balance": a.get("last_balance"),
+                    "equity": a.get("last_equity"),
+                    "profit": a.get("last_pnl"),
+                    "open_positions": a.get("last_open_pos", 0),
+                    "updated_at": a.get("last_snapshot_at"),
+                })
+            agg = data.get("aggregate", {})
+            return {
+                "ok": True,
+                "count": len(accounts_out),
+                "accounts": accounts_out,
+                "aggregate": {
+                    "total_balance": round(agg.get("total_balance", 0), 2),
+                    "total_equity": round(agg.get("total_equity", 0), 2),
+                    "total_pnl": round(agg.get("total_pnl", 0), 2),
+                    "total_open_positions": agg.get("total_open_positions", 0),
+                },
+            }
+    except requests.exceptions.ConnectionError:
+        logger.warning("account-manager unavailable, falling back to D:\\TradingBotMT5\\accounts.json")
+    except Exception as e:
+        logger.error(f"account-manager proxy error: {e}")
+
+    # Fallback: leer del archivo legacy (compat con sistema viejo)
+    base_dir = Path(MT5_DATA_DIR)
     accounts_file = base_dir / "accounts.json"
     accounts_cfg: list = []
     if accounts_file.exists():
@@ -1353,29 +1701,6 @@ def list_mt5_accounts():
             "alias": cfg.get("alias", f"acc_{login}"),
             "name": cfg.get("name", snap.get("name", "?")),
             "server": cfg.get("server", snap.get("server", "?")),
-            "balance": snap.get("balance"),
-            "equity": snap.get("equity"),
-            "margin": snap.get("margin"),
-            "profit": snap.get("profit"),
-            "open_positions": snap.get("open_positions"),
-            "updated_at": snap.get("updated_at"),
-        })
-
-    # Tambien detectar cuentas que tienen snapshot pero no estan en accounts.json
-    for path in base_dir.glob("account_snapshot_*.json"):
-        try:
-            login = int(path.stem.replace("account_snapshot_", ""))
-        except ValueError:
-            continue
-        if login in seen_logins:
-            continue
-        seen_logins.add(login)
-        snap = _read_json_safe(str(path)) or {}
-        accounts_out.append({
-            "login": login,
-            "alias": f"acc_{login}",
-            "name": snap.get("name", "?"),
-            "server": snap.get("server", "?"),
             "balance": snap.get("balance"),
             "equity": snap.get("equity"),
             "margin": snap.get("margin"),
@@ -1416,7 +1741,7 @@ def get_mt5_positions(request: Request):
             pass
 
     if login_param is not None:
-        pos_path = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / f"positions_snapshot_{login_param}.json"
+        pos_path = Path(MT5_DATA_DIR) / f"positions_snapshot_{login_param}.json"
         data = _read_json_safe(str(pos_path))
         if data is None:
             raise HTTPException(404, f"No hay posiciones para login {login_param}")
@@ -1426,6 +1751,18 @@ def get_mt5_positions(request: Request):
     if data is None:
         raise HTTPException(503, "Positions snapshot not available")
     return {"ok": True, "data": data, "count": len(data) if data else 0}
+
+
+@app.get("/api/v1/bridge/mt5-pool/metrics")
+def mt5_pool_metrics():
+    """Sprint 2.1: estadísticas del pool de workers mt5-connector.
+
+    Devuelve URLs configuradas, requests totales, errores, retries,
+    y latencias p50/p95/p99. Útil para saber cuándo agregar workers
+    (umbral: p99 > 500ms o error rate > 5%).
+    """
+    from mt5_pool import get_pool
+    return get_pool().metrics()
 
 
 @app.get("/api/v1/bridge/mt5/signal_copier_status")
@@ -1441,8 +1778,8 @@ def signal_copier_status():
     # la carpeta var/ del proyecto Python. La ruta se resuelve via env o default.
     candidate_paths = [
         os.getenv("SIGNAL_COPIER_VAR", ""),
-        r"D:\TradingBotMT5\var\mt5_status.json",
-        r"C:\Users\HP 240 inch G9\OneDrive\Desktop\Importante ultimas cosas\Terminal_Financiera_Pro_Completo\Terminal_Financiera_Pro\var\mt5_status.json",
+        os.getenv("MT5_STATUS_PATH", ""),
+        MT5_STATUS_PATH,
     ]
     for path in candidate_paths:
         if not path:
@@ -1628,7 +1965,7 @@ async def get_mt5_candles(symbol: str, tf: str = "M5",
 # ─── Trade Candles (snapshot on-disk + fallback MT5) ───────────────────
 
 
-_TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
+_TRADE_CANDLES_DIR = Path(MT5_DATA_DIR) / "trade_candles"
 
 
 TF_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}

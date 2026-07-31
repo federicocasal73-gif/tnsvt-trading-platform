@@ -96,7 +96,7 @@ func main() {
 	defer natsConn.Close()
 
 	// ─── HTTP Client for execution-engine ───
-	executionEngineURL := cfg.Get("EXECUTION_ENGINE_URL", "http://execution-engine:8004")
+	executionEngineURL := cfg.Get("EXECUTION_ENGINE_URL", "http://localhost:8004")
 
 	// ─── Service ───
 	maxAccounts := cfg.GetInt("COPY_TRADING_MAX_ACCOUNTS", 20)
@@ -111,6 +111,10 @@ func main() {
 	defer subCancel()
 
 	sub := subscriber.NewSignalSubscriber(natsConn, copyService, log)
+	if sub == nil {
+		log.Error("Subscriber creation failed, JetStream unavailable", nil)
+		os.Exit(1)
+	}
 	if err := sub.Start(subCtx); err != nil {
 		log.Error("Subscriber failed", err)
 		os.Exit(1)

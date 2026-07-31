@@ -96,12 +96,12 @@ func main() {
 	brokerFactory := broker.NewFactory(log)
 	// MT5 connector (Fase 1) — apunta al mt5-connector service
 	// En Fase 2: agregar ctrader, binance, bybit, ibkr
-	if mt5URL := cfg.Get("MT5_CONNECTOR_URL", "http://mt5-connector:8007"); mt5URL != "" {
+	if mt5URL := cfg.Get("MT5_CONNECTOR_URL", "http://localhost:8007"); mt5URL != "" {
 		brokerFactory.Register("mt5", broker.NewHTTPBrokerConnector("mt5", mt5URL, log))
 	}
 
 	// ─── HTTP Client for risk-engine ───
-	riskEngineURL := cfg.Get("RISK_ENGINE_URL", "http://risk-engine:8006")
+	riskEngineURL := cfg.Get("RISK_ENGINE_URL", "http://localhost:8006")
 
 	// ─── Service ───
 	execService := service.NewExecutionService(

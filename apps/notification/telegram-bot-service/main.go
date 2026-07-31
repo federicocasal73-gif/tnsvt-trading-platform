@@ -62,20 +62,27 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	healthFn := func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok","service":"telegram-bot-service","version":"0.1.0"}`))
-	})
-	mux.HandleFunc("/health/live", func(w http.ResponseWriter, r *http.Request) {
+	}
+	liveFn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-	})
-	mux.HandleFunc("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+	}
+	readyFn := func(w http.ResponseWriter, r *http.Request) {
 		if natsConn.Status() != nats.CONNECTED {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte(`{"status":"not_ready"}`))
 			return
 		}
 		w.Write([]byte(`{"status":"ready"}`))
-	})
+	}
+	mux.HandleFunc("/health", healthFn)
+	mux.HandleFunc("/health/live", liveFn)
+	mux.HandleFunc("/health/ready", readyFn)
+	// Gateway proxy paths (no prefix stripping)
+	mux.HandleFunc("/api/v1/notify/health", healthFn)
+	mux.HandleFunc("/api/v1/notify/health/live", liveFn)
+	mux.HandleFunc("/api/v1/notify/health/ready", readyFn)
 	mux.Handle("/metrics", promhttp.Handler())
 
 	srv := &http.Server{
