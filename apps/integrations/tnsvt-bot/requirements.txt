@@ -2,7 +2,9 @@
 # ==========================================
 
 # Bot de Telegram
+# python-telegram-bot 20.3 requires httpx~=0.24.0 (>=0.26 removed `proxies` kwarg -> crash)
 python-telegram-bot==20.3
+httpx==0.24.1
 pytz
 
 # APIs externas

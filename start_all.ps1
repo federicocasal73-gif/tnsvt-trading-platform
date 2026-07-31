@@ -31,10 +31,10 @@ function Stop-IfRunning {
     param([int]$Port)
     $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     if ($conn) {
-        $pid = $conn.OwningProcess
-        Write-Host "  Puerto $Port ocupado por PID $pid - matando..." -ForegroundColor Red
+        $procId = $conn.OwningProcess
+        Write-Host "  Puerto $Port ocupado por PID $procId - matando..." -ForegroundColor Red
         try {
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
             Start-Sleep -Milliseconds 400
         } catch {}
     }
