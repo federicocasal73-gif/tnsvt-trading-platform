@@ -1,0 +1,74 @@
+---
+title: TNSVT V2 — System Architecture
+---
+flowchart TB
+    subgraph Frontend["🖥️ Frontend"]
+        F1["Vite + React 18 + TypeScript\n:5180"]
+    end
+
+    subgraph Gateway["🚪 API Gateway"]
+        GW["api-gateway (Go)\n:8000\nJWT · Rate Limit · Proxy"]
+    end
+
+    subgraph Platform["🏗️ Platform (Go)"]
+        AUTH["auth-service\n:8001\nOAuth2 + JWT + RBAC"]
+        AM["account-manager\n:8510\nMulti-account"]
+    end
+
+    subgraph Trading["📊 Trading Core (Go)"]
+        SE["signal-engine\n:8003\nSignal ingestion"]
+        EE["execution-engine\n:8004\nTrade orchestration"]
+        CT["copy-trading\n:8005\n1:N replication"]
+        RE["risk-engine\n:8006\nPre-trade risk"]
+    end
+
+    subgraph AI["🧠 AI/ML (Python)"]
+        SG["signal-generator\n:8011\nSignal creation"]
+        ORCH["orchestrator\n:8060\nMulti-symbol"]
+        NA["news-analyzer\n:8051\nNLP sentiment"]
+    end
+
+    subgraph Market["📈 Market Data (Go)"]
+        PF["price-feed\n:8300\nReal-time prices"]
+    end
+
+    subgraph Notification["🔔 Notification (Go)"]
+        TB["telegram-bot\n:8503\nTelegram API"]
+    end
+
+    subgraph Bridge["🔗 Bridge (Python)"]
+        BA["bridge-api\n:8522\nMT5 ↔ TNSVT"]
+    end
+
+    subgraph Broker["🏦 Broker (Go)"]
+        MC["mt5-connector\n:8007\nMetaTrader 5"]
+    end
+
+    subgraph Infra["🗄️ Infrastructure"]
+        NATS["NATS JetStream\n:4222"]
+        PG[("PostgreSQL 16\n+ TimescaleDB\n:5432")]
+        REDIS[("Redis 7\n:6379")]
+        OLLAMA["Ollama\nSelf-hosted LLM"]
+        PROM["Prometheus\n:9090"]
+        GRAF["Grafana\n:3000"]
+    end
+
+    F1 <--> GW
+    GW --> AUTH & AM & SE & EE & CT & RE & PF & TB & BA
+    SG --> NATS
+    SE --> NATS
+    NATS --> CT & EE & ORCH
+    CT --> EE
+    EE --> RE
+    EE --> MC
+    BA --> AM
+    BA --> MC
+    AUTH --> PG
+    AM --> PG
+    SE --> PG & REDIS
+    EE --> PG
+    RE --> PG & REDIS
+    NA --> OLLAMA
+    ORCH --> PG
+    PG --> PROM
+    PROM --> GRAF

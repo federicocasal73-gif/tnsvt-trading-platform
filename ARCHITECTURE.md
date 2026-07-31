@@ -1,8 +1,118 @@
 # Arquitectura TNSVT V2
 
-Este directorio contiene la documentación completa de arquitectura del proyecto TNSVT V2.
+![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
+![NATS](https://img.shields.io/badge/NATS-JetStream-27AAE1?logo=nats)
+![Redis](https://img.shields.io/badge/Redis-7-FF4438?logo=redis)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
 
-## 📚 15 Documentos
+**13 microservicios en producción** — Go + Python · Event-Driven · AI-Powered · Multi-Broker
+
+[📄 Descargar PDF completo](TNSVT-V2-Architecture.pdf)
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend"]
+        F1["Vite + React 18\n:5180"]
+    end
+
+    subgraph Gateway["API Gateway"]
+        GW["api-gateway (Go)\n:8000"]
+    end
+
+    subgraph Platform["Platform (Go)"]
+        AUTH["auth-service\n:8001"]
+        AM["account-manager\n:8510"]
+    end
+
+    subgraph Trading["Trading Core (Go)"]
+        SE["signal-engine\n:8003"]
+        EE["execution-engine\n:8004"]
+        CT["copy-trading\n:8005"]
+        RE["risk-engine\n:8006"]
+    end
+
+    subgraph AI["AI/ML (Python)"]
+        SG["signal-generator\n:8011"]
+        ORCH["orchestrator\n:8060"]
+        NA["news-analyzer\n:8051"]
+    end
+
+    subgraph Other["Other (Go)"]
+        PF["price-feed\n:8300"]
+        TB["telegram-bot\n:8503"]
+    end
+
+    subgraph Bridge["Bridge (Python)"]
+        BA["bridge-api\n:8522"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        NATS["NATS JetStream\n:4222"]
+        PG[("PostgreSQL 16\n+ TimescaleDB\n:5432")]
+        REDIS[("Redis 7\n:6379")]
+        OLLAMA["Ollama\nSelf-hosted LLM"]
+    end
+
+    F1 <--> GW
+    GW --> AUTH & AM & SE & EE & CT & RE & PF & TB & BA
+    SG & SE & NA --> NATS
+    NATS --> CT & EE & ORCH
+    CT --> EE --> RE
+    BA --> AM
+    AUTH & AM & SE & EE & CT & RE & ORCH --> PG
+    SE & RE --> REDIS
+    NA --> OLLAMA
+```
+
+## 13 Servicios en Producción
+
+| # | Servicio | Puerto | Lenguaje | Estado |
+|---|----------|--------|----------|--------|
+| 1 | `api-gateway` | 8000 | Go | ✅ Running |
+| 2 | `auth-service` | 8001 | Go | ✅ Running |
+| 3 | `signal-engine` | 8003 | Go | ✅ Running |
+| 4 | `execution-engine` | 8004 | Go | ✅ Running |
+| 5 | `copy-trading` | 8005 | Go | ✅ Running |
+| 6 | `risk-engine` | 8006 | Go | ✅ Running |
+| 7 | `mt5-connector` | 8007 | Go | ✅ Running |
+| 8 | `signal-generator` | 8011 | Python | ✅ Running |
+| 9 | `news-analyzer` | 8051 | Python | ✅ Running |
+| 10 | `orchestrator` | 8060 | Python | ✅ Running |
+| 11 | `price-feed` | 8300 | Go | ✅ Running |
+| 12 | `telegram-bot-service` | 8503 | Go | ✅ Running |
+| 13 | `bridge-api` | 8522 | Python | ✅ Running |
+| 14 | `account-manager` | 8510 | Go | ✅ Running |
+
+## E2E Pipeline
+
+```mermaid
+flowchart LR
+    SG["signal-generator"] -->|NATS| SE["signal-engine"]
+    SE -->|NATS| CT["copy-trading"]
+    CT --> EE["execution-engine"]
+    EE --> RE["risk-engine"]
+    RE --> MC["mt5-connector"]
+    MC --> BA["bridge-api"]
+```
+
+## Quick Start
+
+```bash
+docker-compose up -d
+# → 13 servicios en http://localhost:8000
+# → Login: admin@tnsvt.local / Admin123!Demo
+```
+
+---
+
+## 📚 Documentos de Arquitectura
 
 ### Visión y Estrategia
 1. **[00-VISION.md](00-VISION.md)** — Resumen ejecutivo, problemática actual, propuesta de valor, pilares arquitectónicos, stack tecnológico

@@ -1,0 +1,44 @@
+---
+title: TNSVT V2 — Key Data Flows
+---
+flowchart TB
+    subgraph AuthFlow["🔐 Authentication Flow"]
+        direction LR
+        U["User/Browser"] -->|"POST /login\nemail + password"| GW1["api-gateway"]
+        GW1 --> AUTH1["auth-service"]
+        AUTH1 -->|"validate credentials"| PG1[("PostgreSQL\nusers table")]
+        AUTH1 -->|"return JWT\n{access, refresh}"| U
+        U -->|"API calls\n+ Bearer JWT"| GW2["api-gateway"]
+        GW2 -->|"validate JWT\n+ RBAC check"| ROUTE["route to service"]
+    end
+
+    subgraph CopyFlow["📋 Copy Trading Flow"]
+        direction LR
+        NATS_C["NATS\nSignal"] --> CT1["copy-trading"]
+        CT1 -->|"1. Find active groups"| PG2[("PostgreSQL\ngroups + accounts")]
+        CT1 -->|"2. Calculate lot size\n(e.g., 0.01)"| CT2["lot scaling"]
+        CT2 -->|"3. Create CopyJob"| PG3[("PostgreSQL\ncopy_jobs")]
+        CT2 -->|"4. POST /execute"| EE1["execution-engine"]
+        EE1 -->|"5. Pre-trade risk"| RE1["risk-engine"]
+        RE1 -->|"6. Route to broker"| MC1["mt5-connector"]
+    end
+
+    subgraph MultiAccount["👥 Multi-Account (1:N)"]
+        direction LR
+        SIG["1 Signal\nEURUSD BUY"] --> MATCH["Match Groups"]
+        MATCH --> ACC1["Account A\nlot=0.01"]
+        MATCH --> ACC2["Account B\nlot=0.02"]
+        MATCH --> ACC3["Account C\nlot=0.01"]
+        ACC1 & ACC2 & ACC3 --> PARALLEL["Parallel Execution"]
+    end
+
+    subgraph RiskFlow["🛡️ Risk Checks"]
+        direction LR
+        SIGNAL["Signal"] --> R1["Max Drawdown\n< 15% ?"]
+        R1 -->|"yes"| R2["Max Positions\n< 3 ?"]
+        R2 -->|"yes"| R3["Per-Symbol\nExposure OK?"]
+        R3 -->|"yes"| APPROVED["✅ Approved"]
+        R1 -->|"no"| BLOCKED["❌ Blocked"]
+        R2 -->|"no"| BLOCKED
+        R3 -->|"no"| BLOCKED
+    end

@@ -1,6 +1,21 @@
 # TNSVT V2 — Monorepo
 
-> Plataforma SaaS de trading algorítmico, copy trading y análisis impulsado por IA.
+![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
+![NATS](https://img.shields.io/badge/NATS-JetStream-27AAE1?logo=nats)
+![Redis](https://img.shields.io/badge/Redis-7-FF4438?logo=redis)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![License](https://img.shields.io/badge/License-Proprietary-red)
+
+> **Plataforma SaaS de trading algorítmico** · 13 microservicios · Event-Driven · AI-Powered · Multi-Broker
+
+| | |
+|---|---|
+| 📄 **PDF completo** | [`TNSVT-V2-Architecture.pdf`](TNSVT-V2-Architecture.pdf) (3.2 MB) |
+| 🔗 **Demo** | `http://localhost:8000` · `admin@tnsvt.local` / `Admin123!Demo` |
+| 🏗️ **Arquitectura** | [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`docs/`](docs/) |
 
 ## 📁 Estructura del Monorepo
 
@@ -84,58 +99,91 @@ Ver [`docs/`](docs/) — 15 documentos completos de arquitectura.
 14. **13-RISKS** — 22 riesgos + mitigaciones
 15. **14-SCALE-100K** — Estrategia para 100K usuarios
 
-## 🎯 Servicios Implementados (Fase 1)
+## 🎯 Servicios (Running)
 
-10 microservicios backend + 1 frontend en producción:
+**13 servicios verificados** operativos en este momento:
 
-| # | Servicio | Lenguaje | Puerto | Path | Estado |
-|---|----------|----------|--------|------|--------|
-| 1 | api-gateway | Go | 8000 | `apps/gateway/api-gateway/` | ✅ |
-| 2 | auth-service | Go | 8001 | `apps/platform/auth-service/` | ✅ + tests |
-| 3 | user-service | Go | 8401 | `apps/platform/user-service/` | ✅ |
-| 4 | signal-engine | Go | 8003 | `apps/trading/signal-engine/` | ✅ + tests |
-| 5 | execution-engine | Go | 8004 | `apps/trading/execution-engine/` | ✅ |
-| 6 | copy-trading | Go | 8005 | `apps/trading/copy-trading/` | ✅ |
-| 7 | risk-engine | Go | 8006 | `apps/risk/risk-engine/` | ✅ + tests |
-| 8 | mt5-connector | Go + Python | 8007 | `apps/broker/mt5-connector/` | ✅ (Windows) |
-| 9 | audit-engine | Go | 8600 | `apps/audit/audit-engine/` | ✅ |
-| 10 | ai-core | Python | 8200 | `apps/ai/ai-core/` | ✅ + tests |
-| 11 | price-feed | Go | 8300 | `apps/market-data/price-feed/` | ✅ + tests |
-| 12 | telegram-bot-service | Go | 8503 | `apps/notification/telegram-bot-service/` | ✅ |
-| 13 | telegram-bridge | Python | (sub-svc) | `apps/trading/signal-engine/telegram-bridge/` | ✅ |
-| 14 | frontend | Vite/React/TS | 5180 | `apps/frontend/` | ✅ |
+| # | Servicio | Puerto | Lenguaje | Ruta Docker |
+|---|----------|--------|----------|-------------|
+| 1 | `api-gateway` | 8000 | Go | `apps/gateway/api-gateway/` |
+| 2 | `auth-service` | 8001 | Go | `apps/platform/auth-service/` |
+| 3 | `signal-engine` | 8003 | Go | `apps/trading/signal-engine/` |
+| 4 | `execution-engine` | 8004 | Go | `apps/trading/execution-engine/` |
+| 5 | `copy-trading` | 8005 | Go | `apps/trading/copy-trading/` |
+| 6 | `risk-engine` | 8006 | Go | `apps/risk/risk-engine/` |
+| 7 | `mt5-connector` | 8007 | Go | `apps/broker/mt5-connector/` |
+| 8 | `signal-generator` | 8011 | Python | `apps/ai/signal-generator/` |
+| 9 | `news-analyzer` | 8051 | Python | `apps/ai/news-analyzer/` |
+| 10 | `orchestrator` | 8060 | Python | `apps/ai/orchestrator/` |
+| 11 | `price-feed` | 8300 | Go | `apps/market-data/price-feed/` |
+| 12 | `telegram-bot-service` | 8503 | Go | `apps/notification/telegram-bot-service/` |
+| 13 | `bridge-api` | 8522 | Python | `apps/bridge/bridge-api/` |
+| 14 | `account-manager` | 8510 | Go | `apps/platform/account-manager/` |
 
-Servicios reservados para Fase 2+ (documentados pero no implementados):
-`regime-detector`, `broker-abstraction`.
+Pipeline E2E: `signal → NATS → signal-engine → copy-trading → execution-engine → mt5-connector` ✅ verificado.
+
+**Servicios planeados Fase 2+**: `regime-detector`, `broker-abstraction`, `frontend (React)`, `user-service`.
 
 ## 🧪 Tests
 
 ```bash
-# AI Core (Python)
-cd apps/ai/ai-core && pytest tests/ -v
-
 # Go services
 for svc in auth-service signal-engine risk-engine price-feed; do
-  (cd apps/.../$svc && go test ./... -count=1)
+  (cd apps/trading/$svc && go test ./... -count=1) 2>/dev/null
+  (cd apps/risk/$svc && go test ./... -count=1) 2>/dev/null
+  (cd apps/platform/$svc && go test ./... -count=1) 2>/dev/null
+done
+
+# Python services
+for svc in signal-generator news-analyzer orchestrator bridge-api; do
+  (cd apps/ai/$svc && python -m pytest tests/ -v) 2>/dev/null
+  (cd apps/bridge/$svc && python -m pytest tests/ -v) 2>/dev/null
 done
 ```
 
-Servicios con tests unitarios: `ai-core` (7), `auth-service` (13), `signal-engine` (16), `risk-engine` (17), `price-feed` (19).
+Servicios con tests: `auth-service` (13), `signal-engine` (16), `risk-engine` (17), `price-feed` (19).
 
-## 🔗 Proyecto Anterior
+## 📦 Arquitectura
 
-Este proyecto NO reemplaza al proyecto actual `Terminal_Financiera_Pro` que sigue corriendo y generando dinero. Es la evolución arquitectónica hacia una plataforma SaaS empresarial.
+![System Architecture](docs/diagrams/architecture.png)
+
+Ver [`ARCHITECTURE.md`](ARCHITECTURE.md) para diagrama completo + catálogo de servicios.
+
+## 🚀 Quick Start
+
+```bash
+# 1. Levantar todo el stack
+docker-compose -f docker-compose.dev.yml up -d
+
+# 2. Verificar estado
+& .\scripts\status.bat       # (Windows)
+# o
+./scripts/status.sh           # (Linux/Mac)
+
+# 3. Abrir dashboard
+start http://localhost:8000    # (Windows)
+# Login: admin@tnsvt.local / Admin123!Demo
+
+# 4. Verificar E2E Pipeline
+curl -s http://localhost:8000/api/v1/auth/me \
+  -H "Authorization: Bearer $(curl -s http://localhost:8000/api/v1/auth/login \
+    -H 'Content-Type: application/json' \
+    -d '{\"email\":\"admin@tnsvt.local\",\"password\":\"Admin123!Demo\"}' | \
+    python -c "import sys,json; print(json.load(sys.stdin)['access_token'])" 2>nul)"
+```
 
 ## 📅 Roadmap
 
-- **Fase 1 (0-3m)**: MVP con 14 servicios, 100 usuarios
-- **Fase 2 (3-9m)**: Growth, multi-tenant SaaS, 5K usuarios
-- **Fase 3 (9-18m)**: Scale con Kubernetes, 50K usuarios
-- **Fase 4 (18-36m)**: Enterprise, 100K+ usuarios
+| Fase | Timeline | Objetivo |
+|------|----------|----------|
+| **1** ✅ Actual | Jul 2026 | 13 servicios, pipeline E2E, bridge MT5, Telegram, AI core |
+| **2** | Q3 2026 | Multi-broker (cTrader), WebSocket, Grafana, backtesting |
+| **3** | Q4 2026 | Frontend React completo, Tauri desktop, multi-tenancy |
+| **4** | Q1 2027 | 100K usuarios, Kubernetes HA, white-label |
 
 Ver [`docs/12-ROADMAP.md`](docs/12-ROADMAP.md) para detalles completos.
 
 ---
 
-**Versión**: 0.1.0 (Fase 1 — MVP)
+**Versión**: 2.0 (Fase 1 — Core operativo)
 **Última actualización**: Julio 2026

@@ -1,0 +1,47 @@
+---
+title: TNSVT V2 — Service Dependencies
+---
+flowchart LR
+    subgraph Gateway["🚪 Gateway"]
+        GW["api-gateway"]
+    end
+
+    subgraph Core["⭐ Core Services"]
+        AUTH["auth-service"]
+        AM["account-manager"]
+        SE["signal-engine"]
+        EE["execution-engine"]
+        CT["copy-trading"]
+        RE["risk-engine"]
+        PF["price-feed"]
+        TB["telegram-bot"]
+        SG["signal-generator"]
+        ORCH["orchestrator"]
+        NA["news-analyzer"]
+        BA["bridge-api"]
+        MC["mt5-connector"]
+    end
+
+    AUTH ---|"depends"| PG[("PostgreSQL")]
+    AM ---|"depends"| PG
+    SE ---|"depends"| PG & REDIS[("Redis")]
+    EE ---|"depends"| PG
+    CT ---|"depends"| PG
+    RE ---|"depends"| PG & REDIS
+    ORCH ---|"depends"| PG
+
+    CT -.->|"HTTP call"| EE
+    EE -.->|"HTTP call"| RE
+    EE -.->|"HTTP call"| MC
+    BA -.->|"HTTP call"| AM
+    BA -.->|"HTTP call"| MC
+    ORCH -.->|"HTTP call"| EE
+    
+    GW -.->|"proxies"| AUTH & AM & SE & EE & CT & RE & PF & TB & BA
+
+    classDef core fill:#e1f5fe,stroke:#0288d1
+    classDef db fill:#f3e5f5,stroke:#7b1fa2
+    classDef call fill:none,stroke:#666,stroke-dasharray:5 5
+
+    class AUTH,AM,SE,EE,CT,RE,PF,TB,SG,ORCH,NA,BA,MC core
+    class PG,REDIS db

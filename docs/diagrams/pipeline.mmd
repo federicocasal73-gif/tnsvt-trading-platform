@@ -1,0 +1,65 @@
+---
+title: TNSVT V2 — Signal Processing Pipeline (E2E)
+---
+flowchart LR
+    subgraph Sources["📡 Signal Sources"]
+        SG["signal-generator\n(algorithmic)"]
+        WB["Webhook\n(TradingView, custom)"]
+        TG["Telegram\n(Telethon bridge)"]
+        NA["news-analyzer\n(NLP sentiment)"]
+    end
+
+    subgraph Ingestion["📨 Ingestion"]
+        GW["api-gateway\n:8000"]
+        WH["/api/v1/integrations\n/signals/webhook"]
+    end
+
+    subgraph Processing["⚙️ Processing"]
+        NATS["NATS JetStream\ntrading.signal.created"]
+        SIG_ENG["signal-engine\n:8003\nValidate · Dedup\nStore · Enrich"]
+        NATS2["NATS JetStream\ntrading.signal.validated"]
+    end
+
+    subgraph Copy["🔄 Copy Trading"]
+        COPY["copy-trading\n:8005\nMatch groups\nScale lot size\nApply filters"]
+    end
+
+    subgraph Risk["🛡️ Risk"]
+        RISK["risk-engine\n:8006\nPre-trade check\nDD limit\nPosition sizing"]
+    end
+
+    subgraph Execution["🚀 Execution"]
+        EXEC["execution-engine\n:8004\nRoute to broker\nRetry · Backoff\nTrack status"]
+        MTC["mt5-connector\n:8007\nMT5 order_send"]
+        BA["bridge-api\n:8522\nMT5 Bot sync"]
+    end
+
+    subgraph Storage["💾 Storage"]
+        PG[("PostgreSQL\n+ TimescaleDB")]
+        REDIS[("Redis\nCache + Rate")]
+    end
+
+    SG -->|"NATS: trading.signal.generated"| NATS
+    WB --> WH -->|"X-API-Key"| SIG_ENG
+    TG -->|"POST /api/v1/bridge/telegram/signal"| BA -->|"enqueue"| SIG_ENG
+    NA -->|"NATS: news.signal"| NATS
+
+    NATS --> SIG_ENG
+    SIG_ENG -->|"validate + dedup"| PG
+    SIG_ENG -->|"publish"| NATS2
+    NATS2 --> COPY
+    
+    COPY -->|"check limits"| RISK
+    RISK -->|"score + approve"| EXEC
+    EXEC -->|"2 retries, 30s timeout"| MTC
+    MTC -->|"MT5 order"| BA
+    BA -->|"status callback"| EXEC
+    
+    EXEC -->|"store result"| PG
+    EXEC -->|"notify"| NATS
+    COPY -->|"store job"| PG
+    SIG_ENG --> REDIS
+
+    style NATS fill:#f96,color:#000
+    style NATS2 fill:#f96,color:#000
+    style EXEC fill:#6f9,color:#000

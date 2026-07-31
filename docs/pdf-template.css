@@ -1,0 +1,297 @@
+@page {
+  size: A4;
+  margin: 2.5cm 2cm 2.5cm 2cm;
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    color: #888;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @bottom-center { content: none; }
+}
+
+@page coverpage {
+  margin: 0;
+  @bottom-center { content: none; }
+}
+
+/* ===== COVER PAGE ===== */
+body {
+  font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #1a1a1a;
+  counter-reset: h2 h3 h4;
+}
+
+.cover-page {
+  page: coverpage;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 29.7cm;
+  width: 21cm;
+  background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 50%, #0d2137 100%);
+  color: white;
+  text-align: center;
+  page-break-after: always;
+  margin: -2.5cm -2cm;
+  padding: 2cm;
+  box-sizing: border-box;
+}
+
+.cover-page .cover-label {
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  color: #64b5f6;
+  margin-bottom: 1cm;
+  font-weight: 500;
+}
+
+.cover-page .cover-title {
+  font-size: 28pt;
+  font-weight: 700;
+  margin: 0 0 12pt 0;
+  line-height: 1.15;
+  color: white;
+}
+
+.cover-page .cover-subtitle {
+  font-size: 13pt;
+  color: #90a4ae;
+  margin-bottom: 2cm;
+  font-weight: 300;
+}
+
+.cover-page .cover-divider {
+  width: 80px;
+  height: 3px;
+  background: #64b5f6;
+  margin: 0 auto 1.5cm auto;
+  border: none;
+}
+
+.cover-page .cover-meta {
+  font-size: 9pt;
+  color: #78909c;
+  line-height: 2;
+}
+
+.cover-page .cover-meta strong {
+  color: #b0bec5;
+}
+
+/* ===== TOC ===== */
+nav#TOC {
+  page-break-after: always;
+  padding: 0;
+}
+
+nav#TOC h2 {
+  font-size: 18pt;
+  color: #0a1628;
+  border-bottom: 3px solid #64b5f6;
+  padding-bottom: 6pt;
+  margin-bottom: 16pt;
+}
+
+nav#TOC ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav#TOC ul li {
+  margin: 0;
+  padding: 8pt 0;
+  border-bottom: 1px dotted #ddd;
+}
+
+nav#TOC ul li a {
+  color: #1565c0;
+  text-decoration: none;
+  font-size: 11pt;
+}
+
+nav#TOC ul li a::after {
+  content: leader('.') target-counter(attr(href), page);
+  float: right;
+}
+
+nav#TOC ul ul li {
+  padding-left: 20pt;
+  font-size: 9.5pt;
+}
+
+/* ===== HEADINGS ===== */
+h1 {
+  font-size: 20pt;
+  color: #0a1628;
+  border-bottom: 3px solid #1565c0;
+  padding-bottom: 6pt;
+  margin-top: 28pt;
+  margin-bottom: 16pt;
+  page-break-before: always;
+  page-break-after: avoid;
+}
+
+h1:first-of-type {
+  page-break-before: avoid;
+}
+
+h2 {
+  font-size: 15pt;
+  color: #1a2a4a;
+  margin-top: 24pt;
+  margin-bottom: 10pt;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  color: #2c3e50;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+  page-break-after: avoid;
+}
+
+h4 {
+  font-size: 10.5pt;
+  color: #34495e;
+  margin-top: 14pt;
+  margin-bottom: 6pt;
+  page-break-after: avoid;
+}
+
+/* ===== PARAGRAPHS ===== */
+p {
+  margin: 0 0 8pt 0;
+  text-align: justify;
+}
+
+/* ===== LINKS ===== */
+a {
+  color: #1565c0;
+  text-decoration: none;
+}
+
+/* ===== IMAGES ===== */
+img {
+  max-width: 16cm;
+  height: auto;
+  display: block;
+  margin: 12pt auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  page-break-inside: avoid;
+}
+
+/* ===== TABLES ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12pt 0;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+
+table th {
+  background: #0a1628;
+  color: white;
+  padding: 8pt 10pt;
+  text-align: left;
+  font-weight: 600;
+}
+
+table td {
+  padding: 6pt 10pt;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+table tr:nth-child(even) td {
+  background: #f5f7fa;
+}
+
+table tr:hover td {
+  background: #e3f2fd;
+}
+
+/* ===== CODE ===== */
+code {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 8.5pt;
+  background: #f0f0f0;
+  padding: 1pt 4pt;
+  border-radius: 3px;
+  color: #c7254e;
+}
+
+pre {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 8pt;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #1565c0;
+  padding: 10pt 12pt;
+  overflow-x: auto;
+  line-height: 1.4;
+  margin: 10pt 0;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  color: #2c3e50;
+}
+
+/* ===== BLOCKQUOTE ===== */
+blockquote {
+  border-left: 4px solid #64b5f6;
+  padding: 8pt 12pt;
+  margin: 12pt 0;
+  background: #f0f7ff;
+  font-style: italic;
+  color: #37474f;
+}
+
+/* ===== LISTS ===== */
+ul, ol {
+  margin: 6pt 0 8pt 0;
+  padding-left: 22pt;
+}
+
+li {
+  margin-bottom: 4pt;
+}
+
+/* ===== HORIZONTAL RULES ===== */
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 20pt 0;
+}
+
+/* ===== SECTION BREAKS ===== */
+.appendix {
+  page-break-before: always;
+}
+
+.screenshot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10pt;
+  justify-content: center;
+}
+
+.screenshot-grid img {
+  width: 48%;
+  max-width: 8cm;
+}
