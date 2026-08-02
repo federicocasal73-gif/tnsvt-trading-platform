@@ -1,0 +1,884 @@
+INFO:     Started server process [64172]
+INFO:     Waiting for application startup.
+2026-07-29 02:29:30,596 [INFO] app.nats_client: Stream for tnsvt.lst.signal: tnsvt
+2026-07-29 02:29:30,596 [WARNING] app.nats_client: Could not find stream for trading.signal.validated: nats: NotFoundError: code=None err_code=None description='None'
+2026-07-29 02:29:30,596 [INFO] app.nats_client: Connected to NATS at nats://localhost:4222 (in=tnsvt, out=tnsvt)
+2026-07-29 02:29:31,376 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:31,378 [INFO] app.multi_orchestrator: Warmed up XAUUSD with 100 candles
+2026-07-29 02:29:31,716 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:31,717 [INFO] app.multi_orchestrator: Warmed up EURUSD with 100 candles
+2026-07-29 02:29:32,058 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:32,060 [INFO] app.multi_orchestrator: Warmed up GBPUSD with 100 candles
+2026-07-29 02:29:32,391 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:32,392 [INFO] app.multi_orchestrator: Warmed up USDCHF with 100 candles
+2026-07-29 02:29:32,392 [INFO] app.nats_client: Subscribed to trading.control.> for control messages
+2026-07-29 02:29:32,392 [INFO] app.nats_client: Subscribing to tnsvt.lst.signal (NATS core, queue group for load balancing)
+2026-07-29 02:29:32,392 [INFO] app.multi_orchestrator: MultiSymbolOrchestrator started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDCHF'], timeframes=['M15', 'H1', 'H4']
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8060 (Press CTRL+C to quit)
+2026-07-29 02:29:32,725 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:63402 - "GET /api/v1/orchestrator/health HTTP/1.1" 200 OK
+2026-07-29 02:29:33,068 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:33,410 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:33,753 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:57731 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:29:43,366 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:43,699 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H4&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:29:44,080 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=D1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:54015 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:29:45,927 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/calendar?days=3 "HTTP/1.1 200 OK"
+2026-07-29 02:29:47,458 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/liquidity "HTTP/1.1 200 OK"
+2026-07-29 02:29:47,459 [INFO] app.macro_filter: Macro conditions: normal
+INFO:     127.0.0.1:52963 - "GET /api/v1/orchestrator/analysis/XAUUSD HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50526 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:30:04,110 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:61721 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:30:04,449 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:04,792 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:05,128 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:13,277 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.63 (will publish on next window)
+2026-07-29 02:30:13,647 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:30:13,649 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:30:13,650 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.50 (will publish on next window)
+2026-07-29 02:30:13,650 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:30:13,651 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:30:13,651 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:30:13,652 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.62 (will publish on next window)
+2026-07-29 02:30:13,653 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.48 (will publish on next window)
+2026-07-29 02:30:13,653 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:30:13,654 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:30:13,655 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.90 (will publish on next window)
+2026-07-29 02:30:13,655 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:30:13,998 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:30:14,000 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:30:14,001 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:30:14,003 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.85 (will publish on next window)
+2026-07-29 02:30:14,003 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.77 (will publish on next window)
+2026-07-29 02:30:14,005 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:30:14,005 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.73 (will publish on next window)
+2026-07-29 02:30:14,007 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.85 (will publish on next window)
+2026-07-29 02:30:14,007 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.82 (will publish on next window)
+2026-07-29 02:30:14,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:30:14,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:58071 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60059 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63326 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:30:35,431 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:35,748 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:36,075 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:36,392 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:36,726 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:37,046 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H4&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:37,365 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=D1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:30:39,034 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/calendar?days=3 "HTTP/1.1 200 OK"
+2026-07-29 02:30:40,357 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/liquidity "HTTP/1.1 200 OK"
+2026-07-29 02:30:40,358 [INFO] app.macro_filter: Macro conditions: normal
+2026-07-29 02:30:40,359 [INFO] app.nats_client: Published SignalInput (NATS core) symbol=XAUUSD action=BUY conf=0.61
+2026-07-29 02:30:40,359 [INFO] app.multi_orchestrator: Final signal: XAUUSD BUY lot=0.58 conf=0.61 bias=NEUTRAL score=46.9 macro_risk_off=False reasons=[]
+INFO:     127.0.0.1:62747 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57160 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59866 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:31:10,680 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:11,012 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:11,356 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:11,701 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53053 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:31:14,586 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.39 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:31:14,587 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.56 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:31:15,003 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:31:15,005 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:31:15,006 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.51 (will publish on next window)
+2026-07-29 02:31:15,007 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:31:15,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:31:15,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:31:15,009 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.63 (will publish on next window)
+2026-07-29 02:31:15,010 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:31:15,010 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:31:15,011 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:31:15,012 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.89 (will publish on next window)
+2026-07-29 02:31:15,012 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:31:15,407 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:31:15,408 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:31:15,409 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:31:15,411 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:31:15,411 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:31:15,413 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:31:15,414 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.73 (will publish on next window)
+2026-07-29 02:31:15,415 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.85 (will publish on next window)
+2026-07-29 02:31:15,415 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.82 (will publish on next window)
+2026-07-29 02:31:15,416 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:31:15,416 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55289 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61536 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:31:42,196 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:42,688 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:43,215 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:43,692 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:60778 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:31:44,204 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:44,677 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H4&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:45,151 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=D1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:31:47,070 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/calendar?days=3 "HTTP/1.1 200 OK"
+2026-07-29 02:31:48,723 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/liquidity "HTTP/1.1 200 OK"
+2026-07-29 02:31:48,723 [INFO] app.macro_filter: Macro conditions: normal
+2026-07-29 02:31:48,725 [INFO] app.nats_client: Published SignalInput (NATS core) symbol=XAUUSD action=BUY conf=0.61
+2026-07-29 02:31:48,725 [INFO] app.multi_orchestrator: Final signal: XAUUSD BUY lot=0.61 conf=0.61 bias=NEUTRAL score=46.7 macro_risk_off=False reasons=[]
+INFO:     127.0.0.1:56517 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55407 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55499 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:32:15,874 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.35 (will publish on next window)
+2026-07-29 02:32:16,334 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:32:16,336 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:32:16,338 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.53 (will publish on next window)
+2026-07-29 02:32:16,338 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:32:16,339 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:32:16,340 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:32:16,340 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.64 (will publish on next window)
+2026-07-29 02:32:16,341 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:32:16,342 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.58 (will publish on next window)
+2026-07-29 02:32:16,343 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:32:16,344 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.89 (will publish on next window)
+2026-07-29 02:32:16,345 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:32:16,346 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.76 (will publish on next window)
+2026-07-29 02:32:16,812 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:32:16,813 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:32:16,814 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:32:16,816 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:32:16,817 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:32:16,819 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:32:16,820 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:32:16,822 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:32:16,822 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:32:16,823 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:32:16,823 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:32:16,824 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.52 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:19,254 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:19,706 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:20,124 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:20,606 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:21,041 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:21,465 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H4&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+2026-07-29 02:32:21,951 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=D1&limit=100 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:32:23,557 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/calendar?days=3 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64942 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:32:25,037 [INFO] httpx: HTTP Request: GET http://localhost:8040/api/v1/macro/liquidity "HTTP/1.1 200 OK"
+2026-07-29 02:32:25,038 [INFO] app.macro_filter: Macro conditions: normal
+2026-07-29 02:32:25,039 [INFO] app.nats_client: Published SignalInput (NATS core) symbol=XAUUSD action=SELL conf=0.52
+2026-07-29 02:32:25,039 [INFO] app.multi_orchestrator: Final signal: XAUUSD SELL lot=0.50 conf=0.52 bias=NEUTRAL score=46.7 macro_risk_off=False reasons=[]
+INFO:     127.0.0.1:51322 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58127 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55331 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:32:55,492 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:32:56,067 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:32:56,577 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:32:57,040 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:55454 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64923 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:33:17,173 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.34 (will publish on next window)
+2026-07-29 02:33:17,175 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:33:17,503 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:33:17,505 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:33:17,505 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.30 (will publish on next window)
+2026-07-29 02:33:17,506 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:33:17,506 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:33:17,507 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:33:17,507 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:33:17,508 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.65 (will publish on next window)
+2026-07-29 02:33:17,508 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:33:17,508 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.58 (will publish on next window)
+2026-07-29 02:33:17,509 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:33:17,510 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.89 (will publish on next window)
+2026-07-29 02:33:17,511 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:33:17,878 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:33:17,879 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:33:17,880 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:33:17,882 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:33:17,882 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.79 (will publish on next window)
+2026-07-29 02:33:17,884 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:33:17,884 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:33:17,885 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:33:17,886 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:33:17,887 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:33:17,887 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:60579 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:33:27,465 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:27,847 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:28,184 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:28,563 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:28,564 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:33:28,564 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:49308 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53696 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65491 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:33:58,952 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:59,332 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:33:59,697 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:34:00,057 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:52358 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52997 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:34:18,297 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.33 (will publish on next window)
+2026-07-29 02:34:18,299 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.48 (will publish on next window)
+2026-07-29 02:34:18,798 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:34:18,800 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:34:18,801 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.31 (will publish on next window)
+2026-07-29 02:34:18,801 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.55 (will publish on next window)
+2026-07-29 02:34:18,802 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:34:18,803 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.62 (will publish on next window)
+2026-07-29 02:34:18,803 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:34:18,804 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.65 (will publish on next window)
+2026-07-29 02:34:18,804 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.30 (will publish on next window)
+2026-07-29 02:34:18,805 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:34:18,806 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.58 (will publish on next window)
+2026-07-29 02:34:18,807 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:34:18,807 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.89 (will publish on next window)
+2026-07-29 02:34:18,808 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:34:19,226 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:34:19,227 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:34:19,228 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:34:19,230 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.87 (will publish on next window)
+2026-07-29 02:34:19,230 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.79 (will publish on next window)
+2026-07-29 02:34:19,232 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:34:19,232 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:34:19,233 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:34:19,234 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:34:19,234 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:34:19,235 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.60 (will publish on next window)
+INFO:     127.0.0.1:53272 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:34:30,433 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:34:30,825 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:34:31,187 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:34:31,534 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:34:31,535 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:34:31,535 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:52143 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50530 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62827 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:35:02,039 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:02,571 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:03,072 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:03,547 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:59348 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64029 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:35:19,575 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.43 (will publish on next window)
+2026-07-29 02:35:19,906 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:35:19,907 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:35:19,909 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.52 (will publish on next window)
+2026-07-29 02:35:19,909 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:35:19,910 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:35:19,910 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:35:19,911 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.63 (will publish on next window)
+2026-07-29 02:35:19,912 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:35:19,912 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:35:19,913 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:35:19,913 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.90 (will publish on next window)
+2026-07-29 02:35:19,914 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:35:20,246 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:35:20,247 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:35:20,248 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:35:20,249 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:35:20,250 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:35:20,251 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:35:20,252 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:35:20,253 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:35:20,253 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:35:20,254 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:35:20,254 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:55667 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:35:33,913 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:60251 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:35:34,248 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:34,584 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:34,925 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:35:34,926 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:35:34,926 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:59447 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53923 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61625 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:36:05,357 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:05,889 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:06,377 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:06,787 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:61692 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:36:20,648 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.40 (will publish on next window)
+2026-07-29 02:36:21,003 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:36:21,005 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:36:21,006 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.53 (will publish on next window)
+2026-07-29 02:36:21,007 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:36:21,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:36:21,008 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:36:21,009 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.64 (will publish on next window)
+2026-07-29 02:36:21,010 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.49 (will publish on next window)
+2026-07-29 02:36:21,010 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:36:21,011 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:36:21,011 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.90 (will publish on next window)
+2026-07-29 02:36:21,012 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:36:21,014 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.56 (will publish on next window)
+2026-07-29 02:36:21,416 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:36:21,417 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:36:21,418 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:36:21,420 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:36:21,420 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:36:21,422 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:36:21,422 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:36:21,423 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:36:21,424 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:36:21,424 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:36:21,424 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:56566 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59961 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:36:37,164 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:37,516 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:37,862 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:38,228 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:36:38,229 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:36:38,229 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:62252 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53953 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52598 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:37:08,594 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:08,940 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:09,285 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:09,635 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:50540 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:37:21,786 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:37:22,122 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:37:22,122 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:37:22,124 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.30 (will publish on next window)
+2026-07-29 02:37:22,125 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:37:22,125 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:37:22,126 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:37:22,126 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:37:22,127 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.64 (will publish on next window)
+2026-07-29 02:37:22,128 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.48 (will publish on next window)
+2026-07-29 02:37:22,128 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:37:22,129 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.33 (will publish on next window)
+2026-07-29 02:37:22,129 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.90 (will publish on next window)
+2026-07-29 02:37:22,130 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:37:22,473 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:37:22,473 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:37:22,474 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:37:22,476 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:37:22,476 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:37:22,478 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:37:22,478 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:37:22,479 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:37:22,480 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:37:22,480 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:37:22,481 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:50585 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55891 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:37:40,014 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:40,375 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:40,729 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:41,074 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:37:41,075 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:37:41,075 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:53960 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50979 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55030 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:38:11,417 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:11,756 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:12,089 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:12,427 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:58393 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:38:22,849 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.54 (will publish on next window)
+2026-07-29 02:38:23,177 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:38:23,179 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:38:23,179 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.31 (will publish on next window)
+2026-07-29 02:38:23,180 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:38:23,180 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:38:23,181 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:38:23,182 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:38:23,183 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.64 (will publish on next window)
+2026-07-29 02:38:23,184 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.48 (will publish on next window)
+2026-07-29 02:38:23,184 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.57 (will publish on next window)
+2026-07-29 02:38:23,185 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:38:23,185 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.90 (will publish on next window)
+2026-07-29 02:38:23,186 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:38:23,540 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:38:23,541 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:38:23,542 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:38:23,543 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.87 (will publish on next window)
+2026-07-29 02:38:23,544 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.79 (will publish on next window)
+2026-07-29 02:38:23,545 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:38:23,546 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:38:23,547 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:38:23,548 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:38:23,548 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:38:23,549 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:65338 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59352 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:38:42,792 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:43,177 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:43,553 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:43,919 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:38:43,920 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:38:43,920 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:60522 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63646 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62470 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59192 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:39:14,402 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:14,802 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:15,167 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:15,569 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:23,938 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.50 (will publish on next window)
+INFO:     127.0.0.1:54908 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:39:24,299 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:39:24,300 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:39:24,301 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.31 (will publish on next window)
+2026-07-29 02:39:24,302 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:39:24,302 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:39:24,303 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:39:24,303 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:39:24,304 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.63 (will publish on next window)
+2026-07-29 02:39:24,305 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.48 (will publish on next window)
+2026-07-29 02:39:24,305 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.56 (will publish on next window)
+2026-07-29 02:39:24,306 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:39:24,306 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.91 (will publish on next window)
+2026-07-29 02:39:24,307 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:39:24,701 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:39:24,702 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:39:24,703 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:39:24,705 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.87 (will publish on next window)
+2026-07-29 02:39:24,705 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.79 (will publish on next window)
+2026-07-29 02:39:24,707 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:39:24,708 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:39:24,709 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:39:24,710 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:39:24,710 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:39:24,710 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:62700 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60645 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:39:45,923 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:46,253 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:46,604 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:46,939 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:39:46,939 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:39:46,940 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:57484 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50720 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52172 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:40:17,304 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:17,648 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:18,012 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:18,353 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64677 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:40:25,071 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.47 (will publish on next window)
+2026-07-29 02:40:25,398 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:40:25,399 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:40:25,400 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.50 (will publish on next window)
+2026-07-29 02:40:25,401 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:40:25,401 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:40:25,402 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:40:25,402 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.60 (will publish on next window)
+2026-07-29 02:40:25,403 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.46 (will publish on next window)
+2026-07-29 02:40:25,404 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.55 (will publish on next window)
+2026-07-29 02:40:25,405 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:40:25,405 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.92 (will publish on next window)
+2026-07-29 02:40:25,406 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.88 (will publish on next window)
+2026-07-29 02:40:25,752 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:40:25,752 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:40:25,753 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:40:25,754 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:40:25,755 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:40:25,757 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.83 (will publish on next window)
+2026-07-29 02:40:25,757 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:40:25,758 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:40:25,759 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:40:25,759 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:40:25,760 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:60303 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64690 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:40:48,688 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:49,038 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:49,405 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:49,740 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:40:49,740 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:40:49,740 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:61339 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49602 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50788 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+2026-07-29 02:41:20,069 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:20,411 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:20,738 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:21,065 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:58015 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+2026-07-29 02:41:26,456 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:41:26,457 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:41:26,459 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.51 (will publish on next window)
+2026-07-29 02:41:26,460 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:41:26,460 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:41:26,461 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:41:26,461 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.59 (will publish on next window)
+2026-07-29 02:41:26,462 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.46 (will publish on next window)
+2026-07-29 02:41:26,463 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.55 (will publish on next window)
+2026-07-29 02:41:26,463 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:41:26,464 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.92 (will publish on next window)
+2026-07-29 02:41:26,464 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.89 (will publish on next window)
+2026-07-29 02:41:26,788 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:41:26,789 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:41:26,789 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:41:26,791 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:41:26,791 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:41:26,793 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:41:26,793 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:41:26,794 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:41:26,795 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:41:26,795 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:41:26,796 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+INFO:     127.0.0.1:63094 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/stats HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59773 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+2026-07-29 02:41:51,429 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:51,753 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:52,145 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:52,549 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:41:52,550 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:41:52,550 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52953 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61020 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65439 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:42:22,898 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:23,240 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:23,604 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:23,966 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:64196 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:42:27,158 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.36 (will publish on next window)
+2026-07-29 02:42:27,517 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:42:27,518 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:42:27,519 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.51 (will publish on next window)
+2026-07-29 02:42:27,520 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:42:27,520 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:42:27,521 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:42:27,521 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.59 (will publish on next window)
+2026-07-29 02:42:27,522 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.46 (will publish on next window)
+2026-07-29 02:42:27,523 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.55 (will publish on next window)
+2026-07-29 02:42:27,523 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:42:27,524 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.92 (will publish on next window)
+2026-07-29 02:42:27,524 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.88 (will publish on next window)
+2026-07-29 02:42:27,526 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.70 (will publish on next window)
+2026-07-29 02:42:27,854 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:42:27,855 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:42:27,856 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:42:27,857 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:42:27,858 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:42:27,859 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:42:27,860 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:42:27,861 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:42:27,861 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:42:27,862 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:42:27,862 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:42:27,863 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.84 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53785 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50099 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56630 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:42:54,335 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:54,723 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:55,090 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:55,433 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:42:55,434 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:42:55,435 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:52982 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53011 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65460 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:43:25,931 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:26,327 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:26,758 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:27,105 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:28,211 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.57 (will publish on next window)
+2026-07-29 02:43:28,537 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:43:28,539 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:43:28,540 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.51 (will publish on next window)
+2026-07-29 02:43:28,541 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:43:28,541 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:43:28,542 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:43:28,542 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.58 (will publish on next window)
+2026-07-29 02:43:28,543 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.46 (will publish on next window)
+2026-07-29 02:43:28,543 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.55 (will publish on next window)
+2026-07-29 02:43:28,544 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:43:28,544 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.92 (will publish on next window)
+2026-07-29 02:43:28,545 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.88 (will publish on next window)
+2026-07-29 02:43:28,547 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.84 (will publish on next window)
+2026-07-29 02:43:28,881 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:43:28,881 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:43:28,882 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:43:28,884 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:43:28,885 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.78 (will publish on next window)
+2026-07-29 02:43:28,886 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:43:28,887 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:43:28,888 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.86 (will publish on next window)
+2026-07-29 02:43:28,888 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:43:28,889 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:43:28,889 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:43:28,890 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57202 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64890 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52270 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:43:57,478 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:57,812 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:58,155 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:58,506 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:43:58,507 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:43:58,507 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+INFO:     127.0.0.1:53678 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53709 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63915 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:44:28,837 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,177 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,270 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.53 (will publish on next window)
+2026-07-29 02:44:29,535 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,626 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:44:29,628 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.54 (will publish on next window)
+2026-07-29 02:44:29,629 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.50 (will publish on next window)
+2026-07-29 02:44:29,630 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.51 (will publish on next window)
+2026-07-29 02:44:29,630 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:44:29,631 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.60 (will publish on next window)
+2026-07-29 02:44:29,631 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.58 (will publish on next window)
+2026-07-29 02:44:29,633 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.46 (will publish on next window)
+2026-07-29 02:44:29,633 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.55 (will publish on next window)
+2026-07-29 02:44:29,634 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:44:29,634 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.92 (will publish on next window)
+2026-07-29 02:44:29,635 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.88 (will publish on next window)
+2026-07-29 02:44:29,637 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.91 (will publish on next window)
+2026-07-29 02:44:29,888 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,889 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:44:29,889 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions
+2026-07-29 02:44:29,996 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.32 (will publish on next window)
+2026-07-29 02:44:29,997 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.38 (will publish on next window)
+2026-07-29 02:44:29,998 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.44 (will publish on next window)
+2026-07-29 02:44:29,999 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.86 (will publish on next window)
+2026-07-29 02:44:30,000 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.79 (will publish on next window)
+2026-07-29 02:44:30,002 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.84 (will publish on next window)
+2026-07-29 02:44:30,002 [INFO] app.multi_orchestrator: Pending signal: XAUUSD SELL conf=0.74 (will publish on next window)
+2026-07-29 02:44:30,003 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.87 (will publish on next window)
+2026-07-29 02:44:30,004 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.83 (will publish on next window)
+2026-07-29 02:44:30,004 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.35 (will publish on next window)
+2026-07-29 02:44:30,005 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.61 (will publish on next window)
+2026-07-29 02:44:30,006 [INFO] app.multi_orchestrator: Pending signal: XAUUSD BUY conf=0.85 (will publish on next window)
+INFO:     ::1:0 - "GET /api/v1/orchestrator/signals?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63120 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63164 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58373 - "GET /health HTTP/1.1" 404 Not Found
+2026-07-29 02:45:00,225 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:45:00,560 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=EURUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:45:00,888 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=GBPUSD&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:45:01,217 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=USDCHF&timeframe=H1&limit=100 "HTTP/1.1 200 OK"
+2026-07-29 02:45:01,218 [WARNING] app.portfolio_manager: max positions reached (3)
+2026-07-29 02:45:01,218 [WARNING] app.multi_orchestrator: Skipping evaluation: portfolio cannot open new positions

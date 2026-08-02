@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -157,7 +158,12 @@ func getTenantID(c *gin.Context) uuid.UUID {
 			return u
 		}
 	}
-	return uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			return u
+		}
+	}
+	return uuid.Nil
 }
 
 func mergeMaps(a, b map[string]interface{}) map[string]interface{} {

@@ -1,0 +1,7 @@
+SUBSCRIBED at 14:02:24.001
+GOT validated: 14:02:24.049
+CORE PUBLISH RECEIVED
+GOT created: 14:02:24.090
+js.Publish ack: seq=28
+JS PUBLISH RECEIVED by core subscriber
+DONE

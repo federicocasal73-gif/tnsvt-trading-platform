@@ -17,6 +17,9 @@ from signal_copier import dead_letter
 
 logger = logging.getLogger("SignalCopier.Executor")
 
+from signal_copier.magic import MAGIC_NUMBER  # noqa: E402
+logger.info(f"MT5 magic number: {MAGIC_NUMBER} (override via MT5_MAGIC_NUMBER env)")
+
 
 _PARTIAL_CFG_FILE = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "partial_configs.json"
 _TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
@@ -130,7 +133,7 @@ class MT5Executor:
                 "type": order_type,
                 "price": price_info["ask"] if action == "BUY" else price_info["bid"],
                 "deviation": 10,
-                "magic": 20260706,
+                "magic": MAGIC_NUMBER,
                 "comment": f"SignalCopier",
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": self._get_filling_mode(),
@@ -230,7 +233,7 @@ class MT5Executor:
                     "position": pos.ticket,
                     "price": price,
                     "deviation": 10,
-                    "magic": 20260706,
+                    "magic": MAGIC_NUMBER,
                     "comment": "Close",
                     "type_time": mt5.ORDER_TIME_GTC,
                     "type_filling": self._get_filling_mode(),
@@ -363,7 +366,7 @@ class MT5Executor:
 
             position = None
             for pos in positions:
-                if pos.ticket == order_ticket or (pos.symbol == symbol and pos.magic == 20260706):
+                if pos.ticket == order_ticket or (pos.symbol == symbol and pos.magic == MAGIC_NUMBER):
                     position = pos
                     break
 
@@ -552,7 +555,7 @@ class MT5Monitor:
                 if not self.executor.partial_configs:
                     continue
 
-                positions = mt5.positions_get(magic=20260706) or []
+                positions = mt5.positions_get(magic=MAGIC_NUMBER) or []
                 open_tickets = {int(p.ticket) for p in positions}
 
                 for ticket_str in list(self.executor.partial_configs.keys()):
@@ -621,7 +624,7 @@ class MT5Monitor:
                 "position": ticket,
                 "price": close_price,
                 "deviation": 10,
-                "magic": 20260706,
+                "magic": MAGIC_NUMBER,
                 "comment": label,
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": mt5.ORDER_FILLING_IOC,

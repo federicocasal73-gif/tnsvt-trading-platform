@@ -8,11 +8,11 @@ global:
     cluster: tnsvt-v2-dev
     environment: development
 
-# Alertmanager (Fase 2)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['alertmanager:9093']
+# Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 # Load rules
 rule_files:

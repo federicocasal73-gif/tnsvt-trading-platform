@@ -19,7 +19,7 @@ from bot.watchdog import watchdog_loop
 from bot.callbacks import button_router
 from bot.events_watcher import events_watcher_loop
 from bot.calendar_watchdog import calendar_watchdog_loop
-from bot.news_alerts import news_alerts_loop
+from bot.news_alerts import news_alerts_loop, data_released_loop
 from bot.risk_alerts import risk_alerts_loop
 from bot.handlers.about import about_command, send_about_pinned
 from bot.handlers.weekly_poll import (
@@ -75,6 +75,7 @@ async def post_init(app):
     app.bot_data["calendar_task"] = asyncio.create_task(_run_daily_calendar(app))
     app.bot_data["calendar_watchdog_task"] = asyncio.create_task(calendar_watchdog_loop(app))
     app.bot_data["news_alerts_task"] = asyncio.create_task(news_alerts_loop(app))
+    app.bot_data["data_released_task"] = asyncio.create_task(data_released_loop(app))
     app.bot_data["weekly_poll_task"] = asyncio.create_task(weekly_poll_loop(app))
     app.bot_data["weekly_calendar_task"] = asyncio.create_task(weekly_calendar_loop(app))
     app.bot_data["risk_alerts_task"] = asyncio.create_task(risk_alerts_loop(app))

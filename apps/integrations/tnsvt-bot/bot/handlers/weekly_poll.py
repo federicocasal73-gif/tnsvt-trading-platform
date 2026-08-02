@@ -1,21 +1,28 @@
 """
 Handler: Weekly Poll — Encuesta semanal de sentimiento por instrumento.
 
-Cada lunes a las 9:00 ART publica 5 polls Telegram nativos
-(BTCUSD, XAUUSD, EURUSD, DXY, NAS100) con opciones:
+Cada lunes a las 9:00 ART publica 5 encuestas (BTCUSD, XAUUSD, EURUSD,
+DXY, NAS100) con botones inline, opciones:
   🟢 Alcista | 🔴 Bajista | 🟡 Rango | ⚪ Afuera
+
+Cada encuesta se persiste en el bridge (CommunityDB, tabla surveys) y los
+votos se registran por usuario (idempotente). Los botones inline reemplazan
+a los polls nativos de Telegram (que eran anónimos y sin user_id).
 
 Loop independiente con cleanup de duplicados.
 Comando admin /encuesta para forzar manualmente.
 """
 import asyncio
 import logging
+import time
 from datetime import datetime, timedelta
 
 import pytz
-from telegram import Update
+import requests
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 from config import settings
+from bot.bridge_auth import bridge_headers
 from bot.constants import (
     TNSVT_BRAND_LINE,
     TNSVT_SHORT_DISCLAIMER,
@@ -29,6 +36,64 @@ logger = logging.getLogger("Bot.Handlers.WeeklyPoll")
 ART = pytz.timezone("America/Argentina/Buenos_Aires")
 
 _last_publish_iso: str | None = None
+
+# Retry para crear encuestas en el bridge (aguanta reinicios del bridge).
+_SURVEY_RETRIES = 3
+_SURVEY_RETRY_DELAY = 30
+
+
+def _community_api() -> str:
+    return settings.COMMUNITY_API_URL
+
+
+def _create_survey(symbol: str, target: int) -> str | None:
+    """Crea la encuesta en el bridge y devuelve el survey_id.
+
+    Reintenta con backoff (3 intentos, 30s entre ellos) para aguantar
+    ventanas cortas de indisponibilidad del bridge (por ejemplo si se
+    reinicia justo en el horario de publicación). Si los 3 fallan, se
+    devuelve None y el caller hace fallback a texto plano.
+    """
+    payload = {
+        "title": f"¿Cómo ves {symbol} esta semana?",
+        "options": POLL_OPTIONS,
+        "channel_id": target,
+        "created_by": None,
+    }
+    last_exc = None
+    for attempt in range(1, _SURVEY_RETRIES + 1):
+        try:
+            resp = requests.post(
+                f"{_community_api()}/surveys",
+                json=payload,
+                headers=bridge_headers(),
+                timeout=8,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("survey", {}).get("id")
+            logger.warning(
+                f"weekly_poll: crear survey {symbol} -> {resp.status_code} (intento {attempt}/{_SURVEY_RETRIES})"
+            )
+        except Exception as e:
+            last_exc = e
+            logger.error(
+                f"weekly_poll: error creando survey {symbol} (intento {attempt}/{_SURVEY_RETRIES}): {e}"
+            )
+        if attempt < _SURVEY_RETRIES:
+            time.sleep(_SURVEY_RETRY_DELAY)
+    if last_exc:
+        logger.error(f"weekly_poll: sin retry exitoso para {symbol}: {last_exc}")
+    return None
+
+
+def _poll_keyboard(survey_id: str) -> InlineKeyboardMarkup:
+    rows = []
+    for idx, option in enumerate(POLL_OPTIONS):
+        rows.append([
+            InlineKeyboardButton(option, callback_data=f"poll:v:{survey_id}:{idx}"),
+        ])
+    return InlineKeyboardMarkup(rows)
 
 
 def _next_monday_9am(now_art: datetime) -> datetime:
@@ -53,7 +118,7 @@ def _is_monday_9am_window(now_art: datetime) -> bool:
 
 
 async def _publish_polls(app, context=None) -> None:
-    """Publica 5 polls Telegram nativos en el grupo."""
+    """Publica 5 encuestas con botones inline en el grupo."""
     target = settings.BOT_GROUP_ID
     if not target:
         logger.warning("weekly_poll: BOT_GROUP_ID no configurado")
@@ -65,7 +130,8 @@ async def _publish_polls(app, context=None) -> None:
         f"📊 *ENCUESTA SEMANAL — Sentimiento de mercado*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🗓 Semana del {datetime.now(ART).strftime('%d/%m/%Y')}\n"
-        f"🎯 Votá tu visión para los próximos 5 días.\n\n"
+        f"🎯 Votá tu visión para los próximos 5 días.\n"
+        f"👆 Tocá una opción para votar.\n\n"
         f"{TNSVT_SHORT_DISCLAIMER}"
     )
 
@@ -84,21 +150,27 @@ async def _publish_polls(app, context=None) -> None:
     polls_fail = 0
 
     for symbol in POLL_INSTRUMENTS:
-        question = f"¿Cómo ves {symbol} esta semana?"
+        question = f"📊 ¿Cómo ves *{symbol}* esta semana?"
         try:
-            await bot.send_poll(
+            survey_id = _create_survey(symbol, target)
+            if not survey_id:
+                raise RuntimeError("no survey_id del bridge")
+            await bot.send_message(
                 chat_id=target,
-                question=question,
-                options=POLL_OPTIONS,
-                is_anonymous=True,
-                allows_multiple_answers=False,
+                text=(
+                    f"{question}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Elegí tu visión para los próximos 5 días:"
+                ),
+                parse_mode="Markdown",
+                reply_markup=_poll_keyboard(survey_id),
             )
             polls_ok += 1
-            logger.info(f"weekly_poll: poll {symbol} publicado")
+            logger.info(f"weekly_poll: encuesta {symbol} publicada (survey={survey_id})")
         except Exception as e:
             polls_fail += 1
             logger.warning(
-                f"weekly_poll: fallo publicando poll {symbol}: {e}"
+                f"weekly_poll: fallo publicando encuesta {symbol}: {e}"
             )
             try:
                 fallback = (
@@ -183,3 +255,116 @@ async def force_poll_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(
         f"✅ {len(POLL_INSTRUMENTS)} encuestas publicadas."
     )
+
+
+# ─── Voto desde botón inline ─────────────────────────────────────────
+
+def _register_vote(survey_id: str, user_id: int, chat_id, option_idx: int):
+    """Registra el voto en el bridge. Devuelve (status, survey) o (None, None)."""
+    try:
+        resp = requests.post(
+            f"{_community_api()}/surveys/{survey_id}/vote",
+            json={
+                "user_id": user_id,
+                "chat_id": chat_id,
+                "option_selected": option_idx,
+            },
+            headers=bridge_headers(),
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            logger.warning(
+                f"weekly_poll: voto {user_id} en {survey_id} -> {resp.status_code}: {resp.text[:120]}"
+            )
+            return None, None
+        return resp.json().get("result", {}), resp.json().get("survey")
+    except Exception as e:
+        logger.error(f"weekly_poll: error registrando voto {user_id}: {e}")
+        return None, None
+
+
+async def poll_vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Callback `poll:v:{survey_id}:{option_idx}` — registra y confirma el voto."""
+    query = update.callback_query
+    data = (query.data or "").strip()
+
+    parts = data.split(":")
+    if len(parts) < 3:
+        await query.answer("⚠️ Encuesta inválida", show_alert=True)
+        return
+
+    survey_id = parts[1]
+    try:
+        option_idx = int(parts[2])
+    except ValueError:
+        await query.answer("⚠️ Opción inválida", show_alert=True)
+        return
+
+    user = query.from_user
+    user_id = user.id if user else 0
+    chat_id = query.message.chat_id if query.message else None
+
+    try:
+        await query.answer()
+    except Exception:
+        pass
+
+    # Refrescar encuesta para validar activa y opciones
+    try:
+        resp = requests.get(f"{_community_api()}/surveys/{survey_id}", headers=bridge_headers(), timeout=8)
+        survey = resp.json().get("survey") if resp.status_code == 200 else None
+    except Exception:
+        survey = None
+
+    if not survey:
+        await query.answer("⚠️ No se encontró la encuesta", show_alert=True)
+        return
+
+    if not survey.get("is_active"):
+        await query.answer("⛔ Encuesta cerrada", show_alert=True)
+        return
+
+    options = survey.get("options", [])
+    if not (0 <= option_idx < len(options)):
+        await query.answer("⚠️ Opción fuera de rango", show_alert=True)
+        return
+
+    status, _ = _register_vote(survey_id, user_id, chat_id, option_idx)
+    if not status:
+        await query.answer("⚠️ No se pudo guardar tu voto. Intentalo de nuevo.", show_alert=True)
+        return
+
+    votes = _format_vote_counts(survey_id, options)
+    changed = "actualizado" if status.get("status") == "updated" else "registrado"
+    text = (
+        f"📊 *{survey.get('title', 'Encuesta')}*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{votes}\n"
+        f"✅ Voto {changed}."
+    )
+    try:
+        await query.edit_message_text(text=text, parse_mode="Markdown")
+    except Exception as e:
+        logger.debug(f"poll_vote: edit fallo: {e}")
+
+
+def _format_vote_counts(survey_id: str, options: list[str]) -> str:
+    """Arma líneas con opción + recuento actual desde el bridge."""
+    try:
+        resp = requests.get(f"{_community_api()}/surveys/{survey_id}", headers=bridge_headers(), timeout=8)
+        survey = resp.json().get("survey") if resp.status_code == 200 else None
+    except Exception:
+        survey = None
+    if not survey:
+        return "\n".join(f"• {o}" for o in options)
+
+    counts = {}
+    for v in survey.get("votes", []):
+        counts[v.get("option_selected")] = v.get("count", 0)
+
+    lines = []
+    for idx, opt in enumerate(options):
+        c = counts.get(idx, 0)
+        bar = "█" * min(c, 12) if c else ""
+        lines.append(f"{opt}\n   {bar} {c} voto{'s' if c != 1 else ''}")
+    return "\n".join(lines)

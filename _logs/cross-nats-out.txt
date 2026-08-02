@@ -1,0 +1,3 @@
+SUBSCRIBED
+GOT: cross-process hello
+DONE

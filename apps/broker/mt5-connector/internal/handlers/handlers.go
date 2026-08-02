@@ -2,7 +2,9 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +13,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/tnsvt/mt5-connector/internal/mt5"
+	"github.com/tnsvt/mt5-connector/internal/session"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Middlewares ──────────────────────────────────────────────
@@ -54,11 +58,7 @@ func AccessLog(log interface {
 }
 
 func CORS() gin.HandlerFunc {
-	allowed := map[string]bool{
-		"http://localhost:3000": true,
-		"http://localhost:8501": true,
-		"tauri://localhost":     true,
-	}
+	allowed := cors.AllowedOrigins()
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if allowed[origin] {
@@ -80,6 +80,7 @@ func CORS() gin.HandlerFunc {
 // BrokerHandler maneja endpoints de broker
 type BrokerHandler struct {
 	client *mt5.Client
+	creds  *session.Manager
 	log    interface {
 		Info(string, ...any)
 		Warn(string, ...any)
@@ -88,25 +89,37 @@ type BrokerHandler struct {
 }
 
 // NewBrokerHandler crea el handler
-func NewBrokerHandler(client *mt5.Client, log interface {
+func NewBrokerHandler(client *mt5.Client, creds *session.Manager, log interface {
 	Info(string, ...any)
 	Warn(string, ...any)
 	Error(string, error, ...any)
 }) *BrokerHandler {
-	return &BrokerHandler{client: client, log: log}
+	return &BrokerHandler{client: client, creds: creds, log: log}
+}
+
+// lookupAccountForRequest resuelve credenciales de account-manager para una request.
+// Si el client.creds no tiene la cuenta, intenta refresh una vez.
+// Devuelve (login, password, server) o error.
+func (h *BrokerHandler) lookupAccountForRequest(ctx context.Context, accountID string) (int64, string, string, error) {
+	if h.creds == nil {
+		return 0, "", "", fmt.Errorf("credentials manager not configured")
+	}
+	creds, ok := h.creds.GetCredsByID(accountID)
+	if !ok {
+		// Intentar refresh y volver a buscar
+		if err := h.creds.RefreshCreds(); err != nil {
+			return 0, "", "", fmt.Errorf("creds not found and refresh failed: %w", err)
+		}
+		creds, ok = h.creds.GetCredsByID(accountID)
+		if !ok {
+			return 0, "", "", fmt.Errorf("account %s not found in account-manager", accountID)
+		}
+	}
+	return creds.Login, creds.Password, creds.Server, nil
 }
 
 // PlaceOrder POST /api/v1/brokers/orders
 func (h *BrokerHandler) PlaceOrder(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":   "MT5 not connected",
-			"code":    "BROKER_NOT_CONNECTED",
-			"details": "check MT5 terminal is running and credentials are correct",
-		})
-		return
-	}
-
 	var req mt5.OrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "details": err.Error()})
@@ -154,11 +167,6 @@ func (h *BrokerHandler) PlaceOrder(c *gin.Context) {
 
 // ClosePosition POST /api/v1/brokers/positions/close
 func (h *BrokerHandler) ClosePosition(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "MT5 not connected"})
-		return
-	}
-
 	var req struct {
 		AccountID string `json:"account_id"`
 		Ticket    string `json:"ticket"`
@@ -188,11 +196,6 @@ func (h *BrokerHandler) ClosePosition(c *gin.Context) {
 
 // GetAccountInfo GET /api/v1/brokers/accounts/:id
 func (h *BrokerHandler) GetAccountInfo(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "MT5 not connected"})
-		return
-	}
-
 	accountID := c.Param("id")
 	info, err := h.client.GetAccountInfo(c.Request.Context(), accountID)
 	if err != nil {
@@ -205,11 +208,6 @@ func (h *BrokerHandler) GetAccountInfo(c *gin.Context) {
 
 // GetPositions GET /api/v1/brokers/accounts/:id/positions
 func (h *BrokerHandler) GetPositions(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "MT5 not connected"})
-		return
-	}
-
 	accountID := c.Param("id")
 	positions, err := h.client.GetPositions(c.Request.Context(), accountID)
 	if err != nil {
@@ -226,11 +224,6 @@ func (h *BrokerHandler) GetPositions(c *gin.Context) {
 
 // ModifyPosition POST /api/v1/brokers/positions/:ticket/modify
 func (h *BrokerHandler) ModifyPosition(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "MT5 not connected"})
-		return
-	}
-
 	ticket := c.Param("ticket")
 	var req struct {
 		StopLoss   float64 `json:"stop_loss"`
@@ -249,13 +242,61 @@ func (h *BrokerHandler) ModifyPosition(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "modified", "ticket": ticket})
 }
 
-// GetSymbolInfo GET /api/v1/brokers/symbols/:symbol
-func (h *BrokerHandler) GetSymbolInfo(c *gin.Context) {
-	if !h.client.IsConnected() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "MT5 not connected"})
+// GetRates GET /api/v1/brokers/symbols/:symbol/rates
+func (h *BrokerHandler) GetRates(c *gin.Context) {
+	symbol := c.Param("symbol")
+	timeframe := c.DefaultQuery("timeframe", "M1")
+	count := mustInt(c.Query("count"), 20)
+	if count > 1000 {
+		count = 1000
+	}
+
+	rates, err := h.client.GetRates(c.Request.Context(), symbol, timeframe, count)
+	if err != nil {
+		h.log.Error("GetRates failed", err, "symbol", symbol, "timeframe", timeframe)
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{
+		"symbol":    symbol,
+		"timeframe": timeframe,
+		"count":     len(rates),
+		"rates":     rates,
+	})
+}
+
+// GetRatesAll GET /api/v1/brokers/rates?symbol=XAUUSD&timeframe=M1&limit=20
+func (h *BrokerHandler) GetRatesAll(c *gin.Context) {
+	symbol := c.Query("symbol")
+	if symbol == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "symbol query param required"})
+		return
+	}
+
+	timeframe := c.DefaultQuery("timeframe", "M1")
+	count := mustInt(c.Query("limit"), 20)
+	if count > 1000 {
+		count = 1000
+	}
+
+	rates, err := h.client.GetRates(c.Request.Context(), symbol, timeframe, count)
+	if err != nil {
+		h.log.Error("GetRatesAll failed", err, "symbol", symbol, "timeframe", timeframe)
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"symbol":    symbol,
+		"timeframe": timeframe,
+		"count":     len(rates),
+		"rates":     rates,
+	})
+}
+
+// GetSymbolInfo GET /api/v1/brokers/symbols/:symbol
+func (h *BrokerHandler) GetSymbolInfo(c *gin.Context) {
 	symbol := c.Param("symbol")
 	info, err := h.client.GetSymbolInfo(c.Request.Context(), symbol)
 	if err != nil {

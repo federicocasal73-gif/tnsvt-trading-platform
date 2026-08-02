@@ -36,6 +36,7 @@ volumes:
   prometheus-data:
   grafana-data:
   traefik-letsencrypt:
+  tnsvt-secrets:
 
 # ═══════════════════════════════════════════════════════════════
 # SERVICIOS DE INFRAESTRUCTURA
@@ -266,6 +267,41 @@ services:
       - tnsvt-network
     restart: unless-stopped
 
+  # ─── Alertmanager ───────────────────────────────────────────
+  alertmanager:
+    <<: *restart_policy
+    image: prom/alertmanager:latest
+    container_name: tnsvt-alertmanager
+    hostname: alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--log.level=info"
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./infrastructure/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - tnsvt-network
+    depends_on:
+      - prometheus
+
+  # ─── Loki ───────────────────────────────────────────────────
+  loki:
+    <<: *restart_policy
+    image: grafana/loki:3.0
+    container_name: tnsvt-loki
+    hostname: loki
+    command:
+      - "-config.file=/etc/loki/loki-config.yml"
+      - "-log.level=info"
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./infrastructure/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+    networks:
+      - tnsvt-network
+
   # ─── Grafana ────────────────────────────────────────────────
   grafana:
     <<: *restart_policy
@@ -288,6 +324,8 @@ services:
       - tnsvt-network
     depends_on:
       - prometheus
+      - loki
+      - alertmanager
 
 # ═══════════════════════════════════════════════════════════════
 # PLACEHOLDERS - Servicios de aplicación (Fase 1)
@@ -472,12 +510,16 @@ services:
       NATS_HOST: nats
       NATS_PORT: "4222"
       DEFAULT_BROKER: "mt5"
-      DEFAULT_ACCOUNT_ID: "default"
+      DEFAULT_ACCOUNT_ID: ${FTMO_ACCOUNT_ID:-default}
+      LST_ACCOUNT_ID: ${LST_ACCOUNT_ID:-}
+      LST_ACCOUNT_ID_FILE: /var/run/tnsvt/secrets/lst_account_id
       EXECUTION_TIMEOUT_SECONDS: "30"
       EXECUTION_RETRY_MAX: "3"
       EXECUTION_RETRY_BACKOFF: "2"
       MT5_CONNECTOR_URL: http://mt5-connector:8007
       RISK_ENGINE_URL: http://risk-engine:8006
+    volumes:
+      - tnsvt-secrets:/var/run/tnsvt/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -485,6 +527,8 @@ services:
         condition: service_healthy
       nats:
         condition: service_healthy
+      lst-account-bootstrap:
+        condition: service_completed_successfully
     networks:
       - tnsvt-network
     restart: unless-stopped
@@ -669,6 +713,198 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  liquidity-engine:
+    build:
+      context: .
+      dockerfile: apps/ai/liquidity-engine/Dockerfile
+    container_name: tnsvt-liquidity-engine
+    hostname: liquidity-engine
+    environment:
+      LST_HOST: "0.0.0.0"
+      LST_PORT: "8050"
+      LST_NATS_URL: nats://nats:4222
+      LST_NATS_STREAM: tnsvt
+      LST_NATS_SUBJECT_LST: tnsvt.lst.signal
+      LST_MT5_CONNECTOR_URL: http://mt5-connector:8007
+      LST_SYMBOLS: XAUUSD
+      LST_TIMEFRAMES: M1,M5,M15
+      LST_LST_INTERVAL_SECONDS: "60"
+    ports:
+      - "${LIQUIDITY_ENGINE_PORT:-8050}:8050"
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: apps/ai/orchestrator/Dockerfile
+    container_name: tnsvt-orchestrator
+    hostname: orchestrator
+    environment:
+      ORCH_HOST: "0.0.0.0"
+      ORCH_PORT: "8060"
+      ORCH_NATS_URL: nats://nats:4222
+      ORCH_NATS_STREAM: tnsvt
+      ORCH_NATS_SUBJECT_IN: tnsvt.lst.signal
+      ORCH_NATS_SUBJECT_OUT: trading.signal.validated
+      ORCH_MT5_CONNECTOR_URL: http://mt5-connector:8007
+      ORCH_SYMBOLS: '["XAUUSD","EURUSD","GBPUSD","USDCHF"]'
+      ORCH_TIMEFRAMES: M15,H1,H4
+      ORCH_POLL_INTERVAL_SECONDS: "30"
+      ORCH_HISTORY_WINDOW: "100"
+      ORCH_CORRELATION_THRESHOLD: "0.7"
+      ORCH_COINT_ENABLED: "true"
+      ORCH_ACCOUNT_BALANCE: "10000.0"
+      ORCH_RISK_PER_TRADE: "0.01"
+      ORCH_MAX_DRAWDOWN: "0.15"
+      ORCH_MAX_POSITIONS: "3"
+      ORCH_ATR_PERIOD: "14"
+      ORCH_SL_ATR_MULTIPLIER: "1.5"
+      ORCH_TP_ATR_MULTIPLIER: "2.5"
+      ORCH_TENANT_ID: ${ORCH_TENANT_ID:-00000000-0000-0000-0000-000000000001}
+    ports:
+      - "${ORCHESTRATOR_PORT:-8060}:8060"
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  news-analyzer:
+    build:
+      context: .
+      dockerfile: apps/ai/news-analyzer/Dockerfile
+    container_name: tnsvt-news-analyzer
+    hostname: news-analyzer
+    environment:
+      NATS_URL: nats://nats:4222
+      NEWS_ANALYZER_PORT: "8051"
+      PORT: "8051"
+    ports:
+      - "${NEWS_ANALYZER_PORT:-8051}:8051"
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  macro-fetcher:
+    build:
+      context: .
+      dockerfile: apps/data/macro-fetcher/Dockerfile
+    container_name: tnsvt-macro-fetcher
+    hostname: macro-fetcher
+    environment:
+      PORT: "8040"
+    ports:
+      - "${MACRO_FETCHER_PORT:-8040}:8040"
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  account-manager:
+    build:
+      context: .
+      dockerfile: apps/platform/account-manager/Dockerfile
+    container_name: tnsvt-account-manager
+    hostname: account-manager
+    environment:
+      ACCOUNT_MANAGER_PORT: "8510"
+      ENV: ${ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tnsvt}
+      POSTGRES_USER: ${POSTGRES_USER:-tnsvt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tnsvt}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_me_min_32_chars_abc}
+      MT5_PASSWORD_KEY: ${MT5_PASSWORD_KEY:-dev_encryption_key_min_32_chars_change_me_xyz}
+      ACCOUNT_MGR_SERVICE_TOKEN: ${ACCOUNT_MGR_SERVICE_TOKEN:-dev_account_mgr_service_token_change_me}
+    ports:
+      - "${ACCOUNT_MANAGER_PORT:-8510}:8510"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  lst-account-bootstrap:
+    build:
+      context: .
+      dockerfile: apps/integrations/lst-account-bootstrap/Dockerfile
+    container_name: tnsvt-lst-account-bootstrap
+    hostname: lst-account-bootstrap
+    environment:
+      ACCOUNT_MANAGER_URL: http://account-manager:8510
+      LST_TENANT_ID: ${LST_TENANT_ID:-00000000-0000-0000-0000-000000000001}
+      LST_LOGIN: ${LST_LOGIN:-98891135}
+      LST_SERVER: ${LST_SERVER:-TopOneTrader-MT5}
+      LST_PASSWORD: ${LST_PASSWORD:-}
+      LST_BROKER: ${LST_BROKER:-TopOneTrader}
+      LST_ALIAS: ${LST_ALIAS:-LST-Trading}
+      LST_ACCOUNT_ID_FILE: /var/run/tnsvt/secrets/lst_account_id
+    volumes:
+      - tnsvt-secrets:/var/run/tnsvt/secrets
+    depends_on:
+      account-manager:
+        condition: service_started
+    networks:
+      - tnsvt-network
+    restart: "no"
+
+  news-bridge:
+    build:
+      context: .
+      dockerfile: apps/integrations/news-bridge/Dockerfile
+    container_name: tnsvt-news-bridge
+    hostname: news-bridge
+    environment:
+      NATS_URL: nats://nats:4222
+      NEWS_SUBJECT: trading.signal.news_based
+      SIGNAL_ENGINE_URL: http://signal-engine:8003
+      DEFAULT_TENANT_ID: ${DEFAULT_TENANT_ID:-00000000-0000-0000-0000-000000000001}
+      SIGNAL_INGEST_API_KEY: ${SIGNAL_INGEST_API_KEY:-dev_ingest_key_change_me}
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - tnsvt-network
+    restart: unless-stopped
+
+  mcp-trading-server:
+    build:
+      context: .
+      dockerfile: apps/integrations/mcp-trading-server/Dockerfile
+    container_name: tnsvt-mcp-trading-server
+    hostname: mcp-trading-server
+    environment:
+      MCP_NATS_URL: nats://nats:4222
+      MCP_NATS_STREAM: tnsvt
+      MCP_LST_SIGNAL_SUBJECT: tnsvt.lst.signal
+      MCP_CONTROL_SUBJECT: trading.control
+      MCP_ORCHESTRATOR_URL: http://orchestrator:8060
+      MCP_GATEWAY_URL: http://api-gateway:8000
+      MCP_MT5_CONNECTOR_URL: http://mt5-connector:8007
+    ports:
+      - "${MCP_TRADING_SERVER_PORT:-8100}:8100"
+    depends_on:
       nats:
         condition: service_healthy
     networks:

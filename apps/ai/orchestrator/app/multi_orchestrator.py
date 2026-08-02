@@ -278,7 +278,7 @@ class MultiSymbolOrchestrator:
 
         signal = SignalInput(
             id=str(uuid.uuid4()),
-            tenant_id="orchestrator",
+            tenant_id=self.settings.tenant_id,
             source="orchestrator-multi",
             symbol=symbol,
             action=fs.action,

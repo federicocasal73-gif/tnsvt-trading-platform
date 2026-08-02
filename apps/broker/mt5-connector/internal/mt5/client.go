@@ -12,10 +12,12 @@
 package mt5
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 )
@@ -23,9 +25,9 @@ import (
 // Config configuración del cliente MT5
 type Config struct {
 	Path         string        // Path a terminal64.exe
-	Login        int           // Login de la cuenta
-	Password     string        // Password
-	Server       string        // Servidor (ej: "FTMO-Demo")
+	Login        int           // Login inicial (deprecado: viene del account-manager)
+	Password     string        // Password inicial (deprecado: viene del account-manager)
+	Server       string        // Servidor inicial (deprecado)
 	SymbolSuffix string        // Suffix para símbolos (ej: ".m", ".pro")
 	MagicNumber  int64         // Magic number para identificar nuestras órdenes
 	Timeout      time.Duration // Timeout para operaciones
@@ -132,6 +134,12 @@ func NewClient(config Config, log interface {
 }) *Client {
 	if config.Timeout == 0 {
 		config.Timeout = 30 * time.Second
+	}
+	if config.PythonPath == "" {
+		config.PythonPath = "python"
+	}
+	if config.BridgeScript == "" {
+		config.BridgeScript = "mt5_bridge.py"
 	}
 	if config.PythonPath == "" {
 		config.PythonPath = "python"
@@ -390,6 +398,62 @@ func (c *Client) GetSymbolInfo(ctx context.Context, symbol string) (*SymbolInfo,
 	return info, nil
 }
 
+// ─── Rate/OHLCV Queries ─────────────────────────────────────────
+
+// RateOHLCV OHLCV rate data from MT5
+type RateOHLCV struct {
+	Symbol     string  `json:"symbol"`
+	Timeframe  string  `json:"timeframe"`
+	Time       int64   `json:"time"` // Unix timestamp (UTC)
+	Open       float64 `json:"open"`
+	High       float64 `json:"high"`
+	Low        float64 `json:"low"`
+	Close      float64 `json:"close"`
+	Volume     float64 `json:"volume"`
+	TickVolume float64 `json:"tick_volume"`
+	Spread     int     `json:"spread"`
+}
+
+// TimeAsTime converts the Unix timestamp to time.Time (UTC).
+func (r *RateOHLCV) TimeAsTime() time.Time {
+	return time.Unix(r.Time, 0).UTC()
+}
+
+// GetRates retorna OHLCV rates históricos
+func (c *Client) GetRates(ctx context.Context, symbol, timeframe string, count int) ([]*RateOHLCV, error) {
+	symbol = c.normalizeSymbol(symbol)
+
+	result, err := c.callBridge(ctx, "get_rates", map[string]any{
+		"symbol":    symbol,
+		"timeframe": timeframe,
+		"count":     count,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !result.Success {
+		return nil, fmt.Errorf("get_rates failed: %s", result.Error)
+	}
+
+	ratesRaw, ok := result.Data["rates"]
+	if !ok {
+		return nil, fmt.Errorf("get_rates: 'rates' key not found in response")
+	}
+
+	ratesJSON, err := json.Marshal(ratesRaw)
+	if err != nil {
+		return nil, fmt.Errorf("get_rates: marshal rates: %w", err)
+	}
+
+	var rates []*RateOHLCV
+	if err := json.Unmarshal(ratesJSON, &rates); err != nil {
+		return nil, fmt.Errorf("get_rates: unmarshal rates: %w", err)
+	}
+
+	return rates, nil
+}
+
 // ─── Symbol Normalization ──────────────────────────────────────
 
 // normalizeSymbol agrega suffix si está configurado
@@ -447,12 +511,19 @@ func (c *Client) callBridge(ctx context.Context, operation string, args map[stri
 	cmd := exec.CommandContext(callCtx, c.config.PythonPath, c.config.BridgeScript, operation, "--json", string(argsJSON))
 	cmd.WaitDelay = c.config.Timeout
 
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+
 	output, err := cmd.Output()
 	if err != nil {
 		c.mu.Lock()
 		c.connected = false
 		c.lastError = err.Error()
 		c.mu.Unlock()
+		stderr := strings.TrimSpace(stderrBuf.String())
+		if stderr != "" {
+			return nil, fmt.Errorf("bridge call: %w (stderr: %s)", err, stderr)
+		}
 		return nil, fmt.Errorf("bridge call: %w", err)
 	}
 

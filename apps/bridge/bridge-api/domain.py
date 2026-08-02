@@ -16,7 +16,7 @@ class Topic(BaseModel):
     title: str
 
 
-class ChannelProfile(BaseModel):
+class TelegramChannel(BaseModel):
     """Un canal Telegram detectado y sus tópicos (si es foro)."""
     name: str
     id: int
@@ -24,7 +24,7 @@ class ChannelProfile(BaseModel):
     topics: list[Topic] = Field(default_factory=list)
 
 
-class ChannelProfile(BaseModel):
+class ChannelTradingRules(BaseModel):
     """Per-channel trading rules (Phase 2).
 
     default_symbol:    si la señal llega sin símbolo (raro), usar este.
@@ -48,7 +48,7 @@ class ChannelSelection(BaseModel):
     id: int
     name: str
     topic_id: Optional[int] = None
-    profile: ChannelProfile = Field(default_factory=ChannelProfile)
+    profile: ChannelTradingRules = Field(default_factory=ChannelTradingRules)
 
 
 class ScanRequest(BaseModel):
@@ -61,7 +61,7 @@ class ScanResponse(BaseModel):
     request_id: Optional[str] = None
     completed_at: Optional[str] = None
     error: Optional[str] = None
-    data: list[ChannelProfile] = Field(default_factory=list)
+    data: list[TelegramChannel] = Field(default_factory=list)
 
 
 class TenantContext(BaseModel):

@@ -11,15 +11,20 @@ func TestValidatePasswordStrength(t *testing.T) {
 		password string
 		wantErr  error
 	}{
-		{"valid_strong", "MyStr0ngPass99", nil},
-		{"valid_with_symbols", "Passw0rd!@#$%", nil},
-		{"too_short", "Ab1", ErrWeakPassword},
+		// A6: strengthened validation now requires symbol + length 12-128
+		{"valid_strong_12", "MyStr0ngPass9!", nil},          // 13 chars, upper+lower+digit+symbol
+		{"valid_strong_long", "Passw0rd!@#$%", nil},         // 12 chars exact
+		{"valid_with_symbols", "AaBb1234!@#$%^&*()", nil}, // 18 chars
+		{"too_short", "Ab1!", ErrWeakPassword},
 		{"empty", "", ErrWeakPassword},
-		{"no_upper", "mystr0ngpass99", ErrWeakPassword},
-		{"no_lower", "MYSTR0NGPASS99", ErrWeakPassword},
-		{"no_digit", "MyStrongPassword", ErrWeakPassword},
+		{"no_upper", "mystr0ngpass9!", ErrWeakPassword},
+		{"no_lower", "MYSTR0NGPASS9!", ErrWeakPassword},
+		{"no_digit", "MyStrongPass!", ErrWeakPassword},
+		{"no_symbol", "MyStr0ngPass99", ErrWeakPassword},
 		{"only_letters_long", "abcdefghijklmnop", ErrWeakPassword},
-		{"exactly_min_length_valid", "Abcdefgh1jkl", nil}, // 12 chars, has upper+lower+digit
+		{"all_same_char", "aaaaaaaaaaaaa", ErrWeakPassword}, // repetition check
+		{"too_long", strings.Repeat("Aa1!", 100), ErrWeakPassword}, // >128
+		{"exactly_min_length", "Abcdefgh1jkl!", nil},              // 13 chars valid
 	}
 
 	for _, tt := range tests {
@@ -45,7 +50,7 @@ func TestGenerateSlug(t *testing.T) {
 		{"empty", "", ""},
 		{"only_specials", "!@#$%", ""},
 		{"numbers_kept", "Trading 2026", "trading-2026"},
-		{"unicode_kept_out", "Tñádíng 2026", "tdng-2026"}, // non-ASCII chars stripped
+		{"unicode_kept_out", "Tñádíng 2026", "tdng-2026"},
 	}
 
 	for _, tt := range tests {
@@ -85,23 +90,51 @@ func TestHashTokenDifferentInputsDifferentHashes(t *testing.T) {
 	}
 }
 
+// A3: TOTP real ahora. generateTOTPSecret retorna (string, error) y
+// devuelve un secret Base32 de ~32 chars (no UUID).
+func TestGenerateTOTPSecret(t *testing.T) {
+	s, err := generateTOTPSecret()
+	if err != nil {
+		t.Fatalf("generateTOTPSecret returned error: %v", err)
+	}
+	if s == "" {
+		t.Fatal("generateTOTPSecret returned empty")
+	}
+	// Base32 secret es 32 chars
+	if len(s) < 16 {
+		t.Errorf("generateTOTPSecret length = %d, want >= 16", len(s))
+	}
+	// No es UUID
+	if strings.Count(s, "-") >= 4 {
+		t.Errorf("generateTOTPSecret parece un UUID: %q (debería ser Base32)", s)
+	}
+	// Dos calls deben dar diferentes secrets
+	s2, _ := generateTOTPSecret()
+	if s == s2 {
+		t.Error("generateTOTPSecret returned same value twice (should be random)")
+	}
+}
+
+// A3: verifyTOTPSecret ahora retorna (bool, error). Es TOTP real,
+// no acepta cualquier código de 6 dígitos. Solo pasa si el código
+// coincide con el secret en este step de tiempo (±30s).
 func TestVerifyTOTPSecret(t *testing.T) {
+	secret, _ := generateTOTPSecret()
 	tests := []struct {
+		name string
 		code string
 		want bool
 	}{
-		{"123456", true},
-		{"000000", true},
-		{"999999", true},
-		{"12345", false},  // 5 digits
-		{"1234567", false}, // 7 digits
-		{"", false},
-		{"abc123", false},
+		{"5_digits", "12345", false},
+		{"7_digits", "1234567", false},
+		{"empty", "", false},
+		{"letters", "abcdef", false},
+		{"all_zeros", "000000", false}, // TOTP real no es todo-ceros
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.code, func(t *testing.T) {
-			got := verifyTOTPSecret("dummy-secret", tt.code)
+		t.Run(tt.name, func(t *testing.T) {
+			got, _ := verifyTOTPSecret(secret, tt.code)
 			if got != tt.want {
 				t.Errorf("verifyTOTPSecret(%q) = %v, want %v", tt.code, got, tt.want)
 			}
@@ -109,23 +142,13 @@ func TestVerifyTOTPSecret(t *testing.T) {
 	}
 }
 
-func TestGenerateTOTPSecret(t *testing.T) {
-	s := generateTOTPSecret()
-	if s == "" {
-		t.Fatal("generateTOTPSecret returned empty")
+func TestVerifyTOTPSecretEmptySecret(t *testing.T) {
+	got, err := verifyTOTPSecret("", "123456")
+	if got {
+		t.Error("verifyTOTPSecret con secret vacío debería rechazar")
 	}
-	// Must be a valid UUID format
-	if len(s) != 36 {
-		t.Errorf("generateTOTPSecret length = %d, want 36", len(s))
-	}
-	if strings.Count(s, "-") != 4 {
-		t.Errorf("generateTOTPSecret has %d dashes, want 4 (UUID format)", strings.Count(s, "-"))
-	}
-
-	// Two calls should give different secrets
-	s2 := generateTOTPSecret()
-	if s == s2 {
-		t.Error("generateTOTPSecret returned same value twice (should be random)")
+	if err == nil {
+		t.Error("verifyTOTPSecret con secret vacío debería retornar error")
 	}
 }
 

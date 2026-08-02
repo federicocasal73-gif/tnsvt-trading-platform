@@ -1,0 +1,3 @@
+SUBSCRIBED
+RCV: trading.signal.created {"id":"5d8942ac-3640-42e8-95a5-a310c3b6b935","tenant_id":"","source":"signal-gen
+DONE

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, RefreshCw, Wallet, TrendingUp, TrendingDown, Activity, BarChart3, DollarSign, Percent, Shield, LayoutGrid, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ExternalLink, RefreshCw, Wallet, TrendingUp, TrendingDown, Activity, BarChart3, DollarSign, Percent, Shield, LayoutGrid, Layers, Settings } from 'lucide-react';
 import { api, Metrics, EquityPoint, ChannelAgg, SymbolAgg, CalendarDay, Mt5AccountSnapshot, Mt5PositionSnapshot } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
 import { cls } from '../utils/format';
@@ -33,6 +34,7 @@ function AccountCard({ label, value, sub, icon: Icon, positive, negative, warnin
 
 export function Mt5DashboardPage() {
   const bridge = useBridge();
+  const navigate = useNavigate();
   const { selectedLogin, accounts } = bridge;
   const [account, setAccount] = useState<Mt5AccountSnapshot | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
@@ -127,6 +129,14 @@ export function Mt5DashboardPage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => navigate('/accounts')}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-tnvs-muted hover:bg-white/[0.04] hover:text-white"
+            title="Gestionar cuentas MT5"
+          >
+            <Settings className="h-3 w-3" />
+            Cuentas ({accounts.length})
+          </button>
           <button
             onClick={fetchAll}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-tnvs-muted hover:bg-white/[0.04] hover:text-white"

@@ -1,0 +1,4 @@
+SUBSCRIBED
+GOT: {"source":"dual-test","symbol":"TEST123"}
+GOT: {"source":"dual-test","symbol":"TEST123"}
+DONE

@@ -16,6 +16,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/tnsvt/api-gateway/internal/proxy"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Request ID ────────────────────────────────────────────────
@@ -77,16 +78,7 @@ func AccessLog(log interface {
 // ─── CORS ──────────────────────────────────────────────────────
 
 func CORS() gin.HandlerFunc {
-	allowed := map[string]bool{
-		"http://localhost:3000":   true,
-		"http://localhost:3001":   true,
-		"http://localhost:8501":   true,
-		"http://127.0.0.1:3000":   true,
-		"http://127.0.0.1:8501":   true,
-		"tauri://localhost":       true,
-		"https://app.tnsvt.io":    true,
-		"https://dashboard.tnsvt.io": true,
-	}
+	allowed := cors.AllowedOrigins()
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
@@ -182,27 +174,23 @@ type JWTClaims struct {
 }
 
 // NewJWTValidator crea un nuevo validador
-//
-// IMPORTANTE: el secret default debe coincidir con el fallback del
-// auth-service (`apps/platform/auth-service/internal/services/jwt.go:43`)
-// para que en dev/demo, sin JWT_SECRET explícito, ambos servicios firmen
-// y validen con la misma clave.
+// Requiere JWT_SECRET explícito; sin él, el gateway no arranca.
 func NewJWTValidator(_ time.Duration) *JWTValidator {
 	secret := getEnv("JWT_SECRET", "")
-	if secret == "" {
-		secret = "tnsvt-dev-default-secret-change-me-in-prod-!!"
+	if secret == "" || len(secret) < 32 {
+		panic("JWT_SECRET must be set to at least 32 characters")
 	}
 	return &JWTValidator{secret: []byte(secret)}
 }
 
-// Validate valida un JWT
+// Validate valida un JWT con exp requerida
 func (v *JWTValidator) Validate(tokenString string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")
 		}
 		return v.secret, nil
-	})
+	}, jwt.WithExpirationRequired())
 
 	if err != nil {
 		return nil, err
@@ -212,6 +200,30 @@ func (v *JWTValidator) Validate(tokenString string) (*JWTClaims, error) {
 		return claims, nil
 	}
 	return nil, errors.New("invalid token")
+}
+
+// IngestAPIKey valida que el header X-API-Key coincida con la key configurada.
+// Sprint 2.3: permite webhooks externos (TradingView, custom bots) sin JWT.
+func IngestAPIKey(apiKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if apiKey == "" {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+				"error": "ingest endpoint disabled (no API key configured)",
+			})
+			return
+		}
+		provided := c.GetHeader("X-API-Key")
+		if provided == "" {
+			provided = c.GetHeader("X-Ingest-Key")
+		}
+		if provided != apiKey {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid or missing X-API-Key header",
+			})
+			return
+		}
+		c.Next()
+	}
 }
 
 // OptionalAuth valida el JWT si está presente, pero no lo requiere
@@ -275,6 +287,7 @@ func RequireAuth(validator *JWTValidator) gin.HandlerFunc {
 		c.Set("tenant_id", claims.TenantID.String())
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
+		c.Set("auth_type", claims.Type)
 
 		c.Next()
 	}

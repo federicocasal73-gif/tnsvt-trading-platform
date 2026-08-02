@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/tnsvt/copy-trading/internal/models"
 	"github.com/tnsvt/copy-trading/internal/repository"
 	"github.com/tnsvt/copy-trading/internal/service"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Middlewares ──────────────────────────────────────────────
@@ -60,11 +62,7 @@ func AccessLog(log interface {
 }
 
 func CORS() gin.HandlerFunc {
-	allowed := map[string]bool{
-		"http://localhost:3000": true,
-		"http://localhost:8501": true,
-		"tauri://localhost":     true,
-	}
+	allowed := cors.AllowedOrigins()
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if allowed[origin] {
@@ -485,7 +483,12 @@ func getTenantID(c *gin.Context) uuid.UUID {
 			return u
 		}
 	}
-	return uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			return u
+		}
+	}
+	return uuid.Nil
 }
 
 // ─── Health ────────────────────────────────────────────────────

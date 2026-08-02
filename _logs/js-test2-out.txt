@@ -1,0 +1,8 @@
+Subscribed, waiting 2s
+CORE created id= seq=%!d(string=) reply=_INBOX.law8PwPfTonYa7reI0v5vY.KwRIdRpx
+js.Publish created ack=&{Stream:TRADING_SIGNALS Sequence:21 Duplicate:false Domain:}
+nc.Publish validated ok
+CORE validated: {"id":"core-test-1","source":"core-test"}
+GOT: CORE created: {"id":"js-test-1","source":"js-test"}
+GOT: CORE validated: {"id":"core-test-1","source":"core-test"}
+done

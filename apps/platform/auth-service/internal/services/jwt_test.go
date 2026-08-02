@@ -20,25 +20,27 @@ func (c jwtCfg) JWTAlgorithmVal() string                 { return c.algo }
 func (c jwtCfg) GetJWTSecret() string                    { return "test-secret-must-be-at-least-32-chars" }
 
 type jwtCfgStruct struct {
-	JWTAccessTokenExpireVal  time.Duration
-	JWTRefreshTokenExpireVal time.Duration
-	JWTAlgorithmVal          string
+	accessExpireVal  time.Duration
+	refreshExpireVal time.Duration
+	algoVal          string
 }
 
-func (c jwtCfgStruct) JWTAccessTokenExpireVal() time.Duration  { return c.JWTAccessTokenExpireVal }
-func (c jwtCfgStruct) JWTRefreshTokenExpireVal() time.Duration { return c.JWTRefreshTokenExpireVal }
-func (c jwtCfgStruct) JWTAlgorithmVal() string                 { return c.JWTAlgorithmVal }
+func (c jwtCfgStruct) JWTAccessTokenExpireVal() time.Duration  { return c.accessExpireVal }
+func (c jwtCfgStruct) JWTRefreshTokenExpireVal() time.Duration { return c.refreshExpireVal }
+func (c jwtCfgStruct) JWTAlgorithmVal() string                 { return c.algoVal }
 func (c jwtCfgStruct) GetJWTSecret() string                    { return "test-secret-must-be-at-least-32-chars" }
 
 func newTestJWTSvc(t *testing.T, secret string) *JWTService {
 	t.Helper()
 	cfg := jwtCfgStruct{
-		JWTAccessTokenExpireVal:  15 * time.Minute,
-		JWTRefreshTokenExpireVal: 7 * 24 * time.Hour,
-		JWTAlgorithmVal:          "test-algorithm-placeholder-string-here",
+		accessExpireVal:  15 * time.Minute,
+		refreshExpireVal: 7 * 24 * time.Hour,
+		algoVal:          "test-algorithm-placeholder-string-here",
 	}
 	svc := NewJWTService(cfg, nil)
-	svc.SetSecret(secret)
+	if err := svc.SetSecret(secret); err != nil {
+		t.Fatalf("SetSecret: %v", err)
+	}
 	return svc
 }
 
@@ -122,12 +124,14 @@ func TestJWTGenerateRefreshToken(t *testing.T) {
 
 func TestJWTValidateExpiredToken(t *testing.T) {
 	cfg := jwtCfgStruct{
-		JWTAccessTokenExpireVal:  -1 * time.Hour,
-		JWTRefreshTokenExpireVal: time.Hour,
-		JWTAlgorithmVal:          "placeholder",
+		accessExpireVal:  -1 * time.Hour,
+		refreshExpireVal: time.Hour,
+		algoVal:          "placeholder",
 	}
 	svc := NewJWTService(cfg, nil)
-	svc.SetSecret("test-secret-must-be-at-least-32-chars")
+	if err := svc.SetSecret("test-secret-must-be-at-least-32-chars"); err != nil {
+		t.Fatalf("SetSecret: %v", err)
+	}
 
 	user := &models.User{ID: uuid.New(), Email: "x@y.com", TenantID: uuid.New()}
 	user.Username = "x"
@@ -179,15 +183,54 @@ func TestJWTValidateMalformed(t *testing.T) {
 
 func TestJWTSetSecretRejectsShort(t *testing.T) {
 	cfg := jwtCfgStruct{
-		JWTAccessTokenExpireVal:  time.Hour,
-		JWTRefreshTokenExpireVal: time.Hour,
-		JWTAlgorithmVal:          "placeholder",
+		accessExpireVal:  time.Hour,
+		refreshExpireVal: time.Hour,
+		algoVal:          "placeholder",
 	}
 	svc := NewJWTService(cfg, nil)
 
 	originalSecret := svc.secret
-	svc.SetSecret("too-short")
+	// A2 fix: SetSecret ahora retorna error en lugar de silent-fail.
+	err := svc.SetSecret("too-short")
+	if err == nil {
+		t.Error("SetSecret debería retornar error para secret < 32 chars")
+	}
 	if string(svc.secret) != string(originalSecret) {
 		t.Error("SetSecret accepted short secret (should keep original)")
+	}
+}
+
+func TestJWTSetSecretRejectsPlaceholder(t *testing.T) {
+	cfg := jwtCfgStruct{
+		accessExpireVal:  time.Hour,
+		refreshExpireVal: time.Hour,
+		algoVal:          "placeholder",
+	}
+	svc := NewJWTService(cfg, nil)
+
+	// A1 fix: el placeholder público debe ser rechazado.
+	err := svc.SetSecret(PlaceholderSecret)
+	if err == nil {
+		t.Error("SetSecret debería rechazar el placeholder de dev")
+	}
+}
+
+func TestIsConfigured(t *testing.T) {
+	cfg := jwtCfgStruct{
+		accessExpireVal:  time.Hour,
+		refreshExpireVal: time.Hour,
+		algoVal:          "placeholder",
+	}
+	svc := NewJWTService(cfg, nil)
+
+	// Después de NewJWTService con el secret default del .env (32+ chars),
+	// el service está configurado (porque NewJWTService no es fatal — solo
+	// loguea error y devuelve secret vacío si falla validateSecret).
+	// El test aquí verifica que IsConfigured refleja el estado real.
+	// Si el env tiene secret válido, IsConfigured=true.
+	if svc.secret != nil && len(svc.secret) >= MinJWTSecretLength && string(svc.secret) != PlaceholderSecret {
+		if !svc.IsConfigured() {
+			t.Error("IsConfigured debería ser true con secret válido")
+		}
 	}
 }

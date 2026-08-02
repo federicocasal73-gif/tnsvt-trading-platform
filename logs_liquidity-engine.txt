@@ -1,0 +1,1022 @@
+INFO:     Started server process [70120]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8050 (Press CTRL+C to quit)
+2026-07-29 02:30:12,881 [INFO] app.nats_client: Connected to NATS at nats://localhost:4222
+2026-07-29 02:30:12,881 [INFO] app.main: Signal loop started (interval=60s)
+2026-07-29 02:30:13,273 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:30:13,295 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.63 | spread=17.4 | score=0.63
+2026-07-29 02:30:13,644 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:30:13,645 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.62
+2026-07-29 02:30:13,645 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:30:13,647 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:30:13,648 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:30:13,648 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:30:13,649 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:30:13,649 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.28 | spread=27.3 | score=0.59
+2026-07-29 02:30:13,650 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.50 | spread=42.2 | score=0.53
+2026-07-29 02:30:13,650 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:30:13,651 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:30:13,651 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:30:13,652 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.62 | spread=29.8 | score=0.62
+2026-07-29 02:30:13,652 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.29 | spread=34.8 | score=0.72
+2026-07-29 02:30:13,653 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.48 | spread=34.8 | score=0.69
+2026-07-29 02:30:13,653 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.83
+2026-07-29 02:30:13,654 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.86
+2026-07-29 02:30:13,655 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.90 | spread=19.9 | score=0.90
+2026-07-29 02:30:13,655 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:30:13,656 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.90
+2026-07-29 02:30:13,656 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.44
+2026-07-29 02:30:13,998 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:30:13,998 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:30:13,998 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:30:13,998 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:30:14,000 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:30:14,001 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:30:14,001 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:30:14,002 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.75
+2026-07-29 02:30:14,003 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.78
+2026-07-29 02:30:14,003 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.85 | spread=19.8 | score=0.85
+2026-07-29 02:30:14,003 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.77 | spread=17.4 | score=0.77
+2026-07-29 02:30:14,004 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:30:14,004 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.92
+2026-07-29 02:30:14,005 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.89
+2026-07-29 02:30:14,005 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.73 | spread=17.4 | score=0.89
+2026-07-29 02:30:14,006 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:30:14,007 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.85 | spread=22.4 | score=0.85
+2026-07-29 02:30:14,007 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.82 | spread=19.9 | score=0.82
+2026-07-29 02:30:14,008 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.87
+2026-07-29 02:30:14,008 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:30:14,009 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.41
+INFO:     127.0.0.1:58072 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59903 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60060 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63328 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62749 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57162 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59863 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62719 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:31:14,572 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:31:14,576 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.28
+2026-07-29 02:31:14,577 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:31:14,578 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=44.7 | score=0.33
+2026-07-29 02:31:14,578 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.45
+2026-07-29 02:31:14,579 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.29
+2026-07-29 02:31:14,579 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.32
+2026-07-29 02:31:14,580 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.25
+2026-07-29 02:31:14,581 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.40
+2026-07-29 02:31:14,581 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.32
+2026-07-29 02:31:14,582 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.28
+2026-07-29 02:31:14,583 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.43
+2026-07-29 02:31:14,583 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.36
+2026-07-29 02:31:14,584 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.30
+2026-07-29 02:31:14,584 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.42
+2026-07-29 02:31:14,585 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.40
+2026-07-29 02:31:14,585 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.40
+2026-07-29 02:31:14,586 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.39 | spread=19.9 | score=0.59
+2026-07-29 02:31:14,587 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.56 | spread=42.2 | score=0.56
+2026-07-29 02:31:14,587 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.17 | spread=17.4 | score=0.57
+2026-07-29 02:31:14,588 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.37
+2026-07-29 02:31:15,001 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:31:15,002 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.62
+2026-07-29 02:31:15,002 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:31:15,003 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:31:15,004 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:31:15,005 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:31:15,005 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:31:15,006 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.60
+2026-07-29 02:31:15,006 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.51 | spread=42.2 | score=0.55
+2026-07-29 02:31:15,007 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:31:15,008 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:31:15,008 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:31:15,009 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.63 | spread=29.8 | score=0.63
+2026-07-29 02:31:15,009 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.29 | spread=34.8 | score=0.73
+2026-07-29 02:31:15,010 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.70
+2026-07-29 02:31:15,010 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.84
+2026-07-29 02:31:15,011 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.86
+2026-07-29 02:31:15,012 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.89 | spread=19.9 | score=0.89
+2026-07-29 02:31:15,012 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.86 | spread=19.9 | score=0.86
+2026-07-29 02:31:15,013 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:31:15,013 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.79
+2026-07-29 02:31:15,404 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:31:15,406 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:31:15,407 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:31:15,407 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:31:15,408 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:31:15,408 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:31:15,409 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:31:15,410 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.76
+2026-07-29 02:31:15,410 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:31:15,411 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:31:15,411 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:31:15,412 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:31:15,413 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:31:15,413 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.90
+2026-07-29 02:31:15,414 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.73 | spread=17.4 | score=0.90
+2026-07-29 02:31:15,414 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:31:15,415 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.85 | spread=22.4 | score=0.85
+2026-07-29 02:31:15,415 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.82 | spread=19.9 | score=0.82
+2026-07-29 02:31:15,416 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.87
+2026-07-29 02:31:15,416 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:31:15,417 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.67
+INFO:     127.0.0.1:55293 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61533 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60779 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56516 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55406 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55500 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:32:15,860 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:32:15,864 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:32:15,865 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=44.7 | score=0.32
+2026-07-29 02:32:15,865 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.45
+2026-07-29 02:32:15,866 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.29
+2026-07-29 02:32:15,867 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.31
+2026-07-29 02:32:15,867 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.25
+2026-07-29 02:32:15,868 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:32:15,868 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.32
+2026-07-29 02:32:15,869 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.27
+2026-07-29 02:32:15,870 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.42
+2026-07-29 02:32:15,870 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.35
+2026-07-29 02:32:15,871 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.29
+2026-07-29 02:32:15,872 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.41
+2026-07-29 02:32:15,872 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.39
+2026-07-29 02:32:15,873 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.38
+2026-07-29 02:32:15,874 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.35 | spread=19.9 | score=0.54
+2026-07-29 02:32:15,874 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.48
+2026-07-29 02:32:15,875 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.22 | spread=17.4 | score=0.73
+2026-07-29 02:32:15,875 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.44
+2026-07-29 02:32:15,876 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.41
+2026-07-29 02:32:16,331 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:32:16,333 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.62
+2026-07-29 02:32:16,333 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:32:16,334 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:32:16,335 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:32:16,335 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.26 | spread=32.3 | score=0.58
+2026-07-29 02:32:16,336 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:32:16,337 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.30 | spread=27.3 | score=0.62
+2026-07-29 02:32:16,338 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.53 | spread=42.2 | score=0.57
+2026-07-29 02:32:16,338 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:32:16,339 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:32:16,340 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:32:16,340 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.64 | spread=29.8 | score=0.64
+2026-07-29 02:32:16,341 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.30 | spread=34.8 | score=0.73
+2026-07-29 02:32:16,341 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.70
+2026-07-29 02:32:16,342 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.58 | spread=29.8 | score=0.84
+2026-07-29 02:32:16,343 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.86
+2026-07-29 02:32:16,344 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.89 | spread=19.9 | score=0.89
+2026-07-29 02:32:16,345 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.86 | spread=19.9 | score=0.86
+2026-07-29 02:32:16,346 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.90
+2026-07-29 02:32:16,346 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.76 | spread=17.4 | score=0.93
+2026-07-29 02:32:16,809 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:32:16,811 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:32:16,811 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:32:16,812 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:32:16,813 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:32:16,813 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:32:16,814 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:32:16,815 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.76
+2026-07-29 02:32:16,815 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:32:16,816 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:32:16,817 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:32:16,817 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:32:16,818 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:32:16,819 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.90
+2026-07-29 02:32:16,820 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:32:16,820 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:32:16,821 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:32:16,822 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:32:16,823 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:32:16,823 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:32:16,824 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.52 | spread=17.4 | score=0.73
+INFO:     127.0.0.1:52421 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51326 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58126 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55327 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55460 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64925 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:33:17,162 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:33:17,166 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=44.7 | score=0.32
+2026-07-29 02:33:17,167 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.45
+2026-07-29 02:33:17,167 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.29
+2026-07-29 02:33:17,168 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.31
+2026-07-29 02:33:17,168 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.25
+2026-07-29 02:33:17,168 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:33:17,169 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.32
+2026-07-29 02:33:17,170 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.27
+2026-07-29 02:33:17,170 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.42
+2026-07-29 02:33:17,171 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.35
+2026-07-29 02:33:17,171 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.29
+2026-07-29 02:33:17,172 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.40
+2026-07-29 02:33:17,172 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.38
+2026-07-29 02:33:17,173 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.37
+2026-07-29 02:33:17,173 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.34 | spread=19.9 | score=0.52
+2026-07-29 02:33:17,174 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.44
+2026-07-29 02:33:17,174 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.26 | spread=17.4 | score=0.86
+2026-07-29 02:33:17,175 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.51 | spread=54.6 | score=0.65
+2026-07-29 02:33:17,176 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.61
+2026-07-29 02:33:17,176 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.45
+2026-07-29 02:33:17,501 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:33:17,502 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.62
+2026-07-29 02:33:17,503 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:33:17,503 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:33:17,504 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:33:17,504 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.26 | spread=32.3 | score=0.60
+2026-07-29 02:33:17,505 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:33:17,505 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.30 | spread=27.3 | score=0.63
+2026-07-29 02:33:17,506 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=42.2 | score=0.58
+2026-07-29 02:33:17,506 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:33:17,507 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:33:17,507 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:33:17,508 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.65 | spread=29.8 | score=0.65
+2026-07-29 02:33:17,508 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.30 | spread=34.8 | score=0.74
+2026-07-29 02:33:17,508 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.71
+2026-07-29 02:33:17,509 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.58 | spread=29.8 | score=0.85
+2026-07-29 02:33:17,509 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.87
+2026-07-29 02:33:17,510 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.89 | spread=19.9 | score=0.89
+2026-07-29 02:33:17,511 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:33:17,511 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.90
+2026-07-29 02:33:17,512 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.83
+2026-07-29 02:33:17,876 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:33:17,877 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:33:17,878 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:33:17,878 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:33:17,879 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:33:17,879 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:33:17,880 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:33:17,880 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:33:17,881 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:33:17,882 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:33:17,882 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.79 | spread=17.4 | score=0.79
+2026-07-29 02:33:17,882 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:33:17,883 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:33:17,884 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:33:17,884 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:33:17,885 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:33:17,886 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:33:17,886 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:33:17,887 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:33:17,887 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:33:17,888 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.76
+INFO:     127.0.0.1:60578 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49315 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53699 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65489 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52362 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52996 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:34:18,286 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:34:18,289 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.44
+2026-07-29 02:34:18,290 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.29
+2026-07-29 02:34:18,290 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.31
+2026-07-29 02:34:18,291 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.24
+2026-07-29 02:34:18,292 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:34:18,292 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.32
+2026-07-29 02:34:18,293 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.27
+2026-07-29 02:34:18,294 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.42
+2026-07-29 02:34:18,294 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.35
+2026-07-29 02:34:18,295 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.28
+2026-07-29 02:34:18,295 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.40
+2026-07-29 02:34:18,296 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.37
+2026-07-29 02:34:18,297 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.36
+2026-07-29 02:34:18,297 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.33 | spread=19.9 | score=0.51
+2026-07-29 02:34:18,298 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.42
+2026-07-29 02:34:18,299 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.24 | spread=17.4 | score=0.78
+2026-07-29 02:34:18,299 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.48 | spread=54.6 | score=0.61
+2026-07-29 02:34:18,300 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.69
+2026-07-29 02:34:18,301 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.60
+2026-07-29 02:34:18,301 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.5 | score=0.32
+2026-07-29 02:34:18,795 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:34:18,797 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.62
+2026-07-29 02:34:18,797 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:34:18,798 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:34:18,799 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:34:18,800 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.27 | spread=32.3 | score=0.61
+2026-07-29 02:34:18,800 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:34:18,801 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.31 | spread=27.3 | score=0.64
+2026-07-29 02:34:18,801 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.55 | spread=42.2 | score=0.59
+2026-07-29 02:34:18,802 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:34:18,803 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.62 | spread=22.4 | score=0.62
+2026-07-29 02:34:18,803 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:34:18,804 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.65 | spread=29.8 | score=0.65
+2026-07-29 02:34:18,805 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.30 | spread=34.8 | score=0.74
+2026-07-29 02:34:18,805 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.71
+2026-07-29 02:34:18,806 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.58 | spread=29.8 | score=0.85
+2026-07-29 02:34:18,807 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.86
+2026-07-29 02:34:18,807 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.89 | spread=19.9 | score=0.89
+2026-07-29 02:34:18,808 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:34:18,808 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:34:18,809 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.75
+2026-07-29 02:34:19,224 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:34:19,225 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:34:19,226 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:34:19,226 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:34:19,227 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:34:19,228 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:34:19,228 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:34:19,229 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:34:19,229 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:34:19,230 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.87 | spread=19.8 | score=0.87
+2026-07-29 02:34:19,230 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.79 | spread=17.4 | score=0.79
+2026-07-29 02:34:19,231 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.91
+2026-07-29 02:34:19,231 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:34:19,232 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:34:19,232 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:34:19,233 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:34:19,233 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:34:19,234 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:34:19,234 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:34:19,235 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.60 | spread=19.9 | score=0.87
+2026-07-29 02:34:19,235 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.79
+INFO:     127.0.0.1:53270 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52144 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50533 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62825 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59350 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64028 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:35:19,562 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:35:19,567 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.29
+2026-07-29 02:35:19,568 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.31
+2026-07-29 02:35:19,568 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.24
+2026-07-29 02:35:19,569 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:35:19,569 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.31
+2026-07-29 02:35:19,570 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.27
+2026-07-29 02:35:19,570 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.42
+2026-07-29 02:35:19,571 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:35:19,571 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.28
+2026-07-29 02:35:19,572 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.40
+2026-07-29 02:35:19,572 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.37
+2026-07-29 02:35:19,573 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.36
+2026-07-29 02:35:19,573 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.50
+2026-07-29 02:35:19,574 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.41
+2026-07-29 02:35:19,574 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.23 | spread=17.4 | score=0.74
+2026-07-29 02:35:19,575 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.43 | spread=54.6 | score=0.54
+2026-07-29 02:35:19,575 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.61
+2026-07-29 02:35:19,576 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.61
+2026-07-29 02:35:19,576 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.22 | spread=52.1 | score=0.63
+2026-07-29 02:35:19,577 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.38
+2026-07-29 02:35:19,904 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:35:19,905 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:35:19,906 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:35:19,906 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:35:19,907 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.58
+2026-07-29 02:35:19,907 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:35:19,908 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.61
+2026-07-29 02:35:19,909 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.52 | spread=42.2 | score=0.56
+2026-07-29 02:35:19,909 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:35:19,910 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:35:19,910 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:35:19,911 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.63 | spread=29.8 | score=0.63
+2026-07-29 02:35:19,912 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.29 | spread=34.8 | score=0.73
+2026-07-29 02:35:19,912 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.70
+2026-07-29 02:35:19,912 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.84
+2026-07-29 02:35:19,913 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.86
+2026-07-29 02:35:19,913 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.90 | spread=19.9 | score=0.90
+2026-07-29 02:35:19,914 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:35:19,914 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:35:19,915 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.67
+2026-07-29 02:35:19,915 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=49.6 | score=0.28
+2026-07-29 02:35:20,244 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:35:20,245 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:35:20,246 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:35:20,246 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:35:20,247 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:35:20,247 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:35:20,248 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:35:20,248 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.76
+2026-07-29 02:35:20,249 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:35:20,249 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:35:20,250 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:35:20,250 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:35:20,251 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:35:20,251 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.90
+2026-07-29 02:35:20,252 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:35:20,252 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:35:20,253 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:35:20,253 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:35:20,254 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:35:20,254 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:35:20,254 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.82
+INFO:     127.0.0.1:55668 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60252 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59446 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53922 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61632 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:36:20,637 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:36:20,641 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.2 | score=0.31
+2026-07-29 02:36:20,641 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.24
+2026-07-29 02:36:20,642 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:36:20,642 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.31
+2026-07-29 02:36:20,643 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.26
+2026-07-29 02:36:20,643 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:36:20,644 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:36:20,644 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.28
+2026-07-29 02:36:20,645 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.39
+2026-07-29 02:36:20,646 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.36
+2026-07-29 02:36:20,646 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.35
+2026-07-29 02:36:20,647 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.49
+2026-07-29 02:36:20,647 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.40
+2026-07-29 02:36:20,648 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.22 | spread=17.4 | score=0.71
+2026-07-29 02:36:20,648 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.40 | spread=54.6 | score=0.51
+2026-07-29 02:36:20,649 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.56
+2026-07-29 02:36:20,649 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.54
+2026-07-29 02:36:20,650 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=52.1 | score=0.55
+2026-07-29 02:36:20,650 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.57
+2026-07-29 02:36:20,651 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.45
+2026-07-29 02:36:21,001 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:36:21,003 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:36:21,003 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:36:21,004 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:36:21,005 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.26 | spread=32.3 | score=0.58
+2026-07-29 02:36:21,005 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:36:21,006 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.30 | spread=27.3 | score=0.62
+2026-07-29 02:36:21,006 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.53 | spread=42.2 | score=0.57
+2026-07-29 02:36:21,007 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:36:21,008 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:36:21,008 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:36:21,009 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.64 | spread=29.8 | score=0.64
+2026-07-29 02:36:21,009 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.30 | spread=34.8 | score=0.73
+2026-07-29 02:36:21,010 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.49 | spread=34.8 | score=0.70
+2026-07-29 02:36:21,010 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.83
+2026-07-29 02:36:21,011 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.85
+2026-07-29 02:36:21,011 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.90 | spread=19.9 | score=0.90
+2026-07-29 02:36:21,012 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:36:21,013 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:36:21,013 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.67
+2026-07-29 02:36:21,014 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.56 | spread=29.8 | score=0.56
+2026-07-29 02:36:21,413 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:36:21,415 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:36:21,415 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:36:21,416 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:36:21,417 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:36:21,417 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.61
+2026-07-29 02:36:21,418 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:36:21,418 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:36:21,419 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:36:21,420 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:36:21,420 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:36:21,421 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:36:21,421 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:36:21,422 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.90
+2026-07-29 02:36:21,422 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:36:21,423 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:36:21,423 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:36:21,424 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:36:21,424 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:36:21,424 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:36:21,426 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.84
+INFO:     127.0.0.1:56568 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59964 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62253 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53951 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52596 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50541 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:37:21,772 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:37:21,775 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=59.6 | score=0.24
+2026-07-29 02:37:21,776 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:37:21,777 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.31
+2026-07-29 02:37:21,777 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.26
+2026-07-29 02:37:21,778 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:37:21,778 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:37:21,779 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.28
+2026-07-29 02:37:21,779 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.39
+2026-07-29 02:37:21,780 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.36
+2026-07-29 02:37:21,781 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.35
+2026-07-29 02:37:21,781 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.48
+2026-07-29 02:37:21,782 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.39
+2026-07-29 02:37:21,782 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.21 | spread=17.4 | score=0.70
+2026-07-29 02:37:21,783 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.50
+2026-07-29 02:37:21,784 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.53
+2026-07-29 02:37:21,784 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.50
+2026-07-29 02:37:21,784 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.49
+2026-07-29 02:37:21,785 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.50
+2026-07-29 02:37:21,786 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.60 | spread=29.8 | score=0.64
+2026-07-29 02:37:21,786 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=67.0 | score=0.33
+2026-07-29 02:37:22,120 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:37:22,121 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:37:22,122 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:37:22,122 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:37:22,122 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.26 | spread=32.3 | score=0.59
+2026-07-29 02:37:22,122 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:37:22,124 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.30 | spread=27.3 | score=0.63
+2026-07-29 02:37:22,125 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=42.2 | score=0.57
+2026-07-29 02:37:22,125 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:37:22,126 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:37:22,126 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:37:22,127 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.64 | spread=29.8 | score=0.64
+2026-07-29 02:37:22,127 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.30 | spread=34.8 | score=0.73
+2026-07-29 02:37:22,128 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.48 | spread=34.8 | score=0.69
+2026-07-29 02:37:22,128 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.83
+2026-07-29 02:37:22,129 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.33 | spread=29.8 | score=0.85
+2026-07-29 02:37:22,129 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.90 | spread=19.9 | score=0.90
+2026-07-29 02:37:22,130 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:37:22,130 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:37:22,131 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.67
+2026-07-29 02:37:22,131 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.28 | spread=29.8 | score=0.76
+2026-07-29 02:37:22,470 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:37:22,472 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:37:22,472 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:37:22,473 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:37:22,473 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:37:22,474 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:37:22,474 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:37:22,475 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:37:22,475 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:37:22,476 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:37:22,476 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:37:22,477 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:37:22,477 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:37:22,478 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:37:22,478 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:37:22,479 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:37:22,479 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:37:22,480 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:37:22,480 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:37:22,481 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:37:22,481 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.87
+INFO:     127.0.0.1:50584 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55892 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53963 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50977 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55033 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58392 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:38:22,836 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:38:22,840 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.39
+2026-07-29 02:38:22,841 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.31
+2026-07-29 02:38:22,841 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.26
+2026-07-29 02:38:22,842 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:38:22,843 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:38:22,843 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.28
+2026-07-29 02:38:22,844 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.39
+2026-07-29 02:38:22,844 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.36
+2026-07-29 02:38:22,845 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:38:22,845 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.48
+2026-07-29 02:38:22,846 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.39
+2026-07-29 02:38:22,846 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.21 | spread=17.4 | score=0.68
+2026-07-29 02:38:22,847 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.48
+2026-07-29 02:38:22,847 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.52
+2026-07-29 02:38:22,847 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.47
+2026-07-29 02:38:22,848 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.45
+2026-07-29 02:38:22,849 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.45
+2026-07-29 02:38:22,849 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.54 | spread=29.8 | score=0.58
+2026-07-29 02:38:22,850 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.66
+2026-07-29 02:38:22,850 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=67.0 | score=0.28
+2026-07-29 02:38:23,175 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:38:23,177 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:38:23,177 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:38:23,178 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:38:23,178 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.26 | spread=32.3 | score=0.60
+2026-07-29 02:38:23,179 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:38:23,179 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.31 | spread=27.3 | score=0.64
+2026-07-29 02:38:23,180 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=42.2 | score=0.58
+2026-07-29 02:38:23,180 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:38:23,182 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:38:23,182 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:38:23,183 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.64 | spread=29.8 | score=0.64
+2026-07-29 02:38:23,183 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.29 | spread=34.8 | score=0.72
+2026-07-29 02:38:23,184 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.48 | spread=34.8 | score=0.69
+2026-07-29 02:38:23,184 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.57 | spread=29.8 | score=0.83
+2026-07-29 02:38:23,185 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.85
+2026-07-29 02:38:23,185 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.90 | spread=19.9 | score=0.90
+2026-07-29 02:38:23,186 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:38:23,186 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.89
+2026-07-29 02:38:23,187 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.67
+2026-07-29 02:38:23,187 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.84
+2026-07-29 02:38:23,537 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:38:23,539 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:38:23,540 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:38:23,540 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:38:23,541 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:38:23,541 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:38:23,542 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:38:23,542 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:38:23,543 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:38:23,543 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.87 | spread=19.8 | score=0.87
+2026-07-29 02:38:23,544 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.79 | spread=17.4 | score=0.79
+2026-07-29 02:38:23,544 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:38:23,545 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:38:23,545 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:38:23,546 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:38:23,547 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:38:23,547 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:38:23,548 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:38:23,548 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:38:23,549 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:38:23,549 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.89
+INFO:     127.0.0.1:65336 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59350 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60520 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63647 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62471 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59194 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:39:23,925 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:39:23,929 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.31
+2026-07-29 02:39:23,929 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.26
+2026-07-29 02:39:23,930 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:39:23,931 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:39:23,931 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.27
+2026-07-29 02:39:23,932 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.38
+2026-07-29 02:39:23,932 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.35
+2026-07-29 02:39:23,933 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:39:23,934 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.47
+2026-07-29 02:39:23,934 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.38
+2026-07-29 02:39:23,935 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.21 | spread=17.4 | score=0.67
+2026-07-29 02:39:23,935 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.47
+2026-07-29 02:39:23,936 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.51
+2026-07-29 02:39:23,936 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.46
+2026-07-29 02:39:23,937 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.43
+2026-07-29 02:39:23,937 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.42
+2026-07-29 02:39:23,938 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.50 | spread=29.8 | score=0.53
+2026-07-29 02:39:23,938 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.59
+2026-07-29 02:39:23,939 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.39
+2026-07-29 02:39:23,940 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=67.0 | score=0.28
+INFO:     127.0.0.1:54907 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:39:24,297 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:39:24,298 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.19 | spread=17.4 | score=0.63
+2026-07-29 02:39:24,299 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:39:24,300 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:39:24,300 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.27 | spread=32.3 | score=0.60
+2026-07-29 02:39:24,300 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:39:24,301 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.31 | spread=27.3 | score=0.64
+2026-07-29 02:39:24,302 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=42.2 | score=0.58
+2026-07-29 02:39:24,302 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:39:24,303 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:39:24,303 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:39:24,304 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.63 | spread=29.8 | score=0.63
+2026-07-29 02:39:24,304 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.29 | spread=34.8 | score=0.72
+2026-07-29 02:39:24,305 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.48 | spread=34.8 | score=0.68
+2026-07-29 02:39:24,305 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.56 | spread=29.8 | score=0.83
+2026-07-29 02:39:24,306 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.85
+2026-07-29 02:39:24,306 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.91 | spread=19.9 | score=0.91
+2026-07-29 02:39:24,307 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.87 | spread=19.9 | score=0.87
+2026-07-29 02:39:24,307 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.88
+2026-07-29 02:39:24,308 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.67
+2026-07-29 02:39:24,309 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.87
+2026-07-29 02:39:24,699 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:39:24,700 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:39:24,701 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:39:24,701 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:39:24,702 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:39:24,702 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.63
+2026-07-29 02:39:24,703 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:39:24,704 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.78
+2026-07-29 02:39:24,704 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:39:24,705 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.87 | spread=19.8 | score=0.87
+2026-07-29 02:39:24,705 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.79 | spread=17.4 | score=0.79
+2026-07-29 02:39:24,706 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.91
+2026-07-29 02:39:24,707 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:39:24,707 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:39:24,708 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.91
+2026-07-29 02:39:24,708 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:39:24,709 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:39:24,710 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:39:24,710 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:39:24,710 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:39:24,711 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+INFO:     127.0.0.1:62701 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60644 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57482 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50722 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52171 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64676 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:40:25,059 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:40:25,062 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=57.1 | score=0.26
+2026-07-29 02:40:25,063 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:40:25,063 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:40:25,064 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.27
+2026-07-29 02:40:25,065 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.38
+2026-07-29 02:40:25,065 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.35
+2026-07-29 02:40:25,066 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:40:25,066 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.47
+2026-07-29 02:40:25,067 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.38
+2026-07-29 02:40:25,067 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=17.4 | score=0.66
+2026-07-29 02:40:25,068 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.46
+2026-07-29 02:40:25,069 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.50
+2026-07-29 02:40:25,069 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.45
+2026-07-29 02:40:25,070 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.42
+2026-07-29 02:40:25,070 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.41
+2026-07-29 02:40:25,071 [INFO] app.main: LST XAUUSD | liquidity_sell M1 | conf=0.47 | spread=29.8 | score=0.50
+2026-07-29 02:40:25,071 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.55
+2026-07-29 02:40:25,072 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.35
+2026-07-29 02:40:25,072 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.47
+2026-07-29 02:40:25,073 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.37
+2026-07-29 02:40:25,396 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:40:25,398 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:40:25,398 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:40:25,399 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:40:25,399 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:40:25,400 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.59
+2026-07-29 02:40:25,400 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.50 | spread=42.2 | score=0.54
+2026-07-29 02:40:25,401 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:40:25,401 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:40:25,402 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:40:25,402 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.60 | spread=29.8 | score=0.60
+2026-07-29 02:40:25,403 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.28 | spread=34.8 | score=0.70
+2026-07-29 02:40:25,403 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.46 | spread=34.8 | score=0.66
+2026-07-29 02:40:25,404 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.55 | spread=29.8 | score=0.81
+2026-07-29 02:40:25,405 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.83
+2026-07-29 02:40:25,405 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.92 | spread=19.9 | score=0.92
+2026-07-29 02:40:25,406 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.88 | spread=19.9 | score=0.88
+2026-07-29 02:40:25,406 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.87
+2026-07-29 02:40:25,407 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.65
+2026-07-29 02:40:25,407 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.83
+2026-07-29 02:40:25,408 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=54.6 | score=0.27
+2026-07-29 02:40:25,749 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:40:25,751 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:40:25,751 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:40:25,752 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:40:25,752 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:40:25,753 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:40:25,753 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:40:25,754 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.76
+2026-07-29 02:40:25,754 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:40:25,754 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:40:25,755 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:40:25,755 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:40:25,756 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:40:25,757 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.83 | spread=19.9 | score=0.90
+2026-07-29 02:40:25,757 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:40:25,758 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.87
+2026-07-29 02:40:25,758 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:40:25,759 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:40:25,759 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.87
+2026-07-29 02:40:25,760 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:40:25,760 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.93
+INFO:     127.0.0.1:60304 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64691 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61338 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49604 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55790 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58016 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:41:26,126 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:41:26,128 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.41
+2026-07-29 02:41:26,129 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.34
+2026-07-29 02:41:26,129 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.27
+2026-07-29 02:41:26,130 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.38
+2026-07-29 02:41:26,130 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.35
+2026-07-29 02:41:26,131 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.34
+2026-07-29 02:41:26,131 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.47
+2026-07-29 02:41:26,132 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.38
+2026-07-29 02:41:26,132 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=17.4 | score=0.65
+2026-07-29 02:41:26,133 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.46
+2026-07-29 02:41:26,133 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.49
+2026-07-29 02:41:26,134 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.44
+2026-07-29 02:41:26,134 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.41
+2026-07-29 02:41:26,135 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.40
+2026-07-29 02:41:26,135 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.49
+2026-07-29 02:41:26,136 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.52
+2026-07-29 02:41:26,137 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.32
+2026-07-29 02:41:26,137 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.42
+2026-07-29 02:41:26,138 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.47
+2026-07-29 02:41:26,138 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.43
+2026-07-29 02:41:26,454 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:41:26,456 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:41:26,457 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:41:26,457 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:41:26,457 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:41:26,458 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.60
+2026-07-29 02:41:26,459 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.51 | spread=42.2 | score=0.54
+2026-07-29 02:41:26,460 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:41:26,460 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:41:26,461 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:41:26,461 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.59 | spread=29.8 | score=0.59
+2026-07-29 02:41:26,462 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.28 | spread=34.8 | score=0.69
+2026-07-29 02:41:26,462 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.46 | spread=34.8 | score=0.66
+2026-07-29 02:41:26,463 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.55 | spread=29.8 | score=0.81
+2026-07-29 02:41:26,463 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.83
+2026-07-29 02:41:26,464 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.92 | spread=19.9 | score=0.92
+2026-07-29 02:41:26,464 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.89 | spread=19.9 | score=0.89
+2026-07-29 02:41:26,465 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.87
+2026-07-29 02:41:26,466 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.65
+2026-07-29 02:41:26,466 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.83
+2026-07-29 02:41:26,466 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=49.6 | score=0.48
+2026-07-29 02:41:26,786 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:41:26,787 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:41:26,787 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:41:26,788 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:41:26,789 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:41:26,789 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:41:26,789 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:41:26,790 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:41:26,791 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:41:26,791 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:41:26,791 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:41:26,792 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:41:26,793 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:41:26,793 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:41:26,793 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:41:26,794 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:41:26,794 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:41:26,795 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:41:26,795 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.87
+2026-07-29 02:41:26,796 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:41:26,796 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+INFO:     127.0.0.1:63095 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59790 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52971 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54766 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65441 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64197 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:42:27,145 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:42:27,148 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.33
+2026-07-29 02:42:27,149 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.27
+2026-07-29 02:42:27,149 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.38
+2026-07-29 02:42:27,150 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.35
+2026-07-29 02:42:27,150 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.33
+2026-07-29 02:42:27,151 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.47
+2026-07-29 02:42:27,152 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.37
+2026-07-29 02:42:27,152 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=17.4 | score=0.65
+2026-07-29 02:42:27,153 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.45
+2026-07-29 02:42:27,154 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.49
+2026-07-29 02:42:27,154 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.44
+2026-07-29 02:42:27,155 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.41
+2026-07-29 02:42:27,155 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.39
+2026-07-29 02:42:27,156 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.48
+2026-07-29 02:42:27,156 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.50
+2026-07-29 02:42:27,157 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.30
+2026-07-29 02:42:27,157 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.39
+2026-07-29 02:42:27,158 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.42
+2026-07-29 02:42:27,158 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.36 | spread=42.2 | score=0.51
+2026-07-29 02:42:27,159 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=32.2 | score=0.48
+2026-07-29 02:42:27,516 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:42:27,517 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:42:27,517 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:42:27,518 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:42:27,518 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:42:27,519 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.60
+2026-07-29 02:42:27,519 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.51 | spread=42.2 | score=0.54
+2026-07-29 02:42:27,520 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:42:27,520 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:42:27,521 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:42:27,521 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.59 | spread=29.8 | score=0.59
+2026-07-29 02:42:27,522 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.28 | spread=34.8 | score=0.69
+2026-07-29 02:42:27,522 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.46 | spread=34.8 | score=0.66
+2026-07-29 02:42:27,523 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.55 | spread=29.8 | score=0.81
+2026-07-29 02:42:27,523 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.83
+2026-07-29 02:42:27,524 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.92 | spread=19.9 | score=0.92
+2026-07-29 02:42:27,524 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.88 | spread=19.9 | score=0.88
+2026-07-29 02:42:27,525 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.87
+2026-07-29 02:42:27,525 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.65
+2026-07-29 02:42:27,526 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.83
+2026-07-29 02:42:27,526 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.70 | spread=32.2 | score=0.72
+2026-07-29 02:42:27,852 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:42:27,853 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:42:27,854 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:42:27,854 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:42:27,855 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:42:27,855 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.62
+2026-07-29 02:42:27,856 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:42:27,856 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:42:27,857 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.79
+2026-07-29 02:42:27,857 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:42:27,858 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:42:27,858 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:42:27,859 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:42:27,859 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:42:27,860 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.90
+2026-07-29 02:42:27,860 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:42:27,861 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:42:27,861 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:42:27,862 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.87
+2026-07-29 02:42:27,863 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:42:27,863 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.84 | spread=17.4 | score=0.89
+INFO:     127.0.0.1:58245 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50103 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56628 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52981 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53012 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65459 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:43:28,198 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:43:28,201 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.27
+2026-07-29 02:43:28,202 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.38
+2026-07-29 02:43:28,203 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.35
+2026-07-29 02:43:28,203 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.33
+2026-07-29 02:43:28,204 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.46
+2026-07-29 02:43:28,204 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.37
+2026-07-29 02:43:28,205 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=17.4 | score=0.64
+2026-07-29 02:43:28,205 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.44
+2026-07-29 02:43:28,206 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.48
+2026-07-29 02:43:28,206 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.43
+2026-07-29 02:43:28,207 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.40
+2026-07-29 02:43:28,207 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.38
+2026-07-29 02:43:28,208 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.47
+2026-07-29 02:43:28,208 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.49
+2026-07-29 02:43:28,209 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.29
+2026-07-29 02:43:28,209 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.37
+2026-07-29 02:43:28,210 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.40
+2026-07-29 02:43:28,210 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.47
+2026-07-29 02:43:28,211 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.57 | spread=32.2 | score=0.57
+2026-07-29 02:43:28,211 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=22.3 | score=0.49
+2026-07-29 02:43:28,536 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:43:28,537 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:43:28,538 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:43:28,538 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:43:28,539 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:43:28,540 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.60
+2026-07-29 02:43:28,540 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.51 | spread=42.2 | score=0.54
+2026-07-29 02:43:28,541 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:43:28,541 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:43:28,542 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:43:28,542 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.58 | spread=29.8 | score=0.58
+2026-07-29 02:43:28,542 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.28 | spread=34.8 | score=0.69
+2026-07-29 02:43:28,543 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.46 | spread=34.8 | score=0.65
+2026-07-29 02:43:28,543 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.55 | spread=29.8 | score=0.81
+2026-07-29 02:43:28,544 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.83
+2026-07-29 02:43:28,544 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.92 | spread=19.9 | score=0.92
+2026-07-29 02:43:28,545 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.88 | spread=19.9 | score=0.88
+2026-07-29 02:43:28,545 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.87
+2026-07-29 02:43:28,545 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.65
+2026-07-29 02:43:28,546 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.83
+2026-07-29 02:43:28,547 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.84 | spread=22.3 | score=0.84
+2026-07-29 02:43:28,877 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:43:28,879 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:43:28,880 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:43:28,881 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:43:28,881 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:43:28,882 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.63
+2026-07-29 02:43:28,882 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:43:28,883 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.77
+2026-07-29 02:43:28,883 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:43:28,884 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:43:28,885 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.78 | spread=17.4 | score=0.78
+2026-07-29 02:43:28,885 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.92
+2026-07-29 02:43:28,886 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:43:28,886 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.90
+2026-07-29 02:43:28,887 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.91
+2026-07-29 02:43:28,887 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:43:28,888 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.86 | spread=22.4 | score=0.86
+2026-07-29 02:43:28,888 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:43:28,889 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:43:28,889 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:43:28,890 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.87 | spread=17.4 | score=0.87
+INFO:     127.0.0.1:64486 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64891 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52269 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53679 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53710 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63914 - "GET /health HTTP/1.1" 200 OK
+2026-07-29 02:44:29,257 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M1&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,260 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=34.7 | score=0.37
+2026-07-29 02:44:29,261 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.34
+2026-07-29 02:44:29,262 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.33
+2026-07-29 02:44:29,262 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=19.9 | score=0.46
+2026-07-29 02:44:29,263 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.37
+2026-07-29 02:44:29,263 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.20 | spread=17.4 | score=0.64
+2026-07-29 02:44:29,264 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=54.6 | score=0.44
+2026-07-29 02:44:29,265 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=37.2 | score=0.48
+2026-07-29 02:44:29,265 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.42
+2026-07-29 02:44:29,266 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.40
+2026-07-29 02:44:29,266 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=49.6 | score=0.38
+2026-07-29 02:44:29,267 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.47
+2026-07-29 02:44:29,267 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=29.8 | score=0.49
+2026-07-29 02:44:29,268 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=64.5 | score=0.28
+2026-07-29 02:44:29,268 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.36
+2026-07-29 02:44:29,269 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=52.1 | score=0.37
+2026-07-29 02:44:29,270 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=42.2 | score=0.44
+2026-07-29 02:44:29,270 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.53 | spread=32.2 | score=0.53
+2026-07-29 02:44:29,270 [INFO] app.main: LST XAUUSD | liquidity_buy M1 | conf=0.28 | spread=22.3 | score=0.56
+2026-07-29 02:44:29,271 [INFO] app.main: LST XAUUSD | neutral M1 | conf=0.00 | spread=47.1 | score=0.41
+2026-07-29 02:44:29,625 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M5&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,626 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.44 | spread=47.2 | score=0.51
+2026-07-29 02:44:29,627 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=34.8 | score=0.56
+2026-07-29 02:44:29,627 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.25 | spread=32.3 | score=0.57
+2026-07-29 02:44:29,628 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.54 | spread=39.8 | score=0.54
+2026-07-29 02:44:29,629 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.29 | spread=27.3 | score=0.60
+2026-07-29 02:44:29,629 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.50 | spread=42.2 | score=0.53
+2026-07-29 02:44:29,630 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.51 | spread=22.4 | score=0.61
+2026-07-29 02:44:29,630 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.61 | spread=22.4 | score=0.61
+2026-07-29 02:44:29,631 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.60 | spread=19.9 | score=0.62
+2026-07-29 02:44:29,631 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.58 | spread=29.8 | score=0.58
+2026-07-29 02:44:29,632 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.28 | spread=34.8 | score=0.69
+2026-07-29 02:44:29,633 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.46 | spread=34.8 | score=0.65
+2026-07-29 02:44:29,633 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.55 | spread=29.8 | score=0.81
+2026-07-29 02:44:29,634 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.32 | spread=29.8 | score=0.83
+2026-07-29 02:44:29,634 [INFO] app.main: LST XAUUSD | liquidity_sell M5 | conf=0.92 | spread=19.9 | score=0.92
+2026-07-29 02:44:29,635 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.88 | spread=19.9 | score=0.88
+2026-07-29 02:44:29,635 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=19.9 | score=0.87
+2026-07-29 02:44:29,636 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=17.4 | score=0.65
+2026-07-29 02:44:29,636 [INFO] app.main: LST XAUUSD | neutral M5 | conf=0.00 | spread=29.8 | score=0.83
+2026-07-29 02:44:29,637 [INFO] app.main: LST XAUUSD | liquidity_buy M5 | conf=0.91 | spread=22.3 | score=0.91
+2026-07-29 02:44:29,994 [INFO] httpx: HTTP Request: GET http://localhost:8007/rates?symbol=XAUUSD&timeframe=M15&limit=20 "HTTP/1.1 200 OK"
+2026-07-29 02:44:29,995 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.22 | spread=17.4 | score=0.63
+2026-07-29 02:44:29,996 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.26 | spread=19.9 | score=0.62
+2026-07-29 02:44:29,996 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.32 | spread=19.9 | score=0.62
+2026-07-29 02:44:29,997 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.38 | spread=19.9 | score=0.62
+2026-07-29 02:44:29,997 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=22.4 | score=0.63
+2026-07-29 02:44:29,998 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.44 | spread=22.4 | score=0.61
+2026-07-29 02:44:29,998 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.27 | spread=19.9 | score=0.78
+2026-07-29 02:44:29,998 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.8 | score=0.80
+2026-07-29 02:44:29,999 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.86 | spread=19.8 | score=0.86
+2026-07-29 02:44:30,000 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.79 | spread=17.4 | score=0.79
+2026-07-29 02:44:30,000 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=19.9 | score=0.91
+2026-07-29 02:44:30,001 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=17.4 | score=0.91
+2026-07-29 02:44:30,002 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.84 | spread=19.9 | score=0.91
+2026-07-29 02:44:30,002 [INFO] app.main: LST XAUUSD | liquidity_sell M15 | conf=0.74 | spread=17.4 | score=0.91
+2026-07-29 02:44:30,003 [INFO] app.main: LST XAUUSD | neutral M15 | conf=0.00 | spread=27.3 | score=0.86
+2026-07-29 02:44:30,003 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.87 | spread=22.4 | score=0.87
+2026-07-29 02:44:30,004 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.83 | spread=19.9 | score=0.83
+2026-07-29 02:44:30,004 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.35 | spread=29.8 | score=0.88
+2026-07-29 02:44:30,005 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.61 | spread=19.9 | score=0.87
+2026-07-29 02:44:30,006 [INFO] app.main: LST XAUUSD | liquidity_buy M15 | conf=0.85 | spread=17.4 | score=0.85
+INFO:     127.0.0.1:63137 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63162 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58374 - "GET /health HTTP/1.1" 200 OK

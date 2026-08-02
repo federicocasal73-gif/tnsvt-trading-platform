@@ -4,15 +4,18 @@ Handler: /canales — Lista los canales Telegram configurados en config.json.
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.handlers.admin_check import dm_only
+from bot.bridge_auth import bridge_headers
 
 logger = logging.getLogger("Bot.Handlers.Canales")
 
-ROOT_DIR = Path(__file__).parent.parent.parent
-CONFIG_PATH = ROOT_DIR / "D:\\TradingBotMT5\\config.json"
+# MT5_DATA_DIR configurable via env (default D:\TradingBotMT5)
+MT5_DATA_DIR = Path(os.getenv("MT5_DATA_DIR", r"D:\TradingBotMT5"))
+CONFIG_PATH = MT5_DATA_DIR / "config.json"
 
 
 def _read_config():
@@ -20,7 +23,7 @@ def _read_config():
         # En Docker, config.json vive en D:\TradingBotMT5\config.json via bridge.
         # Mas robusto: usamos directamente via bridge-api
         import requests
-        r = requests.get("http://localhost:8522/api/v1/bridge/config", timeout=5)
+        r = requests.get("http://localhost:8522/api/v1/bridge/config", headers=bridge_headers(), timeout=5)
         if r.status_code == 200:
             return r.json()
     except Exception as e:

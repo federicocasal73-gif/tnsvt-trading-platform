@@ -2,10 +2,13 @@ import { createContext, ReactNode, useContext, useEffect, useState, useCallback,
 import { api, Mt5AccountSnapshot, Mt5PositionSnapshot, Metrics } from '../lib/api';
 
 export interface Mt5AccountSummary {
+  id?: string;          // account-manager UUID (optional, present when proxying to account-manager)
   login: number;
   alias: string;
   name: string;
   server: string;
+  broker?: string;
+  status?: string;
   balance: number | null;
   equity: number | null;
   margin: number | null;

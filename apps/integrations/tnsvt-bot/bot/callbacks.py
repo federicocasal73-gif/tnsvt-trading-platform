@@ -177,6 +177,12 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+    # Encuesta semanal: voto desde botones inline
+    if data.startswith("poll:v:"):
+        from bot.handlers.weekly_poll import poll_vote_callback
+        await poll_vote_callback(update, context)
+        return
+
     # Cierre masivo (close:all)
     if data == "close:all":
         user_id = update.effective_user.id if update.effective_user else 0
@@ -302,18 +308,15 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "cuenta_edit":
         await query.edit_message_text(
-            text="✏️ *Editá `D:\\\\TradingBotMT5\\\\accounts.json`*\n\n"
-                 "Cada cuenta tiene:\n"
-                 "```json\n"
-                 "{\n"
-                 '  "login": 10011629660,\n'
-                 '  "password": "tu_password",\n'
-                 '  "server": "MetaQuotes-Demo",\n'
-                 '  "name": "Mi cuenta Demo",\n'
-                 '  "alias": "demo_main"\n'
-                 "}\n"
-                 "```\n"
-                 "Después de editar, reiniciá `mt5_multi_snapshot.py`.",
+            text="✏️ *Gestión de cuentas MT5*\n\n"
+                 "Las cuentas ahora se gestionan vía *account-manager* (servicio :8510).\n"
+                 "Desde el panel web → *Cuentas MT5* podés:\n\n"
+                 "• Agregar cuenta nueva (login + password + server)\n"
+                 "• Editar alias / nombre / estado\n"
+                 "• Cambiar password (re-encripta AES-GCM)\n"
+                 "• Pausar / deshabilitar / eliminar\n\n"
+                 "Endpoint API: `POST /api/v1/accounts`\n"
+                 "Documentación: `docs/15-SECURITY-HARDENING.md`",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Volver", callback_data="cmd:cuentas")],

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,8 +14,6 @@ import (
 	"github.com/tnsvt/audit-engine/internal/models"
 	"github.com/tnsvt/audit-engine/internal/repository"
 )
-
-const defaultTenant = "00000000-0000-0000-0000-000000000001"
 
 // AuditSubscriber escucha subjects de negocio y los almacena.
 type AuditSubscriber struct {
@@ -67,9 +66,19 @@ func (s *AuditSubscriber) handleEvent(msg *nats.Msg) {
 		EventType: msg.Subject,
 		Source:    extractSource(msg.Subject),
 		CreatedAt: time.Now(),
-		TenantID:  uuid.MustParse(defaultTenant),
 		Data:      make(map[string]interface{}),
 		Metadata:  make(map[string]interface{}),
+	}
+
+	// tenant_id: extraer del payload; si no, usar DEFAULT_TENANT_ID del .env;
+	// si no está configurado, dejar uuid.Nil (con warning).
+	if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			event.TenantID = u
+		}
+	} else {
+		s.log.Warn("DEFAULT_TENANT_ID not configured, events without explicit tenant_id will have nil UUID",
+			"subject", msg.Subject)
 	}
 
 	var raw map[string]interface{}

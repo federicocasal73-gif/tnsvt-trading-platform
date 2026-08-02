@@ -1,0 +1,9 @@
+[project]
+name = "news-bridge"
+version = "0.1.0"
+description = "Bridge NATS news_based -> signal-engine HTTP ingest"
+requires-python = ">=3.12"
+dependencies = [
+    "nats-py>=2.10.0",
+    "httpx>=0.27.0",
+]

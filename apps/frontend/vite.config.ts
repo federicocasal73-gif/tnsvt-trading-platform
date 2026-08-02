@@ -5,8 +5,23 @@ const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:8000';
 const dashboardTarget = process.env.VITE_DASHBOARD_TARGET || 'http://localhost:8501';
 const bridgeTarget = process.env.VITE_BRIDGE_TARGET || 'http://localhost:8522';
 
+const registerBlockPlugin = {
+  name: 'block-public-register',
+  configureServer(server: any) {
+    server.middlewares.use((req: any, res: any, next: any) => {
+      if (req.method === 'POST' && req.url?.startsWith('/api/v1/auth/register')) {
+        res.statusCode = 403;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Registro público deshabilitado. Contacta al administrador.' }));
+        return;
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), registerBlockPlugin as any],
   server: {
     port: 5180,
     strictPort: true,
@@ -25,8 +40,6 @@ export default defineConfig({
         },
       },
       // Admin endpoints (Tenants & Billing demo) -> bridge-api :8522.
-      // El bridge expone /api/v1/admin/{tenants_demo,seed_demo} como
-      // demo data cuando el backend real de auth-service no responde.
       '/api/v1/admin': {
         target: bridgeTarget,
         changeOrigin: true,
@@ -37,10 +50,7 @@ export default defineConfig({
           });
         },
       },
-      // Auth endpoints → auth-service directo. Sin este proxy, los auth/*
-      // caen en el catch-all '/api' y el gateway devuelve 503 (su
-      // services.json apunta a hostname docker 'auth-service' que no
-      // resuelve en Windows nativos).
+      // Auth endpoints → auth-service directo.
       '/api/v1/auth': {
         target: 'http://localhost:8001',
         changeOrigin: true,

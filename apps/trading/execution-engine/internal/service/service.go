@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,12 +19,14 @@ import (
 	"github.com/tnsvt/execution-engine/internal/broker"
 	"github.com/tnsvt/execution-engine/internal/models"
 	"github.com/tnsvt/execution-engine/internal/repository"
+	sharedtrading "github.com/tnsvt/shared-go/trading"
 )
 
 // Config configuración del execution engine
 type Config struct {
 	DefaultBroker  models.BrokerName
 	DefaultAccount string
+	LSTAccount     string
 	Timeout        time.Duration
 	RetryMax       int
 	RetryBackoff   time.Duration
@@ -36,6 +40,58 @@ var ErrExecutionFailed = errors.New("execution failed")
 
 // ErrInvalidSignal señal inválida
 var ErrInvalidSignal = errors.New("invalid signal")
+
+// ErrDuplicateSignal señal duplicada
+var ErrDuplicateSignal = errors.New("duplicate signal")
+
+// resolveAccount retorna el account_id a usar para una señal.
+// LST (orchestrator-*) usa LSTAccount; resto usa DefaultAccount.
+// Si LSTAccount está vacío, fallback a DefaultAccount con warning.
+func (s *ExecutionService) resolveAccount(signal *models.SignalInput) string {
+	source := strings.ToLower(signal.Source)
+	if strings.HasPrefix(source, "orchestrator") || strings.Contains(source, "lst") {
+		if s.config.LSTAccount != "" {
+			return s.config.LSTAccount
+		}
+		s.log.Warn("LST signal received but LST_ACCOUNT_ID not set; falling back to default",
+			"signal_id", signal.ID, "source", signal.Source)
+	}
+	return s.config.DefaultAccount
+}
+
+func (s *ExecutionService) defaultTenantID() uuid.UUID {
+	if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			return u
+		}
+	}
+	return uuid.Nil
+}
+
+func getSymbolMultiplier(symbol string) float64 {
+	s := strings.ToUpper(symbol)
+	if strings.Contains(s, "US30") || strings.Contains(s, "DJI") || strings.Contains(s, "DOW") ||
+		strings.Contains(s, "NAS100") || strings.Contains(s, "NAS") || strings.Contains(s, "NDX") ||
+		strings.Contains(s, "USTEC") || strings.Contains(s, "SP500") || strings.Contains(s, "SPX") ||
+		strings.Contains(s, "US500") || strings.Contains(s, "JP225") || strings.Contains(s, "NI225") ||
+		strings.Contains(s, "JPN225") || strings.Contains(s, "UK100") || strings.Contains(s, "FTSE") ||
+		strings.Contains(s, "GER40") || strings.Contains(s, "DAX") {
+		return 1
+	}
+	if (strings.HasSuffix(s, "USD") && (strings.HasPrefix(s, "BTC") || strings.HasPrefix(s, "ETH") ||
+		strings.HasPrefix(s, "XRP") || strings.HasPrefix(s, "LTC") || strings.HasPrefix(s, "BCH") ||
+		strings.HasPrefix(s, "SOL") || strings.HasPrefix(s, "ADA") || strings.HasPrefix(s, "DOT") ||
+		strings.HasPrefix(s, "LINK") || strings.HasPrefix(s, "MATIC") || strings.HasPrefix(s, "DOGE"))) {
+		return 1
+	}
+	if s == "XAUUSD" || s == "GOLD" {
+		return 100
+	}
+	if s == "XAGUSD" || s == "SILVER" {
+		return 5000
+	}
+	return 100000
+}
 
 // ExecutionService es el orquestador principal
 type ExecutionService struct {
@@ -92,9 +148,16 @@ func (s *ExecutionService) ExecuteSignal(ctx context.Context, signal *models.Sig
 		return nil, ErrInvalidSignal
 	}
 
+	// Idempotency: skip if signal_id already executed
+	existing, err := s.repo.GetBySignalID(ctx, signal.ID)
+	if err == nil && existing != nil {
+		s.log.Warn("Duplicate signal execution prevented", "signal_id", signal.ID, "existing_execution_id", existing.ID)
+		return existing, ErrDuplicateSignal
+	}
+
 	// Determinar broker y account
 	brokerName := s.config.DefaultBroker
-	accountID := s.config.DefaultAccount
+	accountID := s.resolveAccount(signal)
 
 	if signal.Symbol != "" && signal.Action == "CLOSE" {
 		return s.executeClose(ctx, signal)
@@ -155,12 +218,6 @@ func (s *ExecutionService) ExecuteSignal(ctx context.Context, signal *models.Sig
 		return execution, ErrNoBroker
 	}
 
-	// Check broker health
-	if err := connector.HealthCheck(ctx); err != nil {
-		s.failExecution(ctx, execution, fmt.Sprintf("broker health check failed: %v", err))
-		return execution, fmt.Errorf("broker unhealthy: %w", err)
-	}
-
 	execution.Status = models.ExecStatusRouted
 	execution.SubmittedAt = timePtr(time.Now())
 	s.repo.Update(ctx, execution)
@@ -176,7 +233,7 @@ func (s *ExecutionService) ExecuteSignal(ctx context.Context, signal *models.Sig
 		StopLoss:    signal.StopLoss,
 		TakeProfit:  tp,
 		Comment:     fmt.Sprintf("TNSVT signal %s", signal.ID.String()),
-		MagicNumber: 123456,
+		MagicNumber: sharedtrading.MagicForAccount(accountID),
 	}
 
 	// Retry logic
@@ -252,7 +309,7 @@ func (s *ExecutionService) executeClose(ctx context.Context, signal *models.Sign
 		SignalID:  signal.ID,
 		UserID:    signal.UserID,
 		Broker:    s.config.DefaultBroker,
-		AccountID: s.config.DefaultAccount,
+		AccountID: s.resolveAccount(signal),
 		Symbol:    signal.Symbol,
 		Side:      models.SideSell, // placeholder
 		OrderType: models.OrderMarket,
@@ -337,8 +394,8 @@ func (s *ExecutionService) RunTradeMonitor(ctx context.Context, interval time.Du
 }
 
 func (s *ExecutionService) checkOpenPositions(ctx context.Context, brokerFactory *broker.Factory) {
-	// Obtener executions filled (asumimos un solo tenant por ahora en Fase 1)
-	tenantID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	// Fase 1: solo el tenant por defecto. Fase 2: iterar todos los tenants.
+	tenantID := s.defaultTenantID()
 	executions, err := s.repo.GetFilledExecutions(ctx, tenantID)
 	if err != nil {
 		return
@@ -350,7 +407,7 @@ func (s *ExecutionService) checkOpenPositions(ctx context.Context, brokerFactory
 	}
 
 	// Get current positions from broker
-	positions, err := connector.GetPositions(ctx, s.config.DefaultAccount)
+	positions, err := connector.GetPositions(ctx, s.config.DefaultAccount) // monitor uses default account
 	if err != nil {
 		s.log.Warn("Failed to get positions in monitor", "error", err.Error())
 		return
@@ -376,20 +433,22 @@ func (s *ExecutionService) checkOpenPositions(ctx context.Context, brokerFactory
 }
 
 func (s *ExecutionService) handleTradeClosed(ctx context.Context, exec *models.Execution) {
-	// Determine close reason by checking final state
-	// (Fase 1: simplified — just mark as closed)
-	// En Fase 2: consultar deal history para saber si fue TP/SL/manual
-
 	closeReason := "unknown"
 	exitPrice := 0.0
 	pnl := 0.0
+	multiplier := getSymbolMultiplier(exec.Symbol)
 
 	if exec.FilledPrice != nil {
-		// Best effort: use filled price as exit (Fase 2 mejor)
 		exitPrice = *exec.FilledPrice
+		if exec.Price != nil && exec.FilledQty != nil && *exec.FilledQty > 0 {
+			if exec.Side == models.SideBuy {
+				pnl = (exitPrice - *exec.Price) * *exec.FilledQty * multiplier
+			} else {
+				pnl = (*exec.Price - exitPrice) * *exec.FilledQty * multiplier
+			}
+		}
 	}
 
-	// Notify risk-engine
 	if exec.TenantID != uuid.Nil {
 		if err := s.notifyRiskClosed(ctx, exec.TenantID, exec.Ticket, exitPrice, pnl, closeReason); err != nil {
 			s.log.Warn("Failed to notify risk-engine of closed trade", "error", err.Error())

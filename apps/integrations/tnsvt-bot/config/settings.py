@@ -274,6 +274,16 @@ class Settings:
         except (ValueError, TypeError):
             return 0
 
+    @property
+    def COMMUNITY_API_URL(self) -> str:
+        """Base URL del bridge-api para la capa Comunidad (encuestas/eventos)."""
+        return os.getenv("COMMUNITY_API_URL", "http://localhost:8522/api/v1/bridge/community").rstrip("/")
+
+    @property
+    def TNSVT_ADMIN_PASSWORD(self) -> str:
+        """Password de servicio para autenticarse contra el bridge-api (X-Admin-Password)."""
+        return os.getenv("TNSVT_ADMIN_PASSWORD", "")
+
     # ============================================
     # DASHBOARD
     # ============================================

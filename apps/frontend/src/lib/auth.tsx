@@ -99,12 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
         error: null,
       }));
-    } catch (e) {
-      // Token invalido -> forzar logout
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
-      setState({ user: null, loading: false, error: null });
-      window.location.href = '/login';
+    } catch (e: any) {
+      if (e?.message?.includes('401') || e?.message?.includes('Unauthorized')) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_KEY);
+        setState({ user: null, loading: false, error: null });
+        window.location.href = '/login';
+      }
     }
   }, []);
 

@@ -2,11 +2,12 @@ import { useEffect, useState, useMemo } from 'react';
 import {
   Shield, AlertTriangle, TrendingDown, Wallet, Activity,
   RefreshCw, Power, Settings, History as HistoryIcon, BarChart3,
-  Zap, Skull,
+  Zap, Skull, Crosshair,
 } from 'lucide-react';
 import { api, RiskState, RiskHistoryEvent, BotConfig, SymbolExposure } from '../lib/api';
-import { cls } from '../utils/format';
+import { cls, accountColor } from '../utils/format';
 import { useAdaptivePolling } from '../hooks/useAdaptivePolling';
+import { useBridge } from '../state/BridgeProvider';
 
 const POLL_MS = 5000;
 
@@ -354,11 +355,14 @@ function RiskTimeline({ events }: { events: RiskHistoryEvent[] }) {
 }
 
 export function Mt5RiskPage() {
+  const bridge = useBridge();
   const [risk, setRisk] = useState<RiskState | null>(null);
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [history, setHistory] = useState<RiskHistoryEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [killBusy, setKillBusy] = useState(false);
+  const [accountKillBusy, setAccountKillBusy] = useState<string | null>(null); // account_id being killed
+  const [accountKillConfirm, setAccountKillConfirm] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(0);
 
   const fetchAll = async () => {
@@ -393,6 +397,21 @@ export function Mt5RiskPage() {
       await fetchAll();
     } finally {
       setKillBusy(false);
+    }
+  };
+
+  // Sprint 1.7: kill switch por cuenta (no pausa orchestrator ni bot global)
+  const handleAccountKillSwitch = async (accountId: string) => {
+    setAccountKillBusy(accountId);
+    try {
+      await api.bridge.accountKillSwitch(accountId, 'admin_manual');
+      await fetchAll();
+      bridge.refresh?.();
+    } catch (e: any) {
+      setError(`account kill switch failed: ${e.message}`);
+    } finally {
+      setAccountKillBusy(null);
+      setAccountKillConfirm(null);
     }
   };
 
@@ -478,6 +497,67 @@ export function Mt5RiskPage() {
               Emergency Controls
             </h3>
             <KillSwitch onConfirm={handleKillSwitch} busy={killBusy} />
+
+            {/* Sprint 1.7: kill switch por cuenta — más quirúrgico,
+                solo cierra posiciones de UNA cuenta sin pausar el sistema. */}
+            {bridge.accounts.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-red-500/20">
+                <h4 className="text-xs font-semibold text-red-200/80 mb-2 flex items-center gap-1.5">
+                  <Crosshair className="h-3 w-3" />
+                  Por cuenta (quirúrgico)
+                </h4>
+                <div className="space-y-1.5">
+                  {bridge.accounts.map((a) => {
+                    const colorKey = a.id ?? a.login;
+                    const isConfirming = accountKillConfirm === a.id;
+                    const isBusy = accountKillBusy === a.id;
+                    return (
+                      <div key={String(colorKey)} className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: accountColor(colorKey) }}
+                        />
+                        <span className="text-xs flex-1 truncate" title={a.alias ?? a.name ?? ''}>
+                          {a.alias ?? a.name ?? `acc_${a.login}`}
+                        </span>
+                        {!a.id ? (
+                          <span className="text-[10px] text-tnvs-muted">sin id</span>
+                        ) : !isConfirming ? (
+                          <button
+                            onClick={() => setAccountKillConfirm(a.id!)}
+                            disabled={isBusy}
+                            className="px-2 py-1 text-[10px] rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 disabled:opacity-50"
+                          >
+                            Cerrar todo
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setAccountKillConfirm(null)}
+                              disabled={isBusy}
+                              className="px-2 py-1 text-[10px] rounded bg-white/[0.05] hover:bg-white/[0.1] text-tnvs-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleAccountKillSwitch(a.id!)}
+                              disabled={isBusy}
+                              className="px-2 py-1 text-[10px] rounded bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-50"
+                            >
+                              {isBusy ? 'Cerrando...' : 'CONFIRMAR'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[10px] text-tnvs-muted">
+                  Cierra SOLO las posiciones de la cuenta elegida. No pausa
+                  el orchestrator ni el bot global.
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-4">

@@ -1,6 +1,6 @@
 """
 Utilidad: Verificacion de admin para handlers del bot.
-Si BOT_ADMIN_IDS esta vacio, todos tienen acceso.
+Si BOT_ADMIN_IDS esta vacio, ningún usuario tiene acceso.
 """
 from functools import wraps
 from telegram import Update
@@ -14,7 +14,10 @@ def admin_only(handler):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         admin_ids = settings.BOT_ADMIN_IDS
         if not admin_ids:
-            return await handler(update, context)
+            await update.message.reply_text(
+                "🔒 Acceso restringido a administradores."
+            )
+            return
 
         user_id = update.effective_user.id if update.effective_user else 0
         if user_id not in admin_ids:

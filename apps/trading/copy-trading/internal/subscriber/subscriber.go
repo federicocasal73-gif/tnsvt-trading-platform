@@ -1,4 +1,4 @@
-// Package subscriber consume signals validadas de NATS y dispara replicación.
+// Package subscriber consume signals from NATS y dispara replicación.
 package subscriber
 
 import (
@@ -18,7 +18,7 @@ type ReplicationTrigger interface {
 	ReplicateSignal(ctx context.Context, signal *models.SignalInput) error
 }
 
-// SignalSubscriber escucha trading.signal.validated
+// SignalSubscriber escucha trading.signal.{created,validated}
 type SignalSubscriber struct {
 	nats    *nats.Conn
 	trigger ReplicationTrigger
@@ -42,7 +42,10 @@ func NewSignalSubscriber(nc *nats.Conn, trigger ReplicationTrigger, log interfac
 	}
 }
 
-// Start comienza a escuchar
+// Start comienza a escuchar via core NATS Subscribe.
+//
+// Recibe mensajes publicados tanto con nc.Publish() como con js.Publish()
+// (signal-generator, news-analyzer usan JetStream, signal-engine usa core NATS).
 func (s *SignalSubscriber) Start(ctx context.Context) error {
 	subCreated, err := s.nats.Subscribe("trading.signal.created", s.handleMessage)
 	if err != nil {

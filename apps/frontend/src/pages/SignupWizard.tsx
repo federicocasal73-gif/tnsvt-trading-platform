@@ -83,34 +83,14 @@ export function SignupWizard() {
     setError(null);
     setSubmitting(true);
     try {
-      // Llama al endpoint real /auth/register. Si falla (ej: 500, network), cae
-      // en modo demo para no bloquear UX.
-      let success = false;
-      try {
-        await api.auth.register({
-          email: data.email,
-          username: data.username,
-          password: data.password,
-          tenant_name: data.tenant_name,
-          full_name: data.full_name || undefined,
-        });
-        success = true;
-      } catch (regErr: any) {
-        const msg = String(regErr?.message || '');
-        // Si el error es 5xx o network, caemos a demo
-        if (msg.includes('500') || msg.includes('502') || msg.includes('503') ||
-            msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) {
-          // demo fallback
-          await new Promise(r => setTimeout(r, 1500));
-          success = true;
-        } else {
-          // Errores reales (validacion, email duplicado, etc)
-          throw regErr;
-        }
-      }
-      if (success) {
-        navigate('/login?welcome=1', { replace: true });
-      }
+      await api.auth.register({
+        email: data.email,
+        username: data.username,
+        password: data.password,
+        tenant_name: data.tenant_name,
+        full_name: data.full_name || undefined,
+      });
+      navigate('/login?welcome=1', { replace: true });
     } catch (e: any) {
       setError(e.message || 'No se pudo crear la cuenta.');
     } finally {

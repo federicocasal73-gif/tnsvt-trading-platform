@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
@@ -192,11 +194,17 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest, ip, u
 
 	// Verificar password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		// Incrementar failed login
-		count, _ := s.repo.IncrementFailedLogin(ctx, user.ID)
-		if count >= s.authConfig.MaxLoginAttemptsVal() {
-			until := time.Now().Add(s.authConfig.LockoutDurationVal())
-			s.repo.LockUser(ctx, user.ID, until)
+		// A5: IncrementAndMaybeLock atómico (1 query) en lugar de
+		// IncrementFailedLogin + LockUser (2 queries, race condition).
+		count, locked, ilErr := s.repo.IncrementAndMaybeLock(
+			ctx, user.ID,
+			s.authConfig.MaxLoginAttemptsVal(),
+			s.authConfig.LockoutDurationVal(),
+		)
+		if ilErr != nil {
+			s.log.Error("IncrementAndMaybeLock failed", ilErr, "user_id", user.ID)
+		}
+		if locked {
 			s.recordAudit(ctx, &user.ID, &user.TenantID, "login", ip, userAgent, "failure", map[string]any{
 				"reason": "locked_after_failed_attempts", "attempts": count,
 			})
@@ -346,26 +354,47 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 
 // ─── 2FA ───────────────────────────────────────────────────────
 
+// A4 fix: Setup2FA persiste el secret con two_factor_enabled=FALSE.
+// El flag solo se activa tras Verify2FA exitoso.
 func (s *AuthService) Setup2FA(ctx context.Context, userID uuid.UUID) (string, error) {
-	secret := generateTOTPSecret()
-	// Persistir el secret generado. Activar flag two_factor_enabled al verificar.
-	if err := s.repo.UpdateUser2FASecret(ctx, userID, secret); err != nil {
-		s.log.Error("UpdateUser2FASecret failed", err, "user_id", userID)
+	secret, err := generateTOTPSecret()
+	if err != nil {
+		s.log.Error("generateTOTPSecret failed", err, "user_id", userID)
+		return "", fmt.Errorf("generate totp secret: %w", err)
+	}
+	// Setup usa el nuevo método que NO auto-activa.
+	if err := s.repo.Setup2FASecret(ctx, userID, secret); err != nil {
+		s.log.Error("Setup2FASecret failed", err, "user_id", userID)
 		return "", fmt.Errorf("persist 2fa secret: %w", err)
 	}
 	return secret, nil
 }
 
+// Verify2FA valida el código TOTP. Si es correcto, ACTIVA two_factor_enabled
+// (paso 2 del setup). Si ya estaba enabled, solo valida.
 func (s *AuthService) Verify2FA(ctx context.Context, userID uuid.UUID, code string) error {
-	// Recuperar user para validar TOTP contra su secret
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("user lookup: %w", err)
 	}
-	if !verifyTOTPCode(user.TwoFactorSecret, code) {
+	if user.TwoFactorSecret == "" {
+		return errors.New("2FA not configured — call Setup2FA first")
+	}
+	ok, verifyErr := verifyTOTPSecret(user.TwoFactorSecret, code)
+	if !ok {
+		if verifyErr != nil {
+			s.log.Warn("2FA verify failed", "err", verifyErr, "user_id", userID)
+		}
 		return errors.New("invalid 2fa code")
 	}
-	// Si estaba pendiente de activacion, el secret ya esta guardado en Setup2FA
+	// A4: Si NO estaba activado, activarlo ahora (paso 2 del setup).
+	if !user.TwoFactorEnabled {
+		if err := s.repo.Enable2FA(ctx, userID); err != nil {
+			s.log.Error("Enable2FA failed after successful verify", err, "user_id", userID)
+			return fmt.Errorf("enable 2fa: %w", err)
+		}
+		s.log.Info("2FA enabled after successful verify", "user_id", userID)
+	}
 	return nil
 }
 
@@ -421,14 +450,29 @@ func (s *AuthService) recordAudit(ctx context.Context, userID, tenantID *uuid.UU
 
 // ─── Validators ────────────────────────────────────────────────
 
+// otpDigitsSix y otpAlgorithmSHA1 son aliases para las constantes
+// no-exportadas de github.com/pquerna/otp. Definidas aquí para
+// evitar import circular con jwt.go y mantener el código legible.
+// Los tipos son `int` según otp.go (Digits int, Algorithm int).
+const (
+	otpDigitsSix    int = 6  // totp.DigitsSix equivalente (DigitsSix Digits = 6)
+	otpAlgorithmSHA1 int = 0  // totp.AlgorithmSHA1 equivalente (AlgorithmSHA1 Algorithm = iota 0)
+)
+
+// validatePasswordStrength enforces política de password.
+// A6 fix: strengthened con símbolo + chequeo de entropía simple.
+// TODO Fase 3: integrar zxcvbn-go para detectar common passwords.
 func validatePasswordStrength(password string) error {
 	if len(password) < 12 {
 		return ErrWeakPassword
 	}
-	// Mínimo: mayúscula, minúscula, número
+	if len(password) > 128 {
+		return ErrWeakPassword // evitar DoS con passwords muy largos
+	}
 	hasUpper := false
 	hasLower := false
 	hasDigit := false
+	hasSymbol := false
 	for _, c := range password {
 		switch {
 		case c >= 'A' && c <= 'Z':
@@ -437,12 +481,34 @@ func validatePasswordStrength(password string) error {
 			hasLower = true
 		case c >= '0' && c <= '9':
 			hasDigit = true
+		case (c >= '!' && c <= '/') || (c >= ':' && c <= '@') ||
+			(c >= '[' && c <= '`') || (c >= '{' && c <= '~'):
+			hasSymbol = true
 		}
 	}
-	if !hasUpper || !hasLower || !hasDigit {
+	if !hasUpper || !hasLower || !hasDigit || !hasSymbol {
+		return ErrWeakPassword
+	}
+	// Chequeo básico de entropía: no permitir repeticiones obvias.
+	// (zxcvbn real vendría en una iteración posterior.)
+	if hasAllSameChar(password) {
 		return ErrWeakPassword
 	}
 	return nil
+}
+
+// hasAllSameChar detecta passwords triviales como "aaaaaaaaaaaa".
+func hasAllSameChar(s string) bool {
+	if len(s) < 4 {
+		return false
+	}
+	first := s[0]
+	for i := 1; i < len(s); i++ {
+		if s[i] != first {
+			return false
+		}
+	}
+	return true
 }
 
 func generateSlug(name string) string {
@@ -468,24 +534,48 @@ func generateSlug(name string) string {
 	return string(out)
 }
 
-func generateTOTPSecret() string {
-	// Base32 random 32 chars
-	return uuid.New().String()
+// A3 fix: TOTP real con github.com/pquerna/otp (RFC 6238).
+// Setup2FA ya NO activa el flag enabled=true (A4). Solo se activa
+// tras verifyTOTPCode exitoso (ver Setup2FA / Verify2FA en handlers).
+
+// generateTOTPSecret genera un secret Base32 de 32 chars (estándar TOTP).
+func generateTOTPSecret() (string, error) {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      JWTIssuer,
+		AccountName: "tnsvt-user",
+		Period:      30,
+		Digits:      otp.Digits(otpDigitsSix),
+		Algorithm:   otp.Algorithm(otpAlgorithmSHA1),
+	})
+	if err != nil {
+		return "", fmt.Errorf("generate TOTP secret: %w", err)
+	}
+	return key.Secret(), nil
 }
 
-func verifyTOTPSecret(secret, code string) bool {
-	// Placeholder - en producción usar github.com/pquerna/otp
+// verifyTOTPSecret valida el código TOTP contra el secret.
+// Ventana: ±1 step (30s antes/después, default de la librería).
+func verifyTOTPSecret(secret, code string) (bool, error) {
 	if len(code) != 6 {
-		return false
+		return false, nil
 	}
-	for _, c := range code {
-		if c < '0' || c > '9' {
-			return false
-		}
+	if secret == "" {
+		return false, errors.New("totp secret not configured for user")
 	}
-	return true
+	pass, err := totp.ValidateCustom(code, secret, time.Now(), totp.ValidateOpts{
+		Period:    30,
+		Skew:      1,
+		Digits:    otp.Digits(otpDigitsSix),
+		Algorithm: otp.Algorithm(otpAlgorithmSHA1),
+	})
+	if err != nil {
+		return false, nil
+	}
+	return pass, nil
 }
 
+// verifyTOTPCode wrap que descarta el error (compatibilidad).
 func verifyTOTPCode(secret, code string) bool {
-	return verifyTOTPSecret(secret, code)
+	ok, _ := verifyTOTPSecret(secret, code)
+	return ok
 }

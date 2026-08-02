@@ -6,8 +6,7 @@ from google import genai
 import json
 import os
 
-# CONFIGURACIÓN
-GOOGLE_API_KEY = "AIzaSyB2X7Mn-R4QPCW-AY4m1KIH-HM3dTBW1dA" 
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 
 class AIParser:
     def __init__(self):

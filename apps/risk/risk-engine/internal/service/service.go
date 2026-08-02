@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +16,14 @@ import (
 
 	"github.com/tnsvt/risk-engine/internal/models"
 	"github.com/tnsvt/risk-engine/internal/repository"
+)
+
+// ─── Constants ────────────────────────────────────────────────
+
+const (
+	// pipsPerPoint 4-decimal forex: 0.0001 = 1 pip → 10000 pips/unidad
+	// 2-decimal JPY pairs: 0.01 = 1 pip → 100 pips/unidad (TODO Fase 2: detectar JPY)
+	pipsPerPoint float64 = 10000
 )
 
 // Config configuración del risk engine
@@ -25,6 +35,7 @@ type Config struct {
 	TrailingStop        bool
 	TrailingStep        int
 	TrailingStart       int
+	DefaultBalance      float64 // balance inicial para position sizing (0 = 10000)
 }
 
 // RiskService lógica principal
@@ -82,24 +93,42 @@ func (s *RiskService) EvaluateSignal(ctx context.Context, signal *models.SignalI
 		return nil, fmt.Errorf("list positions: %w", err)
 	}
 
-	// Exposure per symbol
+	// Exposure per (account, symbol) — fuente de verdad para multi-cuenta.
+	// Tambien consolidamos por symbol (para UI legacy) y por account (para dashboards).
+	exposurePerAccountSymbol := make(map[string]map[string]float64)
 	exposurePerSymbol := make(map[string]float64)
+	exposurePerAccount := make(map[string]float64)
 	totalUnrealizedPnL := 0.0
 	for _, pos := range openPositions {
-		exposurePerSymbol[pos.Symbol] += pos.Quantity * pos.CurrentPrice
+		// Si por algún motivo la posición no tiene account_id, agrupamos
+		// bajo un sentinel para no perderla (legado de antes de Sprint 1).
+		acc := pos.AccountID
+		if acc == "" {
+			acc = "_legacy"
+		}
+		sym := pos.Symbol
+		usd := pos.Quantity * pos.CurrentPrice
+		if exposurePerAccountSymbol[acc] == nil {
+			exposurePerAccountSymbol[acc] = make(map[string]float64)
+		}
+		exposurePerAccountSymbol[acc][sym] += usd
+		exposurePerSymbol[sym] += usd
+		exposurePerAccount[acc] += usd
 		totalUnrealizedPnL += pos.UnrealizedPnL
 	}
 
 	evaluation := &models.RiskEvaluation{
-		SignalID:           signal.ID,
-		TenantID:           signal.TenantID,
-		CurrentDailyPnL:    dailyPnL,
-		CurrentWeeklyPnL:   weeklyPnL,
-		CurrentDrawdown:    0, // calculado aparte
-		OpenPositionsCount: len(openPositions),
-		ExposurePerSymbol:  exposurePerSymbol,
-		EvaluatedAt:        now,
-		Warnings:           []string{},
+		SignalID:                signal.ID,
+		TenantID:                signal.TenantID,
+		CurrentDailyPnL:         dailyPnL,
+		CurrentWeeklyPnL:        weeklyPnL,
+		CurrentDrawdown:         0, // calculado aparte
+		OpenPositionsCount:      len(openPositions),
+		ExposurePerSymbol:       exposurePerSymbol,
+		ExposurePerAccountSymbol: exposurePerAccountSymbol,
+		ExposurePerAccount:      exposurePerAccount,
+		EvaluatedAt:             now,
+		Warnings:                []string{},
 	}
 
 	// ─── Check 1: Daily loss limit ─────────────────────────────
@@ -142,23 +171,72 @@ func (s *RiskService) EvaluateSignal(ctx context.Context, signal *models.SignalI
 		return evaluation, nil
 	}
 
-	// ─── Check 5: Max exposure per symbol ──────────────────────
+	// ─── Check 5: Max exposure per symbol (per-account) ─────────
+	// Con multi-cuenta, la exposición por símbolo se evalúa POR CUENTA.
+	// Una cuenta adicional no acumula exposure con las demás; cada cuenta
+	// tiene su propio límite. Si la señal no trae account_id, usamos el
+	// peor caso: la cuenta con mayor exposición actual en ese símbolo.
 	if signal.EntryPrice != nil && signal.LotSize != nil {
-		// Asumir 1 lot = 100,000 unidades; pip value aproximado
-		estimatedExposure := *signal.LotSize * *signal.EntryPrice * 100000
-		currentExposure := exposurePerSymbol[signal.Symbol]
-		if currentExposure+estimatedExposure > limits.MaxExposurePerSymbol {
+		estimatedExposure := *signal.LotSize * *signal.EntryPrice * getSymbolMultiplier(signal.Symbol)
+		// Hallar la exposición actual máxima en el símbolo (cualquier cuenta)
+		var maxCurrentExposure float64
+		var maxCurrentAccount string
+		for accID, syms := range exposurePerAccountSymbol {
+			if v, ok := syms[signal.Symbol]; ok && v > maxCurrentExposure {
+				maxCurrentExposure = v
+				maxCurrentAccount = accID
+			}
+		}
+		if maxCurrentExposure+estimatedExposure > limits.MaxExposurePerSymbol {
 			evaluation.Decision = models.DecisionRejected
 			evaluation.RejectReason = models.RejectMaxExposurePerSymbol
 			evaluation.RiskLevel = models.RiskLevelHigh
-			evaluation.Reason = fmt.Sprintf("max exposure per symbol would be exceeded: $%.2f (limit: $%.2f)",
-				currentExposure+estimatedExposure, limits.MaxExposurePerSymbol)
+			evaluation.Reason = fmt.Sprintf("max exposure per symbol would be exceeded in account %s: $%.2f (limit: $%.2f)",
+				maxCurrentAccount, maxCurrentExposure+estimatedExposure, limits.MaxExposurePerSymbol)
+			s.publishRejected(ctx, evaluation)
+			return evaluation, nil
+		}
+		// Adicional: validar también el agregado total (defensa contra
+		// señales con la misma cuenta no especificada).
+		if exposurePerSymbol[signal.Symbol]+estimatedExposure > limits.MaxExposurePerSymbol*2 {
+			evaluation.Decision = models.DecisionRejected
+			evaluation.RejectReason = models.RejectMaxExposurePerSymbol
+			evaluation.RiskLevel = models.RiskLevelHigh
+			evaluation.Reason = fmt.Sprintf("aggregate exposure per symbol exceeded 2x limit: $%.2f (limit: $%.2f)",
+				exposurePerSymbol[signal.Symbol]+estimatedExposure, limits.MaxExposurePerSymbol*2)
 			s.publishRejected(ctx, evaluation)
 			return evaluation, nil
 		}
 	}
 
-	// ─── Check 6: Min confidence (si AI-scored) ────────────────
+	// ─── Check 6: Max drawdown ─────────────────────────────────
+	if limits.MaxDrawdownPercent > 0 {
+		peakBalance := s.getPeakBalanceCached(ctx, signal.TenantID)
+		if peakBalance == 0 {
+			peakBalance = s.defaultBalance()
+			s.setPeakBalanceCached(ctx, signal.TenantID, peakBalance)
+		}
+		currentEquity := peakBalance + dailyPnL
+		drawdownPct := 0.0
+		if peakBalance > 0 && currentEquity < peakBalance {
+			drawdownPct = (peakBalance - currentEquity) / peakBalance * 100
+			// Update peak if recovering
+			if currentEquity > peakBalance {
+				s.setPeakBalanceCached(ctx, signal.TenantID, currentEquity)
+			}
+		}
+		evaluation.CurrentDrawdown = drawdownPct
+		if drawdownPct > limits.MaxDrawdownPercent {
+			evaluation.Decision = models.DecisionRejected
+			evaluation.RejectReason = models.RejectDrawdownLimit
+			evaluation.RiskLevel = models.RiskLevelCritical
+			evaluation.Reason = fmt.Sprintf("max drawdown exceeded: %.2f%% (limit: %.2f%%)", drawdownPct, limits.MaxDrawdownPercent)
+			s.publishRejected(ctx, evaluation)
+			return evaluation, nil
+		}
+	}
+
+	// ─── Check 7: Min confidence (si AI-scored) ────────────────
 	if signal.Confidence > 0 && signal.Confidence < limits.MinConfidence {
 		evaluation.Decision = models.DecisionRejected
 		evaluation.RejectReason = models.RejectLowConfidence
@@ -186,7 +264,7 @@ func (s *RiskService) EvaluateSignal(ctx context.Context, signal *models.SignalI
 			*signal.RiskPercent,
 			*signal.EntryPrice,
 			*signal.StopLoss,
-			10000, // Asumir balance $10k (en producción consultar broker)
+			s.defaultBalance(),
 		)
 		evaluation.RecommendedLotSize = &recommendedLot
 		if signal.LotSize != nil {
@@ -215,6 +293,60 @@ func (s *RiskService) EvaluateSignal(ctx context.Context, signal *models.SignalI
 	return evaluation, nil
 }
 
+func (s *RiskService) defaultBalance() float64 {
+	if s.config.DefaultBalance > 0 {
+		return s.config.DefaultBalance
+	}
+	return 10000
+}
+
+// ─── Symbol Multiplier ─────────────────────────────────────────
+
+// getSymbolMultiplier devuelve el multiplicador correcto según el instrumento.
+// Forex: 1 lot = 100,000 unidades base → 100000
+// Indices: 1 contrato = 1 unidad → 1
+// Crypto: 1 coin = 1 unidad → 1
+// XAUUSD: 1 lot = 100 oz → 100
+// XAGUSD: 1 lot = 5000 oz → 5000
+func getSymbolMultiplier(symbol string) float64 {
+	s := strings.ToUpper(symbol)
+	// Indices
+	if strings.Contains(s, "US30") || strings.Contains(s, "DJI") || strings.Contains(s, "DOW") {
+		return 1
+	}
+	if strings.Contains(s, "NAS100") || strings.Contains(s, "NAS") || strings.Contains(s, "NDX") || strings.Contains(s, "USTEC") {
+		return 1
+	}
+	if strings.Contains(s, "SP500") || strings.Contains(s, "SPX") || strings.Contains(s, "US500") {
+		return 1
+	}
+	if strings.Contains(s, "JP225") || strings.Contains(s, "NI225") || strings.Contains(s, "JPN225") {
+		return 1
+	}
+	if strings.Contains(s, "UK100") || strings.Contains(s, "FTSE") {
+		return 1
+	}
+	if strings.Contains(s, "GER40") || strings.Contains(s, "DAX") {
+		return 1
+	}
+	// Crypto
+	if strings.HasSuffix(s, "USD") && (strings.HasPrefix(s, "BTC") || strings.HasPrefix(s, "ETH") ||
+		strings.HasPrefix(s, "XRP") || strings.HasPrefix(s, "LTC") || strings.HasPrefix(s, "BCH") ||
+		strings.HasPrefix(s, "SOL") || strings.HasPrefix(s, "ADA") || strings.HasPrefix(s, "DOT") ||
+		strings.HasPrefix(s, "LINK") || strings.HasPrefix(s, "MATIC") || strings.HasPrefix(s, "DOGE")) {
+		return 1
+	}
+	// Commodities
+	if s == "XAUUSD" || s == "GOLD" {
+		return 100
+	}
+	if s == "XAGUSD" || s == "SILVER" {
+		return 5000
+	}
+	// Default: Forex (1 lot = 100,000)
+	return 100000
+}
+
 // ─── Position Sizing ──────────────────────────────────────────
 
 // calculatePositionSize calcula el lot size basado en % de riesgo
@@ -226,7 +358,7 @@ func (s *RiskService) calculatePositionSize(riskPercent, entry, stop, balance fl
 	slDistance := math.Abs(entry - stop)
 
 	// Convertir a pips (asumir 4 decimales para forex, 2 para JPY pairs)
-	pips := slDistance * 10000
+	pips := slDistance * pipsPerPoint
 	if pips == 0 {
 		return 0.01
 	}
@@ -315,9 +447,13 @@ func (s *RiskService) fetchAllOpenWithTrailing(ctx context.Context) ([]*models.P
 }
 
 func (s *RiskService) listAllTenants(ctx context.Context) ([]uuid.UUID, error) {
-	// En producción: consultar user-service o tenant-manager
-	// Por ahora retornamos solo el default tenant (Fase 1)
-	return []uuid.UUID{uuid.MustParse("00000000-0000-0000-0000-000000000001")}, nil
+	// Fase 1: solo el tenant por defecto. Fase 2: consultar user-service.
+	if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			return []uuid.UUID{u}, nil
+		}
+	}
+	return []uuid.UUID{}, nil
 }
 
 func (s *RiskService) shouldActivateTrailing(p *models.Position) bool {
@@ -326,7 +462,7 @@ func (s *RiskService) shouldActivateTrailing(p *models.Position) bool {
 	}
 
 	// Activar trailing cuando el precio se ha movido N pips a favor
-	startThreshold := float64(s.config.TrailingStart) / 10000 // pips → price
+		startThreshold := float64(s.config.TrailingStart) / pipsPerPoint // pips → price
 
 	if p.Side == "buy" {
 		return p.CurrentPrice-p.EntryPrice >= startThreshold
@@ -339,7 +475,7 @@ func (s *RiskService) calculateTrailingStop(p *models.Position) float64 {
 		return 0
 	}
 
-	step := float64(s.config.TrailingStep) / 10000 // pips → price
+		step := float64(s.config.TrailingStep) / pipsPerPoint // pips → price
 
 	if p.Side == "buy" {
 		// SL = max(current_price - step, current_sl)
@@ -460,15 +596,16 @@ func (s *RiskService) UpdatePositionPrice(ctx context.Context, req *models.Updat
 	}
 
 	// Calcular P&L
+	multiplier := getSymbolMultiplier(pos.Symbol)
 	var unrealizedPnL, pnlPercent float64
 	if pos.Side == "buy" {
-		unrealizedPnL = (req.CurrentPrice - pos.EntryPrice) * pos.Quantity * 100000
+		unrealizedPnL = (req.CurrentPrice - pos.EntryPrice) * pos.Quantity * multiplier
 	} else {
-		unrealizedPnL = (pos.EntryPrice - req.CurrentPrice) * pos.Quantity * 100000
+		unrealizedPnL = (pos.EntryPrice - req.CurrentPrice) * pos.Quantity * multiplier
 	}
 
 	if pos.EntryPrice > 0 {
-		pnlPercent = (unrealizedPnL / (pos.EntryPrice * pos.Quantity * 100000)) * 100
+		pnlPercent = (unrealizedPnL / (pos.EntryPrice * pos.Quantity * multiplier)) * 100
 	}
 
 	if err := s.repo.UpdatePositionPrice(ctx, pos.ID, req.CurrentPrice, unrealizedPnL, pnlPercent); err != nil {
@@ -491,6 +628,27 @@ func (s *RiskService) UpdatePositionPrice(ctx context.Context, req *models.Updat
 
 func (s *RiskService) pnlCacheKey(tenantID uuid.UUID, day time.Time) string {
 	return fmt.Sprintf("risk:pnl:%s:%s", tenantID.String(), day.Format("2006-01-02"))
+}
+
+func (s *RiskService) peakBalanceKey(tenantID uuid.UUID) string {
+	return fmt.Sprintf("risk:peak_balance:%s", tenantID.String())
+}
+
+func (s *RiskService) getPeakBalanceCached(ctx context.Context, tenantID uuid.UUID) float64 {
+	if s.redis != nil {
+		key := s.peakBalanceKey(tenantID)
+		if v, err := s.redis.Get(ctx, key).Float64(); err == nil {
+			return v
+		}
+	}
+	return 0
+}
+
+func (s *RiskService) setPeakBalanceCached(ctx context.Context, tenantID uuid.UUID, balance float64) {
+	if s.redis != nil {
+		key := s.peakBalanceKey(tenantID)
+		s.redis.Set(ctx, key, fmt.Sprintf("%.2f", balance), 0)
+	}
 }
 
 func (s *RiskService) getDailyPnLCached(ctx context.Context, tenantID uuid.UUID, day time.Time) float64 {
@@ -623,7 +781,7 @@ func (s *RiskService) GetExposure(ctx context.Context, tenantID uuid.UUID) (map[
 
 	exposure := make(map[string]float64)
 	for _, pos := range positions {
-		exposure[pos.Symbol] += pos.Quantity * pos.CurrentPrice * 100000
+		exposure[pos.Symbol] += pos.Quantity * pos.CurrentPrice * getSymbolMultiplier(pos.Symbol)
 	}
 	return exposure, nil
 }

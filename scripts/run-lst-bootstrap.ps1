@@ -1,0 +1,10 @@
+$env:ACCOUNT_MANAGER_URL = "http://localhost:8510"
+$env:LST_TENANT_ID = "d028c9ec-6257-4d38-8a55-7ba6dd4f2b9b"
+$env:LST_LOGIN = "98891135"
+$env:LST_SERVER = "TopOneTrader-MT5"
+$env:LST_PASSWORD = ")fxG`$G(B4D"
+$env:LST_BROKER = "TopOneTrader"
+$env:LST_ALIAS = "LST-Trading"
+$env:LST_ACCOUNT_ID_FILE = "E:\TNSVT-V2-Architecture\secrets\lst_account_id"
+Set-Location "E:\TNSVT-V2-Architecture"
+python apps/integrations/lst-account-bootstrap/main.py

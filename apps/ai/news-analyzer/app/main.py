@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
@@ -32,6 +33,7 @@ from app.models import (
 )
 from app.sentiment import score_sentiment, score_to_stars
 from app.symbol_impact import impact_for_symbols
+from app.nats_publisher import NewsNatsPublisher
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,10 +43,19 @@ logger = logging.getLogger("NewsAnalyzer")
 
 _app_state: dict = {"news": [], "last_refresh": None}
 
+# Sprint 3.3: NATS publisher para news-based signals. Inicia como None;
+# el lifespan intenta conectar a NATS y degrada gracefully si no está.
+_nats_publisher: Optional[NewsNatsPublisher] = None
+NATS_URL = os.getenv("NATS_URL", "nats://localhost:4222")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Arranca background task de refresh cada 5 minutos."""
+    """Arranca background task de refresh cada 5 minutos + NATS publisher."""
+    global _nats_publisher
+    _nats_publisher = NewsNatsPublisher(NATS_URL)
+    await _nats_publisher.connect()
+
     app.state.refresh_task = asyncio.create_task(_refresh_loop())
     logger.info("NewsAnalyzer started")
     yield
@@ -54,21 +65,65 @@ async def lifespan(app: FastAPI):
         await task
     except (asyncio.CancelledError, Exception):
         pass
+    if _nats_publisher:
+        await _nats_publisher.close()
 
 
-app = FastAPI(title="news-analyzer", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="news-analyzer",
+    version="1.0.0",
+    lifespan=lifespan,
+    root_path="/api/v1/news",
+)
 
 
 async def _refresh_loop():
     while True:
         try:
             items = await fetch_all_news(force=False)
+            new_count = await _diff_news(items)
             _app_state["news"] = items
             _app_state["last_refresh"] = datetime.now(timezone.utc)
-            logger.info(f"refresh_loop: {len(items)} items loaded")
+            logger.info(f"refresh_loop: {len(items)} items loaded ({new_count} new)")
         except Exception as e:
             logger.error(f"refresh_loop error: {e}")
         await asyncio.sleep(300)
+
+
+async def _diff_news(new_items: list[NewsItem]) -> int:
+    """Sprint 3.3: detecta noticias nuevas y publica trading.signal.news_based.
+
+    Retorna cuántas noticias nuevas se detectaron. Cada noticia nueva con
+    stars >= 4 Y sentiment_score != 0 Y affected_symbols no-vacío se
+    traduce en una señal BUY/SELL por símbolo.
+    """
+    existing_ids = {n.id for n in _app_state["news"]}
+    new_items = [n for n in new_items if n.id not in existing_ids]
+    if not new_items:
+        return 0
+    if _nats_publisher is None:
+        return len(new_items)
+    for item in new_items:
+        if item.star_rating < 4:
+            continue
+        # Solo publicamos señales si hay símbolos afectados Y sentiment marcado.
+        if abs(item.sentiment_score) < 0.25:
+            continue
+        if not item.affected_symbols:
+            continue
+        action = "BUY" if item.sentiment_score > 0 else "SELL"
+        # Confidence crece con stars
+        confidence = min(0.95, 0.5 + (item.star_rating - 4) * 0.15 + abs(item.sentiment_score))
+        for sym in item.affected_symbols[:3]:  # máx 3 símbolos por news
+            await _nats_publisher.maybe_publish_signal(
+                symbol=sym,
+                action=action,
+                confidence=confidence,
+                reason=f"{item.category}: {item.title[:80]}",
+                tenant_id="",
+                take_profits=[],
+            )
+    return len(new_items)
 
 
 def _ingest_raw(title: str, description: str, url: str, source: str,
@@ -113,7 +168,7 @@ async def health():
     }
 
 
-@app.get("/news/latest", response_model=NewsListResponse)
+@app.get("/latest", response_model=NewsListResponse)
 async def latest_news(
     category: str = "all",
     limit: int = 50,
@@ -133,7 +188,7 @@ async def latest_news(
     return NewsListResponse(count=len(items), items=items)
 
 
-@app.get("/news/by-symbol/{symbol}")
+@app.get("/by-symbol/{symbol}")
 async def news_by_symbol(symbol: str, limit: int = 20):
     """Devuelve las noticias que afectan a un simbolo."""
     sym_up = symbol.upper()
@@ -144,7 +199,7 @@ async def news_by_symbol(symbol: str, limit: int = 20):
     return NewsListResponse(count=len(items), items=items[:limit])
 
 
-@app.get("/news/sentiment-summary", response_model=SentimentSummary)
+@app.get("/sentiment-summary", response_model=SentimentSummary)
 async def sentiment_summary():
     """Sentiment agregado por simbolo y por categoria."""
     items = _app_state["news"]
@@ -202,7 +257,7 @@ async def sentiment_summary():
     )
 
 
-@app.post("/news/ingest", response_model=NewsItem)
+@app.post("/ingest", response_model=NewsItem)
 async def ingest_news(req: NewsIngestRequest):
     """Ingesta manual de una noticia (admin / fallback)."""
     item = _ingest_raw(
@@ -213,10 +268,22 @@ async def ingest_news(req: NewsIngestRequest):
     existing_ids = {n.id for n in _app_state["news"]}
     if item.id not in existing_ids:
         _app_state["news"].insert(0, item)
+        # Sprint 3.3: si es alta impacto, publicar señal.
+        if _nats_publisher and item.star_rating >= 4 and abs(item.sentiment_score) >= 0.25 and item.affected_symbols:
+            action = "BUY" if item.sentiment_score > 0 else "SELL"
+            confidence = min(0.95, 0.5 + (item.star_rating - 4) * 0.15 + abs(item.sentiment_score))
+            for sym in item.affected_symbols[:3]:
+                await _nats_publisher.maybe_publish_signal(
+                    symbol=sym,
+                    action=action,
+                    confidence=confidence,
+                    reason=f"{item.category}: {item.title[:80]}",
+                    take_profits=[],
+                )
     return item
 
 
-@app.post("/news/refresh")
+@app.post("/refresh")
 async def refresh_now():
     """Fuerza re-fetch de RSS."""
     items = await fetch_all_news(force=True)

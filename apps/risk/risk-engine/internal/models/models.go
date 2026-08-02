@@ -83,7 +83,12 @@ type RiskEvaluation struct {
 	CurrentWeeklyPnL   float64 `json:"current_weekly_pnl"`
 	CurrentDrawdown    float64 `json:"current_drawdown_percent"`
 	OpenPositionsCount int     `json:"open_positions_count"`
+	// ExposurePerSymbol consolidado entre cuentas (para UI legacy)
 	ExposurePerSymbol  map[string]float64 `json:"exposure_per_symbol"`
+	// ExposurePerAccountSymbol = map[account_id][symbol] = USD
+	// Fuente de verdad desde Sprint 1 (multi-cuenta).
+	ExposurePerAccountSymbol map[string]map[string]float64 `json:"exposure_per_account_symbol,omitempty"`
+	ExposurePerAccount       map[string]float64            `json:"exposure_per_account,omitempty"`
 
 	Warnings []string `json:"warnings,omitempty"`
 	EvaluatedAt time.Time `json:"evaluated_at"`

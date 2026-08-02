@@ -170,6 +170,42 @@ func LoadServices(path string) []ServiceConfig {
 			HealthPath: "/api/v1/orchestrator/health",
 			Required:   false,
 		},
+		{
+			Name:       "news-analyzer",
+			PathPrefix: "/api/v1/news",
+			Instances:  []string{serviceURL("news-analyzer", "http://localhost:8051")},
+			Timeout:    10000,
+			RateLimit:  100,
+			HealthPath: "/health",
+			Required:   false,
+		},
+		{
+			Name:       "macro-fetcher",
+			PathPrefix: "/api/v1/macro",
+			Instances:  []string{serviceURL("macro-fetcher", "http://localhost:8040")},
+			Timeout:    10000,
+			RateLimit:  100,
+			HealthPath: "/health",
+			Required:   false,
+		},
+		{
+			Name:       "regime-detector",
+			PathPrefix: "/api/v1/regime",
+			Instances:  []string{serviceURL("regime-detector", "http://localhost:8201")},
+			Timeout:    10000,
+			RateLimit:  100,
+			HealthPath: "/health",
+			Required:   false,
+		},
+		{
+			Name:       "mcp-trading-server",
+			PathPrefix: "/api/v1/mcp",
+			Instances:  []string{serviceURL("mcp-trading-server", "http://localhost:8100")},
+			Timeout:    60000,
+			RateLimit:  50,
+			HealthPath: "/health",
+			Required:   false,
+		},
 	}
 
 	// Intentar cargar desde archivo

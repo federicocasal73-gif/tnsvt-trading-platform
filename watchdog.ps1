@@ -128,13 +128,13 @@ while ($true) {
             -StartCmd "cmd.exe" -StartArgs "/c cd /d `"$viteDir`" && npm run dev > `"$viteLog`" 2>&1" `
             -StartWorkDir $viteDir
 
-        $botDir = "$RootDir\apps\integrations\tnsvt-bot"
-        Ensure-Service -Name "bot" -Port 0 -ScriptMatch "bot\main.py" `
-            -StartCmd "python" -StartArgs "bot\main.py" `
+        $botDir = "$RootDir\apps\integrations/tnsvt-bot"
+        Ensure-Service -Name "bot" -Port 0 -ScriptMatch "bot/main.py" `
+            -StartCmd "python" -StartArgs "bot/main.py" `
             -StartWorkDir $botDir
 
         $scScript = "$RootDir\run_sc.ps1"
-        Ensure-Service -Name "signal_copier" -Port 0 -ScriptMatch "signal_copier\main.py" `
+        Ensure-Service -Name "signal_copier" -Port 0 -ScriptMatch "signal_copier/main.py" `
             -StartCmd "pwsh" -StartArgs "-ExecutionPolicy Bypass -File `"$scScript`"" `
             -StartWorkDir $RootDir
     } catch {

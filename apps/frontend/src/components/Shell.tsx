@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Sidebar, NavItem } from './Sidebar';
+import { Sidebar, NavItem, SidebarSection } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ROUTES } from '../router';
 
@@ -15,29 +15,36 @@ export function Shell() {
     if (route) navigate(route.path);
   }, [navigate]);
 
-  // ProtectedShell in router.tsx already redirects unauthenticated users.
-  // This guard is for the brief moment after logout but before the route
-  // transitions; showing nothing is cleaner than running a navigate() in
-  // the render body (which can cause loops).
   if (!isAuthenticated) {
     return null;
   }
 
-  // Map current pathname to a sidebar "page id"
   const currentRoute = ROUTES.find(r => r.path === location.pathname) ?? ROUTES[0];
-  const navItems: NavItem[] = ROUTES.map(r => ({
+
+  const monitorRoutes = ROUTES.filter(r => r.scope === 'monitor');
+  const operateRoutes = ROUTES.filter(r => r.scope === 'operate');
+  const communityRoutes = ROUTES.filter(r => r.scope === 'community');
+  const adminRoutes = ROUTES.filter(r => r.scope === 'admin');
+
+  const toNavItem = (r: typeof ROUTES[number]): NavItem => ({
     id: r.name,
     label: r.label,
     icon: r.icon,
-  }));
+  });
+
+  const sections: SidebarSection[] = [
+    { title: 'Monitor', items: monitorRoutes.map(toNavItem) },
+    { title: 'Operación', items: operateRoutes.map(toNavItem) },
+    { title: 'Comunidad', items: communityRoutes.map(toNavItem) },
+    { title: 'Admin', items: adminRoutes.map(toNavItem) },
+  ];
 
   return (
     <div className="flex h-full">
-      <Sidebar page={currentRoute.name} setPage={handleSetPage} items={navItems} />
+      <Sidebar page={currentRoute.name} setPage={handleSetPage} sections={sections} />
       <div className="flex flex-1 flex-col min-w-0">
         <TopBar />
         <main className="flex-1 overflow-auto p-6">
-          {/* React Router renders the matched child route here. */}
           <Outlet />
         </main>
       </div>

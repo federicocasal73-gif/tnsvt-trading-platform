@@ -1,0 +1,8 @@
+2026-07-21 12:45:48 [bridge.db] INFO: TradesDB schema initialized (with migrations)
+INFO:     Started server process [37216]
+INFO:     Waiting for application startup.
+2026-07-21 12:45:48 [bridge.publisher] INFO: Publisher started \u2192 http://localhost:8000
+2026-07-21 12:45:48 [bridge.syncer] INFO: BotSyncer iniciado \u2192 D:\TradingBotMT5\bot_data.db (cada 30s, ventana=90d)
+2026-07-21 12:45:48 [bridge.api] INFO: Bridge API ready \u2192 gateway=http://localhost:8000, db=E:\TNSVT-V2-Architecture\apps\bridge\bridge-api\bridge_outbox.db
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8522 (Press CTRL+C to quit)

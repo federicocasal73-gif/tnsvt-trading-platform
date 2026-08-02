@@ -27,6 +27,7 @@ const (
 	SourceTNSVT    Source = "tnsvt"
 	SourceAPI      Source = "api"
 	SourceManual   Source = "manual"
+	SourceWebhook  Source = "webhook"
 	SourceAI       Source = "ai"
 )
 
@@ -143,6 +144,14 @@ type SubmitSignalRequest struct {
 	TenantID    uuid.UUID `json:"tenant_id"`
 	UserID      *uuid.UUID `json:"user_id,omitempty"`
 	ExpiresIn   int       `json:"expires_in_seconds,omitempty"`
+	// Source identifica el origen: "manual", "webhook", "telegram", "frontend".
+	// Por default "frontend". Sprint 2.
+	Source    string `json:"source,omitempty"`
+	// AccountID (account-manager UUID) — Sprint 2 multi-cuenta. Opcional.
+	// Si no se setea, el execution-engine elige la cuenta default.
+	AccountID string `json:"account_id,omitempty"`
+	// WebhookProvider: si source="webhook", nombre del provider.
+	WebhookProvider string `json:"webhook_provider,omitempty"`
 }
 
 // ParseRequest DTO para preview de parsing

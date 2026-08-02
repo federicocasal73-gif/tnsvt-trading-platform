@@ -8,13 +8,11 @@
 //   - Exponer API HTTP para que execution-engine coloque/cierre órdenes
 //   - Implementar la interfaz Connector (PlaceOrder, ClosePosition, GetPositions, etc.)
 //   - Publicar eventos a NATS (trading.execution.*, trading.position.*)
-//
-// Arquitectura:
-//   - Linux/Dev: stub que retorna errores (permite compilar el monorepo en CI sin MT5)
-//   - Windows/Prod: usa MetaTrader5 library via cgo o grpc-python-bridge
+//   - Multi-cuenta: las credenciales vienen del account-manager (PostgreSQL, AES-GCM).
+//     El proceso mantiene UNA sesión de MT5 y cambia entre cuentas vía mt5.login().
 //
 // Endpoints:
-//   POST /api/v1/brokers/orders                  # Place order
+//   POST /api/v1/brokers/orders                  # Place order (con account_id)
 //   POST /api/v1/brokers/positions/close        # Close position
 //   GET  /api/v1/brokers/accounts/:id           # Account info
 //   GET  /api/v1/brokers/accounts/:id/positions # Open positions
@@ -36,6 +34,7 @@ import (
 
 	"github.com/tnsvt/mt5-connector/internal/handlers"
 	"github.com/tnsvt/mt5-connector/internal/mt5"
+	"github.com/tnsvt/mt5-connector/internal/session"
 	sharedconfig "github.com/tnsvt/shared-go/config"
 	sharedlogging "github.com/tnsvt/shared-go/logging"
 )
@@ -45,23 +44,30 @@ func main() {
 	port := cfg.Get("MT5_CONNECTOR_PORT", "8007")
 	log := sharedlogging.New("mt5-connector", cfg.LogLevel)
 
-	// ─── MT5 Client ───
+	// ─── MT5 Client (single session, multi-account via login switch) ───
 	mt5Path := cfg.Get("MT5_PATH", "C:\\Program Files\\FTMO MetaTrader 5\\terminal64.exe")
+	// MT5_LOGIN ya NO se usa para autenticar; las credenciales vienen
+	// del account-manager. Sólo se conserva como hint de qué cuenta
+	// intentar primero al arranque.
 	mt5Login := cfg.GetInt("MT5_LOGIN", 0)
-	mt5Password := cfg.Get("MT5_PASSWORD", "")
-	mt5Server := cfg.Get("MT5_SERVER", "")
 	symbolSuffix := cfg.Get("MT5_SYMBOL_SUFFIX", "")
 	magicNumber := int64(cfg.GetInt("MT5_MAGIC_NUMBER", 123456))
 
 	mt5Client := mt5.NewClient(mt5.Config{
 		Path:         mt5Path,
 		Login:        mt5Login,
-		Password:     mt5Password,
-		Server:       mt5Server,
 		SymbolSuffix: symbolSuffix,
 		MagicNumber:  magicNumber,
 		Timeout:      time.Duration(cfg.GetInt("MT5_TIMEOUT_SECONDS", 30)) * time.Second,
 	}, log)
+
+	// ─── Multi-account credentials manager ───
+	credMgr := session.NewManager()
+	if err := credMgr.RefreshCreds(); err != nil {
+		log.Warn("account-manager unreachable at startup, will retry in background", "error", err.Error())
+	} else {
+		log.Info("loaded credentials from account-manager", "accounts", credMgr.Count())
+	}
 
 	// Try to connect (non-fatal — service can start without MT5)
 	if err := mt5Client.Connect(context.Background()); err != nil {
@@ -72,6 +78,24 @@ func main() {
 	connectCtx, connectCancel := context.WithCancel(context.Background())
 	defer connectCancel()
 	go mt5Client.RunReconnectLoop(connectCtx, 30*time.Second)
+
+	// Background credentials refresh (cada 5 min)
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-connectCtx.Done():
+				return
+			case <-ticker.C:
+				if err := credMgr.RefreshCreds(); err != nil {
+					log.Warn("creds refresh failed", "error", err.Error())
+				} else {
+					log.Debug("creds refreshed", "accounts", credMgr.Count())
+				}
+			}
+		}
+	}()
 
 	// ─── Gin router ───
 	if cfg.Env == "production" {
@@ -90,7 +114,9 @@ func main() {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// ─── API ───
-	brokerHandler := handlers.NewBrokerHandler(mt5Client, log)
+	brokerHandler := handlers.NewBrokerHandler(mt5Client, credMgr, log)
+
+	router.GET("/rates", brokerHandler.GetRatesAll)
 	v1 := router.Group("/api/v1/brokers")
 	{
 		v1.POST("/orders", brokerHandler.PlaceOrder)
@@ -99,6 +125,8 @@ func main() {
 		v1.GET("/accounts/:id/positions", brokerHandler.GetPositions)
 		v1.POST("/positions/:ticket/modify", brokerHandler.ModifyPosition)
 		v1.GET("/symbols/:symbol", brokerHandler.GetSymbolInfo)
+		v1.GET("/symbols/:symbol/rates", brokerHandler.GetRates)
+		v1.GET("/rates", brokerHandler.GetRatesAll)
 	}
 
 	router.NoRoute(func(c *gin.Context) {
@@ -116,7 +144,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("mt5-connector starting", "port", port, "env", cfg.Env, "mt5_path", mt5Path)
+		log.Info("mt5-connector starting", "port", port, "env", cfg.Env, "mt5_path", mt5Path, "multi_account", true)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("HTTP server failed", err)
 			os.Exit(1)

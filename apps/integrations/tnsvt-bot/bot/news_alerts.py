@@ -11,9 +11,18 @@ Ciclo de alerta:
 - 5 min antes  → 🔥 alerta final
 - 1 min antes  → 🚨 última llamada
 - También publica al grupo automáticamente
+
+Capa Comunidad — "dato publicado":
+- Cada countdown persiste el evento en el bridge (CommunityDB) y lo marca
+  como notificado antes (notify_pre).
+- Tras la hora del evento, el loop data_released_loop revisa cada 5 min los
+  eventos pendientes de dato real (ventana 2h). Cuando el scraper reporta el
+  dato real, publica "Anterior → Estimado → Real" y marca notified_actual.
 """
 import asyncio
+import hashlib
 import logging
+import requests
 from datetime import datetime, timedelta, timezone
 
 import pytz
@@ -25,6 +34,8 @@ logger = logging.getLogger("Bot.NewsAlerts")
 
 ART = pytz.timezone("America/Argentina/Buenos_Aires")
 POLL_INTERVAL = 300
+RELEASED_POLL_INTERVAL = 300
+RELEASED_WINDOW_MINUTES = 120
 
 KEYWORDS_HIGHLIGHT = {
     "cpi": "📊 IPC",
@@ -76,6 +87,172 @@ def _minutes_until(event_dt_utc: datetime) -> int:
 
 def _event_key(ev: dict) -> str:
     return f"{ev.get('date', '')}_{ev.get('time', '')}_{ev.get('event', '')}"
+
+
+# ─── Capa Comunidad: persistencia de eventos ─────────────────────────
+
+def _event_id(ev: dict) -> str:
+    """ID estable para un evento: hash de país + fecha + hora + nombre."""
+    raw = f"{ev.get('country', '')}|{ev.get('date', '')}|{ev.get('time', '')}|{ev.get('event', '')}"
+    return "inv_" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _community_api() -> str:
+    return settings.COMMUNITY_API_URL
+
+
+def _upsert_event(ev: dict, notify_pre: bool = False,
+                  notify_actual: bool = False) -> bool:
+    """Persiste el evento en el bridge. Devuelve True si fue aceptado."""
+    try:
+        resp = requests.post(
+            f"{_community_api()}/events",
+            json={
+                "event_id": _event_id(ev),
+                "source": "investing",
+                "currency": ev.get("country", ""),
+                "indicator": ev.get("event", "?"),
+                "announcement_dt": _event_dt_iso(ev),
+                "previous": ev.get("previous") or None,
+                "forecast": ev.get("forecast") or None,
+                "actual": ev.get("actual") or None,
+                "impact": int(ev.get("impact_level", 0) or 0),
+                "notify_pre": notify_pre,
+                "notify_actual": notify_actual,
+            },
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            logger.warning(
+                f"news_alerts: upsert evento -> {resp.status_code}: {resp.text[:100]}"
+            )
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"news_alerts: error upsert evento: {e}")
+        return False
+
+
+def _event_dt_iso(ev: dict) -> str | None:
+    """Devuelve el announcement_dt en ISO con offset (ART)."""
+    evt_dt = _parse_event_dt(ev)
+    if not evt_dt:
+        return None
+    return evt_dt.astimezone(ART).isoformat()
+
+
+async def _fetch_actual_for(ev: dict) -> str | None:
+    """Busca el dato real (actual) fresco del scraper para un evento."""
+    try:
+        from bot.analytics.calendar import clear_cache
+        clear_cache()  # forzar fetch fresco para leer el dato real
+        fresh = await get_calendar_events(days=3)
+        target_date = (ev.get("announcement_dt") or "")[:10]
+        for e in fresh:
+            if e.get("country", "") == ev.get("currency", "") and \
+               e.get("event", "") == ev.get("indicator", "") and \
+               e.get("date", "") == target_date:
+                actual = (e.get("actual") or "").strip()
+                if actual and actual not in ("-", ""):
+                    return actual
+        return None
+    except Exception as e:
+        logger.debug(f"news_alerts: fetch actual error: {e}")
+        return None
+
+
+async def _get_pending_actual() -> list[dict]:
+    try:
+        resp = requests.get(
+            f"{_community_api()}/events/pending-actual",
+            params={"max_minutes": RELEASED_WINDOW_MINUTES},
+            timeout=8,
+        )
+        if resp.status_code == 200:
+            return resp.json().get("events", [])
+    except Exception as e:
+        logger.error(f"news_alerts: error pending-actual: {e}")
+    return []
+
+
+async def data_released_loop(app):
+    """Loop "dato publicado": revisa cada 5 min si hay evento con dato real."""
+    logger.info(
+        f"data_released arrancado (poll={RELEASED_POLL_INTERVAL}s, "
+        f"ventana={RELEASED_WINDOW_MINUTES}min)"
+    )
+    await asyncio.sleep(20)
+
+    while True:
+        try:
+            pending = await _get_pending_actual()
+            if not pending:
+                await asyncio.sleep(RELEASED_POLL_INTERVAL)
+                continue
+
+            for ev in pending:
+                actual = _fetch_actual_for(ev)
+                if not actual:
+                    continue
+                await _send_data_released(app, ev, actual)
+                # Marcar notificado para no volver a publicar
+                _upsert_event(
+                    {
+                        "country": ev.get("currency", ""),
+                        "date": (ev.get("announcement_dt") or "")[:10],
+                        "time": "",
+                        "event": ev.get("indicator", "?"),
+                        "previous": ev.get("previous"),
+                        "forecast": ev.get("forecast"),
+                        "actual": actual,
+                        "impact_level": ev.get("impact", 3),
+                    },
+                    notify_pre=True,
+                    notify_actual=True,
+                )
+                await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"data_released tick error: {e}")
+
+        await asyncio.sleep(RELEASED_POLL_INTERVAL)
+
+
+async def _send_data_released(app, ev: dict, actual: str):
+    """Publica 'Anterior → Estimado → Real' al grupo y admins."""
+    target = settings.BOT_GROUP_ID
+    admin_ids = settings.BOT_ADMIN_IDS
+    if not target and not admin_ids:
+        return
+
+    indicator = ev.get("indicator", "?")
+    currency = ev.get("currency", "")
+    previous = ev.get("previous") or "-"
+    forecast = ev.get("forecast") or "-"
+
+    msg = (
+        f"📌 *DATO PUBLICADO*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔴 {currency} | {indicator}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"◀ Anterior: `{previous}`\n"
+        f"▶ Estimado: `{forecast}`\n"
+        f"✅ Real: `{actual}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💡 Comparalo contra las alertas previas."
+    )
+
+    if target:
+        try:
+            await app.bot.send_message(chat_id=target, text=msg, parse_mode="Markdown")
+            logger.info(f"data_released: publicado '{indicator}' real={actual}")
+        except Exception as e:
+            logger.error(f"data_released: error grupo: {e}")
+
+    for admin_id in admin_ids:
+        try:
+            await app.bot.send_message(chat_id=admin_id, text=msg, parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"data_released: error admin DM {admin_id}: {e}")
 
 
 async def news_alerts_loop(app):
@@ -142,6 +319,9 @@ async def _send_alert(app, ev: dict, stage_min: int, stage_emoji: str,
     admin_ids = settings.BOT_ADMIN_IDS
     if not target and not admin_ids:
         return
+
+    # Capa Comunidad: persistir el evento y marcarlo como notificado antes
+    _upsert_event(ev, notify_pre=True)
 
     event_name = ev.get("event", "?")
     country = ev.get("country", "")

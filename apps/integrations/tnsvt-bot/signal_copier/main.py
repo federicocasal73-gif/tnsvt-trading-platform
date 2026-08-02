@@ -12,7 +12,9 @@ from pathlib import Path
 import requests
 
 ROOT_DIR = Path(__file__).parent.parent
-_TRADE_CANDLES_DIR = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5")) / "trade_candles"
+# MT5_DATA_DIR (canónico) — fallback a BOT_DATA_DIR (legacy) o D:\TradingBotMT5
+MT5_DATA_DIR = Path(os.getenv("MT5_DATA_DIR") or os.getenv("BOT_DATA_DIR") or r"D:\TradingBotMT5")
+_TRADE_CANDLES_DIR = MT5_DATA_DIR / "trade_candles"
 sys.path.insert(0, str(ROOT_DIR))
 sys.path.insert(0, str(ROOT_DIR / "scripts"))
 
@@ -23,6 +25,8 @@ from signal_copier.executor import MT5Executor, MT5Monitor
 from signal_copier.risk_manager import RiskManager
 from signal_copier.news_filter import NewsFilter
 from signal_copier.database import init_db, log_trade, update_trade_pnl, update_last_trade
+from signal_copier import dead_letter
+from signal_copier.magic import MAGIC_NUMBER  # noqa: F401
 from tnsvt_client import TNSVTClient
 
 logging.basicConfig(
@@ -42,14 +46,15 @@ risk_manager = RiskManager()
 news_filter = NewsFilter()
 tnsvt_client = TNSVTClient()
 mt5_monitor = MT5Monitor(executor, tnsvt_client=tnsvt_client)
+mt5_monitor_started = False  # lazy-started por mt5_reconnect_loop cuando MT5 vuelve
 
 pending_signals = {}
 
 TRADE_MAP_FILE = ROOT_DIR / "var" / "tnsvt_trade_map.json"
-MT5_STATUS_FILE = ROOT_DIR / "var" / "mt5_status.json"
+MT5_STATUS_FILE = Path(os.getenv("MT5_STATUS_PATH", str(ROOT_DIR / "var" / "mt5_status.json")))
 PENDING_SIGNALS_FILE = ROOT_DIR / "var" / "pending_signals.json"
-CMD_REQUESTS_FILE = Path(r"D:\TradingBotMT5") / "cmd_requests.json"
-CMD_RESPONSES_FILE = Path(r"D:\TradingBotMT5") / "cmd_responses.json"
+CMD_REQUESTS_FILE = Path(os.getenv("MT5_DATA_DIR", r"D:\TradingBotMT5")) / "cmd_requests.json"
+CMD_RESPONSES_FILE = Path(os.getenv("MT5_DATA_DIR", r"D:\TradingBotMT5")) / "cmd_responses.json"
 
 try:
     TRADE_MAP_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -90,6 +95,32 @@ def _load_pending_signals() -> dict:
         except Exception as e:
             logger.warning(f"No se pudo cargar pending_signals: {e}")
     return {}
+
+
+def _pid_alive(pid: int) -> bool:
+    """Comprueba si un PID está vivo (Windows + Unix)."""
+    if pid <= 0:
+        return False
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False
+            try:
+                code = ctypes.c_ulong()
+                kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+                return code.value == STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
+        else:
+            os.kill(pid, 0)
+            return True
+    except (OSError, AttributeError):
+        return False
 
 
 def _log_to_bridge(signal: dict, result: str, channel: str = "",
@@ -136,7 +167,31 @@ def _notify_bot(event_type: str, signal: dict, ticket: int = 0,
 
     Fire-and-forget: si falla (timeout, bridge caído), solo se loguea un warning
     y el flujo del signal_copier continúa sin bloquearse.
+
+    Deduplicación: trade_blocked con el mismo (symbol, action, reason)
+    no se postea más de una vez cada BLOCKED_NOTIF_DEDUP_SECS (default 24h).
+    El estado persiste en disco (`blocked_notif_dedup.json`) para que
+    sobreviva reinicios del proceso. La logica vive en `notify_dedup`.
     """
+    if event_type == "trade_blocked":
+        from signal_copier.notify_dedup import (
+            should_dedup_blocked_notif_persistent,
+            get_dedup_secs,
+        )
+        is_dedup, _ = should_dedup_blocked_notif_persistent(
+            signal.get("symbol", ""),
+            signal.get("action", ""),
+            reason,
+            get_dedup_secs(),
+            now_ts=time.time(),
+        )
+        if is_dedup:
+            logger.debug(
+                f"_notify_bot: dedup trade_blocked "
+                f"({signal.get('symbol')}, {signal.get('action')}, {reason})"
+            )
+            return
+
     try:
         payload = {
             "type": event_type,
@@ -246,11 +301,16 @@ async def handler(event):
                     signal["_pending_ts"] = asyncio.get_event_loop().time()
                 pending_signals[pending_key] = signal
                 _save_pending_signals()
-                await event.reply(
-                    f"✅ Senal recibida: {signal['action']} {signal['symbol']}\n"
-                    f"⏳ Esperando SL/TP...\n"
-                    f"📝 Envia SL y TP en el proximo mensaje"
-                )
+                try:
+                    await event.reply(
+                        f"✅ Senal recibida: {signal['action']} {signal['symbol']}\n"
+                        f"⏳ Esperando SL/TP...\n"
+                        f"📝 Envia SL y TP en el proximo mensaje"
+                    )
+                except Exception as reply_err:
+                    # El canal no permite replies (ej. canales read-only).
+                    # No es fatal — la senal pendiente se guarda igual.
+                    logger.debug(f"event.reply skipped: {reply_err}")
         else:
             logger.debug("No se detecto senal valida")
 
@@ -431,7 +491,7 @@ async def mt5_trade_monitor():
                 continue
 
             try:
-                positions = mt5.positions_get(magic=20260706) or []
+                positions = mt5.positions_get(magic=MAGIC_NUMBER) or []
             except Exception:
                 positions = []
 
@@ -546,7 +606,7 @@ async def trailing_stop_loop():
     para el mismo simbolo (bug). Esto dejaba al SL congelado si no
     llegaban mas senales — riesgo alto.
 
-    AHORA: corre continuo y revisa TODAS las posiciones con magic=20260706.
+    AHORA: corre continuo y revisa TODAS las posiciones con magic=MAGIC_NUMBER.
     Flujo: BE primero (mover SL a entry) → trailing (perseguir precio).
 
     Solo activa si RISK_TRAILING_STOP=true.
@@ -565,7 +625,7 @@ async def trailing_stop_loop():
                 continue
 
             try:
-                positions = mt5.positions_get(magic=20260706) or []
+                positions = mt5.positions_get(magic=MAGIC_NUMBER) or []
             except Exception:
                 continue
 
@@ -844,6 +904,75 @@ async def tnsvt_heartbeat():
             logger.debug(f"TNSVT heartbeat error: {e}")
 
 
+async def mt5_reconnect_loop():
+    """Re-intenta conectar a MT5 cada 30s si no está conectado.
+
+    Una vez que la conexión se restablece, arranca MT5Monitor
+    (que solo se inicia si la conexión inicial tuvo éxito, no al revés).
+    """
+    global mt5_monitor_started
+    mt5_monitor_started = False
+    while True:
+        try:
+            await asyncio.sleep(30)
+            if not executor.connected:
+                logger.info("mt5_reconnect_loop: intentando reconectar MT5...")
+                if executor.connect():
+                    logger.info("mt5_reconnect_loop: MT5 RECONECTADO ✓")
+                    if not mt5_monitor_started:
+                        try:
+                            mt5_monitor.start()
+                            mt5_monitor_started = True
+                            logger.info("mt5_reconnect_loop: MT5Monitor lazy-start ejecutado")
+                        except Exception as e:
+                            logger.warning(f"mt5_reconnect_loop: MT5Monitor.start error: {e}")
+        except Exception as e:
+            logger.error(f"mt5_reconnect_loop error: {e}", exc_info=True)
+
+
+async def dead_letter_retry_loop():
+    """Re-procesa senales del dead-letter queue cada 30s.
+
+    El bridge-api marca dead_letter.retried_count al recibir POST /copier/retry/{id},
+    pero el copier no tenía loop que re-ejecutara la senal. Este loop
+    cierra ese hueco: cada 30s toma senales con retried_count < max_retries
+    y trata de ejecutarlas de nuevo.
+    """
+    MAX_RETRIES = 3
+    RETRY_INTERVAL = 30
+    while True:
+        try:
+            await asyncio.sleep(RETRY_INTERVAL)
+            if not executor.connected:
+                continue
+            pending = dead_letter.get_pending(limit=10)
+            for item in pending:
+                if item["retried_count"] >= MAX_RETRIES:
+                    continue
+                sig = item.get("signal", {})
+                # No re-ejecutar CLOSE: requiere posición real abierta
+                if sig.get("action", "").upper() == "CLOSE":
+                    continue
+                dead_letter.mark_retried(item["id"])
+                try:
+                    logger.info(
+                        f"dead_letter_retry: re-ejecutando id={item['id']} "
+                        f"{sig.get('action')} {sig.get('symbol')}"
+                    )
+                    result = await execute_signal(sig, channel="(retry)")
+                    if result and result.get("result") in ("EXECUTED", "OPENED"):
+                        dead_letter.mark_resolved(item["id"])
+                        logger.info(
+                            f"dead_letter_retry: id={item['id']} re-ejecutado OK"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"dead_letter_retry: id={item['id']} falló: {e}"
+                    )
+        except Exception as e:
+            logger.error(f"dead_letter_retry_loop error: {e}", exc_info=True)
+
+
 async def mt5_status_writer():
     """Escribe estado completo de MT5 a archivo compartido para el dashboard y /historial.
 
@@ -912,8 +1041,8 @@ async def mt5_status_writer():
             MT5_STATUS_FILE.write_text(json.dumps(data), encoding="utf-8")
 
             # Escribir los snapshots legacy que consume el frontend Vite.
-            # El path base es configurable via BOT_DATA_DIR (default D:\TradingBotMT5).
-            bot_data_dir = Path(os.getenv("BOT_DATA_DIR", r"D:\TradingBotMT5"))
+            # El path base es configurable via MT5_DATA_DIR (default D:\TradingBotMT5).
+            bot_data_dir = MT5_DATA_DIR
             bot_data_dir.mkdir(parents=True, exist_ok=True)
 
             if executor.connected and "balance" in data:
@@ -1060,6 +1189,22 @@ async def main():
     logger.info("Terminal Financiera Pro - Copiador de Senales v2")
     logger.info("=" * 50)
 
+    # ─── PID mutex (evita multiples instancias compitiendo por el mismo Telethon session) ───
+    pid_lock = ROOT_DIR / "var" / "signal_copier.pid"
+    pid_lock.parent.mkdir(parents=True, exist_ok=True)
+    if pid_lock.exists():
+        try:
+            existing_pid = int(pid_lock.read_text().strip())
+            if existing_pid and _pid_alive(existing_pid):
+                logger.error(f"Otra instancia del signal_copier ya corre (PID {existing_pid}). Saliendo.")
+                sys.exit(1)
+        except (ValueError, OSError):
+            pass
+    pid_lock.write_text(str(os.getpid()))
+    logger.info(f"PID lock: {os.getpid()} → {pid_lock}")
+    import atexit
+    atexit.register(lambda: pid_lock.exists() and pid_lock.unlink() or None)
+
     init_db()
 
     mt5_connected = executor.connect()
@@ -1074,7 +1219,7 @@ async def main():
     if mt5_connected:
         try:
             import MetaTrader5 as mt5
-            positions = mt5.positions_get(magic=20260706) or []
+            positions = mt5.positions_get(magic=MAGIC_NUMBER) or []
             synced = 0
             for p in positions:
                 ticket_str = str(p.ticket)
@@ -1123,8 +1268,11 @@ async def main():
     asyncio.create_task(cmd_worker())
     asyncio.create_task(trailing_stop_loop())
     asyncio.create_task(time_exit_loop())
+    asyncio.create_task(mt5_reconnect_loop())
+    asyncio.create_task(dead_letter_retry_loop())
     if mt5_connected:
         asyncio.create_task(mt5_monitor.start())
+        mt5_monitor_started = True
 
     await client.run_until_disconnected()
 

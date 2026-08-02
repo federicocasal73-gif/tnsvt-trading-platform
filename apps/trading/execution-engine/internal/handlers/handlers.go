@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/tnsvt/execution-engine/internal/models"
 	"github.com/tnsvt/execution-engine/internal/repository"
 	"github.com/tnsvt/execution-engine/internal/service"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Middlewares ──────────────────────────────────────────────
@@ -61,11 +63,7 @@ func AccessLog(log interface {
 }
 
 func CORS() gin.HandlerFunc {
-	allowed := map[string]bool{
-		"http://localhost:3000": true,
-		"http://localhost:8501": true,
-		"tauri://localhost":     true,
-	}
+	allowed := cors.AllowedOrigins()
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if allowed[origin] {
@@ -118,7 +116,15 @@ func (h *ExecutionHandler) Execute(c *gin.Context) {
 			}
 		}
 		if req.Signal.TenantID == uuid.Nil {
-			req.Signal.TenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+			if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+				if u, err := uuid.Parse(v); err == nil {
+					req.Signal.TenantID = u
+				}
+			}
+		}
+		if req.Signal.TenantID == uuid.Nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "tenant_id required (X-Tenant-ID header or DEFAULT_TENANT_ID env)"})
+			return
 		}
 	}
 

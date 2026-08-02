@@ -1,14 +1,14 @@
 $base = "E:\TNSVT-V2-Architecture"
 
-# Environment
+# Environment — read from .env, fall back to safe dev defaults
 $env:REDIS_HOST = "localhost"
 $env:POSTGRES_HOST = "localhost"
 $env:POSTGRES_USER = "tnsvt"
 $env:POSTGRES_DB = "tnsvt"
-$env:JWT_SECRET = "dev-jwt-secret-change-me"
-$env:AUTH_JWT_SECRET = "dev-jwt-secret-change-me"
-$env:SIGNAL_INGEST_API_KEY = "dev-ingest-key"
-$env:TELEGRAM_BOT_TOKEN = "test:dummy-token-for-dev"
+$env:JWT_SECRET = if ($env:JWT_SECRET) { $env:JWT_SECRET } else { "dev-jwt-secret-change-me" }
+$env:AUTH_JWT_SECRET = if ($env:AUTH_JWT_SECRET) { $env:AUTH_JWT_SECRET } else { "dev-jwt-secret-change-me" }
+$env:SIGNAL_INGEST_API_KEY = if ($env:SIGNAL_INGEST_API_KEY) { $env:SIGNAL_INGEST_API_KEY } else { "dev-ingest-key" }
+$env:TELEGRAM_BOT_TOKEN = if ($env:TELEGRAM_BOT_TOKEN) { $env:TELEGRAM_BOT_TOKEN } else { "test:dummy-token-for-dev" }
 
 # Start all services
 $svcs = @(

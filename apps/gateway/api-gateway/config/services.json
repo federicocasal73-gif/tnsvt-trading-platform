@@ -115,5 +115,59 @@
     "rate_limit": 200,
     "health_path": "/health",
     "required": false
+  },
+  {
+    "name": "account-manager",
+    "path_prefix": "/api/v1/accounts",
+    "instances": ["http://localhost:8510"],
+    "timeout_ms": 10000,
+    "rate_limit": 100,
+    "health_path": "/health",
+    "required": true
+  },
+  {
+    "name": "liquidity-engine",
+    "path_prefix": "/api/v1/lst",
+    "instances": ["http://localhost:8050"],
+    "timeout_ms": 10000,
+    "rate_limit": 100,
+    "health_path": "/health",
+    "required": false
+  },
+  {
+    "name": "orchestrator",
+    "path_prefix": "/api/v1/orchestrator",
+    "instances": ["http://localhost:8060"],
+    "timeout_ms": 10000,
+    "rate_limit": 100,
+    "health_path": "/health",
+    "required": false
+  },
+  {
+    "name": "mcp-trading-server",
+    "path_prefix": "/api/v1/mcp",
+    "instances": ["http://localhost:8100"],
+    "timeout_ms": 60000,
+    "rate_limit": 50,
+    "health_path": "/health",
+    "required": false
+  },
+  {
+    "name": "news-analyzer",
+    "path_prefix": "/api/v1/news",
+    "instances": ["http://localhost:8051"],
+    "timeout_ms": 10000,
+    "rate_limit": 100,
+    "health_path": "/health",
+    "required": false
+  },
+  {
+    "name": "macro-fetcher",
+    "path_prefix": "/api/v1/macro",
+    "instances": ["http://localhost:8040"],
+    "timeout_ms": 10000,
+    "rate_limit": 100,
+    "health_path": "/health",
+    "required": false
   }
 ]

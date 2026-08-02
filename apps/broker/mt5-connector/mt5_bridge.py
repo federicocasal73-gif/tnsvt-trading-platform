@@ -23,7 +23,7 @@ import sys
 import json
 import argparse
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # ─── Logging ────────────────────────────────────────────────────
@@ -55,6 +55,26 @@ def import_mt5():
         return mt5
     except ImportError:
         output(False, error="MetaTrader5 library not installed (pip install MetaTrader5)")
+
+
+def ensure_initialized():
+    """Asegura que MT5 esté inicializado. Debe llamarse en cada operación."""
+    mt5 = import_mt5()
+    if not mt5.initialize():
+        if mt5.last_error() and "already initialized" not in str(mt5.last_error()):
+            output(False, error=f"mt5.initialize failed: {mt5.last_error()}")
+
+
+def sanitize_comment(comment: str, max_len: int = 24) -> str:
+    """Sanitiza comment para MT5 — solo alfanuméricos, max 24 chars (límite MT5 broker)."""
+    import re
+    if not comment:
+        return "TNSVT"
+    # Solo alfanuméricos y guiones bajos (algunos brokers aceptan estos)
+    cleaned = re.sub(r"[^A-Za-z0-9_]", "", comment)
+    if not cleaned:
+        return "TNSVT"
+    return cleaned[:max_len]
 
 
 # ─── Operations ───────────────────────────────────────────────
@@ -106,6 +126,7 @@ def op_shutdown(args: dict) -> bool:
 
 def op_account_info(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     account_info = mt5.account_info()
     if account_info is None:
@@ -131,6 +152,7 @@ def op_account_info(args: dict) -> bool:
 
 def op_place_order(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     symbol = args.get("symbol", "")
     side = args.get("side", "buy").lower()
@@ -175,7 +197,7 @@ def op_place_order(args: dict) -> bool:
         "type": order_type_mt5,
         "deviation": deviation,
         "magic": magic,
-        "comment": comment[:31],  # MT5 max 31 chars
+        "comment": sanitize_comment(comment),
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_FOK,  # O cambiar a IOC si tu broker no soporta FOK
     }
@@ -215,6 +237,7 @@ def op_place_order(args: dict) -> bool:
 
 def op_close_position(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     ticket = args.get("ticket", "")
     if not ticket:
@@ -245,7 +268,7 @@ def op_close_position(args: dict) -> bool:
         "position": ticket_int,
         "deviation": 20,
         "magic": position.magic,
-        "comment": "TNSVT close",
+        "comment": sanitize_comment("TNSVT close"),
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_FOK,
     }
@@ -274,6 +297,7 @@ def op_close_position(args: dict) -> bool:
 
 def op_modify_position(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     ticket = args.get("ticket", "")
     sl = args.get("sl", 0)
@@ -304,6 +328,7 @@ def op_modify_position(args: dict) -> bool:
 
 def op_positions_get(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     magic = args.get("magic", 0)
 
@@ -332,8 +357,7 @@ def op_positions_get(args: dict) -> bool:
                 "take_profit": p.tp,
                 "pnl": p.profit,
                 "swap": p.swap,
-                "commission": p.commission,
-                "opened_at": datetime.fromtimestamp(p.time).isoformat(),
+                "opened_at": datetime.fromtimestamp(p.time, tz=timezone.utc).isoformat(),
                 "magic": p.magic,
                 "comment": p.comment,
             })
@@ -341,8 +365,55 @@ def op_positions_get(args: dict) -> bool:
     output(True, data={"positions": pos_list, "count": len(pos_list)})
 
 
+def op_get_rates(args: dict) -> bool:
+    mt5 = import_mt5()
+    ensure_initialized()
+
+    symbol = args.get("symbol", "")
+    timeframe_str = args.get("timeframe", "M1")
+    count = int(args.get("count", 20))
+
+    if not symbol:
+        output(False, error="symbol is required")
+
+    timeframe_map = {
+        "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
+        "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4,
+        "D1": mt5.TIMEFRAME_D1, "W1": mt5.TIMEFRAME_W1, "MN1": mt5.TIMEFRAME_MN1,
+    }
+    tf = timeframe_map.get(timeframe_str)
+    if tf is None:
+        output(False, error=f"unsupported timeframe: {timeframe_str}")
+
+    if not mt5.symbol_select(symbol, True):
+        output(False, error=f"failed to select symbol {symbol}: {mt5.last_error()}")
+
+    rates = mt5.copy_rates_from_pos(symbol, tf, 0, count)
+    if rates is None:
+        output(False, error=f"copy_rates_from_pos failed: {mt5.last_error()}")
+
+    rate_list = []
+    for r in rates:
+        vol = float(r['real_volume']) if r['real_volume'] > 0 else float(r['tick_volume'])
+        rate_list.append({
+            "symbol": symbol,
+            "timeframe": timeframe_str,
+            "time": int(r['time']),
+            "open": float(r['open']),
+            "high": float(r['high']),
+            "low": float(r['low']),
+            "close": float(r['close']),
+            "volume": vol,
+            "tick_volume": float(r['tick_volume']),
+            "spread": int(r['spread']),
+        })
+
+    output(True, data={"rates": rate_list, "count": len(rate_list)})
+
+
 def op_symbol_info(args: dict) -> bool:
     mt5 = import_mt5()
+    ensure_initialized()
 
     symbol = args.get("symbol", "")
     if not symbol:
@@ -390,6 +461,7 @@ def main():
         "modify_position": op_modify_position,
         "positions_get": op_positions_get,
         "symbol_info": op_symbol_info,
+        "get_rates": op_get_rates,
     }
 
     handler = ops.get(args.operation)

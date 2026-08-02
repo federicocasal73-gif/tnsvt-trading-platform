@@ -8,6 +8,8 @@ from datetime import datetime, timezone, timedelta
 import MetaTrader5 as mt5
 import pytz
 
+from signal_copier.magic import MAGIC_NUMBER as MAGIC
+
 logger = logging.getLogger("SignalCopier.TimeExit")
 
 ART = pytz.timezone("America/Argentina/Buenos_Aires")

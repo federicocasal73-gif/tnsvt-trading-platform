@@ -13,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/tnsvt/auth-service/internal/models"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Request ID ────────────────────────────────────────────────
@@ -71,17 +72,12 @@ func Logging(log interface {
 // ─── CORS ──────────────────────────────────────────────────────
 
 // CORS middleware (configurado restrictivo por defecto)
+// Lee CORS_ALLOWED_ORIGINS del .env (comma-separated).
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		// Whitelist de orígenes permitidos
-		allowed := map[string]bool{
-			"http://localhost:3000":  true, // Next.js dev
-			"http://localhost:8501":  true, // Dashboard
-			"http://127.0.0.1:3000":  true,
-			"http://127.0.0.1:8501":  true,
-			"tauri://localhost":      true, // Tauri desktop
-		}
+		// Whitelist de orígenes permitidos (env: CORS_ALLOWED_ORIGINS)
+		allowed := cors.AllowedOrigins()
 
 		if allowed[origin] {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
@@ -202,8 +198,9 @@ func RequireAuth(jwt JWTValidator) gin.HandlerFunc {
 			return
 		}
 
-		// Solo aceptar access tokens, no refresh
-		if claims.TokenType != "" && claims.TokenType != "access" {
+		// A9 fix: rechazar refresh tokens estrictamente.
+		// Si TokenType está vacío o es refresh → 401 (antes aceptaba vacío).
+		if claims.TokenType != "access" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "refresh tokens are not accepted as bearer tokens",
 				"code":  "AUTH_REJECTED_REFRESH",

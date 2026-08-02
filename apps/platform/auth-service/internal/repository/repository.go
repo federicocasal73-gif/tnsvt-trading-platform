@@ -38,7 +38,11 @@ type Repository interface {
 	UpdateUserLastLogin(ctx context.Context, id uuid.UUID, ip string) error
 	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 	UpdateUser2FASecret(ctx context.Context, id uuid.UUID, secret string) error
+	Setup2FASecret(ctx context.Context, id uuid.UUID, secret string) error
+	Enable2FA(ctx context.Context, id uuid.UUID) error
+	Disable2FA(ctx context.Context, id uuid.UUID) error
 	IncrementFailedLogin(ctx context.Context, id uuid.UUID) (int, error)
+	IncrementAndMaybeLock(ctx context.Context, id uuid.UUID, maxAttempts int, lockoutDuration time.Duration) (newCount int, locked bool, err error)
 	ResetFailedLogin(ctx context.Context, id uuid.UUID) error
 	LockUser(ctx context.Context, id uuid.UUID, until time.Time) error
 	ListUsers(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.User, error)
@@ -403,12 +407,58 @@ func (r *postgresRepo) UpdateUserPassword(ctx context.Context, id uuid.UUID, pas
 }
 
 // UpdateUser2FASecret persists the TOTP secret and flips two_factor_enabled=true.
-// Pass empty string to disable 2FA (clears the secret and sets flag=false).
+// A4 fix: ya NO debe auto-activar. Usar Setup2FASecret para secret pending
+// (enabled=false) y Enable2FA solo tras verify exitoso.
 func (r *postgresRepo) UpdateUser2FASecret(ctx context.Context, id uuid.UUID, secret string) error {
-	enabled := len(secret) > 0
 	res, err := r.pool.Exec(ctx,
 		`UPDATE platform.users SET two_factor_secret = $2, two_factor_enabled = $3, updated_at = NOW() WHERE id = $1`,
-		id, secret, enabled)
+		id, secret, true)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// Setup2FASecret guarda el secret TOTP sin activar two_factor_enabled.
+// Es el paso 1: usuario escanea QR, ve secret, lo ingresa en su app.
+func (r *postgresRepo) Setup2FASecret(ctx context.Context, id uuid.UUID, secret string) error {
+	if secret == "" {
+		return errors.New("secret cannot be empty for setup")
+	}
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.users SET two_factor_secret = $2, two_factor_enabled = FALSE, updated_at = NOW() WHERE id = $1`,
+		id, secret)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// Enable2FA activa two_factor_enabled tras verify exitoso (paso 2).
+func (r *postgresRepo) Enable2FA(ctx context.Context, id uuid.UUID) error {
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.users SET two_factor_enabled = TRUE, updated_at = NOW() WHERE id = $1 AND two_factor_secret != ''`,
+		id)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() == 0 {
+		return errors.New("no 2FA secret configured — call Setup2FA first")
+	}
+	return nil
+}
+
+// Disable2FA desactiva 2FA y limpia el secret.
+func (r *postgresRepo) Disable2FA(ctx context.Context, id uuid.UUID) error {
+	res, err := r.pool.Exec(ctx,
+		`UPDATE platform.users SET two_factor_enabled = FALSE, two_factor_secret = '', updated_at = NOW() WHERE id = $1`,
+		id)
 	if err != nil {
 		return err
 	}
@@ -424,6 +474,25 @@ func (r *postgresRepo) IncrementFailedLogin(ctx context.Context, id uuid.UUID) (
 		`UPDATE platform.users SET failed_login_count = failed_login_count + 1, updated_at = NOW()
 		 WHERE id = $1 RETURNING failed_login_count`, id).Scan(&count)
 	return count, err
+}
+
+// A5 fix: IncrementAndMaybeLock atómico. Incrementa failed_login_count
+// y lockea la cuenta SI supera el threshold, todo en una sola query.
+// Elimina la race condition entre IncrementFailedLogin + LockUser.
+func (r *postgresRepo) IncrementAndMaybeLock(ctx context.Context, id uuid.UUID, maxAttempts int, lockoutDuration time.Duration) (newCount int, locked bool, err error) {
+	row := r.pool.QueryRow(ctx, `
+		UPDATE platform.users
+		SET failed_login_count = failed_login_count + 1,
+		    locked_until = CASE
+		        WHEN failed_login_count + 1 >= $2 THEN $3::timestamptz
+		        ELSE locked_until
+		    END,
+		    updated_at = NOW()
+		WHERE id = $1
+		RETURNING failed_login_count, locked_until > NOW()
+	`, id, maxAttempts, time.Now().Add(lockoutDuration))
+	err = row.Scan(&newCount, &locked)
+	return
 }
 
 func (r *postgresRepo) ResetFailedLogin(ctx context.Context, id uuid.UUID) error {

@@ -63,6 +63,24 @@ class TNSVTClient:
             headers["X-Admin-Password"] = self.admin_password
         return headers
 
+    @staticmethod
+    def _tp_to_float(tp) -> Optional[float]:
+        """Acepta tp como scalar, lista, tuple, o string. Devuelve el primer TP como float.
+
+        El parser del bot entrega tp como lista (múltiples TPs). El bridge sólo
+        soporta scalar. Tomamos el primer TP (el más cercano) por compatibilidad.
+        """
+        if tp is None:
+            return None
+        if isinstance(tp, (list, tuple)):
+            if not tp:
+                return None
+            tp = tp[0]
+        try:
+            return float(tp)
+        except (TypeError, ValueError):
+            return None
+
     def log_trade(
         self,
         symbol: str,
@@ -89,7 +107,7 @@ class TNSVTClient:
             "action": action,
             "price": float(price) if price is not None else None,
             "sl": float(sl) if sl is not None else None,
-            "tp": float(tp) if tp is not None else None,
+            "tp": self._tp_to_float(tp),
             "result": result,
             "pnl": float(pnl),
             "channel_title": channel or None,
@@ -138,7 +156,7 @@ class TNSVTClient:
         if sl is not None:
             payload["sl"] = float(sl)
         if tp is not None:
-            payload["tp"] = float(tp)
+            payload["tp"] = self._tp_to_float(tp)
         if not payload:
             return False
 

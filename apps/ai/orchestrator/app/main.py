@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time as _time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+import jwt as pyjwt
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from app.config import Settings
 from app.multi_orchestrator import MultiSymbolOrchestrator
@@ -37,6 +40,46 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if not JWT_SECRET or len(JWT_SECRET) < 32:
+    logger.warning("JWT_SECRET not set; orchestrator auth disabled")
+
+AUTH_REQUIRED_PATHS = {f"{prefix}/pause", f"{prefix}/resume"}
+
+
+def _verify_token(auth_header: str) -> dict:
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(401, "Authorization header required")
+    token = auth_header[7:]
+    try:
+        payload = pyjwt.decode(
+            token, JWT_SECRET, algorithms=["HS256"],
+            options={"require": ["exp", "uid", "type"]},
+        )
+        if payload.get("type") != "access":
+            raise HTTPException(401, "refresh tokens not allowed")
+        return payload
+    except pyjwt.ExpiredSignatureError:
+        raise HTTPException(401, "token expired")
+    except pyjwt.InvalidTokenError as e:
+        raise HTTPException(401, f"invalid token: {e}")
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path not in AUTH_REQUIRED_PATHS:
+        return await call_next(request)
+    if not JWT_SECRET or len(JWT_SECRET) < 32:
+        return await call_next(request)
+    auth_header = request.headers.get("Authorization", "")
+    try:
+        _verify_token(auth_header)
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+    return await call_next(request)
 
 
 @app.get(f"{prefix}/health")

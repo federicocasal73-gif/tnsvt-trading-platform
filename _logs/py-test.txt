@@ -1,0 +1,3 @@
+Connecting...
+Connected.
+Subscribed to trading.signal.created

@@ -127,6 +127,10 @@ func main() {
 	api := router.Group("/api/v1/signals")
 	{
 		api.POST("", signalHandler.Submit)
+		api.POST("/manual", signalHandler.Manual)
+		api.POST("/webhook",
+			handlers.IngestAPIKeyMiddleware(cfg.Get("WEBHOOK_API_KEY", "")),
+			signalHandler.Webhook)
 		api.GET("", signalHandler.List)
 		api.GET("/:id", signalHandler.Get)
 		api.POST("/parse", signalHandler.Parse)

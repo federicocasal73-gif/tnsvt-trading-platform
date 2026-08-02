@@ -15,6 +15,8 @@ import logging
 import time
 from config import settings
 
+from signal_copier.magic import MAGIC_NUMBER
+
 logger = logging.getLogger("SignalCopier.RiskManager")
 
 STATE_FILE = "signal_copier/risk_state.json"
@@ -311,7 +313,7 @@ class RiskManager:
             return True, ""
 
         try:
-            positions = mt5.positions_get(magic=20260706) or []
+            positions = mt5.positions_get(magic=MAGIC_NUMBER) or []
         except Exception:
             return True, ""
 

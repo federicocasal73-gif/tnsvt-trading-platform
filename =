@@ -1,0 +1,4 @@
+  File "<string>", line 5
+    c.execute(\
+             ^
+SyntaxError: '(' was never closed

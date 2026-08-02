@@ -132,6 +132,13 @@ func (r *pgRepo) RunMigrations(ctx context.Context) error {
 				  CREATE INDEX IF NOT EXISTS idx_positions_symbol ON risk.positions(tenant_id, symbol) WHERE closed = FALSE;
 				  CREATE INDEX IF NOT EXISTS idx_daily_stats_day ON risk.daily_stats(day)`,
 		},
+		{
+			// Sprint 1.3: ensure account_id column exists and is indexed for
+			// multi-tenant per-account queries.
+			name: "add_account_id_to_positions",
+			sql: `ALTER TABLE risk.positions ADD COLUMN IF NOT EXISTS account_id VARCHAR(100) NOT NULL DEFAULT 'legacy';
+				  CREATE INDEX IF NOT EXISTS idx_positions_account ON risk.positions(tenant_id, account_id) WHERE closed = FALSE`,
+		},
 	}
 
 	for _, m := range migrations {

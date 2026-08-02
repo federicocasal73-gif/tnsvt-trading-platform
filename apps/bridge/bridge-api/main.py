@@ -23,6 +23,7 @@ import sys
 import time
 import json
 import uuid
+import hmac
 import requests
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -51,6 +52,8 @@ from publisher import Publisher
 from db import TradesDB
 from syncer import BotSyncer
 from config_manager import ConfigManager
+from community_db import CommunityDB
+from admin_db import AdminDB
 
 # ─── Config ────────────────────────────────────────────────────────────
 
@@ -61,6 +64,8 @@ sys.path.insert(0, str(_TNSVT_BOT))
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = os.getenv("BRIDGE_DB", str(BASE_DIR / "bridge_outbox.db"))
+COMMUNITY_DB_PATH = os.getenv("COMMUNITY_DB", str(BASE_DIR / "community.db"))
+ADMIN_DB_PATH = os.getenv("ADMIN_DB", str(BASE_DIR / "admin.db"))
 GATEWAY_URL = os.getenv("TNSVT_GATEWAY_URL", "http://localhost:8000")
 BRIDGE_API_KEY = os.getenv("BRIDGE_API_KEY", "")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -109,6 +114,8 @@ def get_symbol_multiplier(symbol: str) -> float:
 
 outbox = Outbox(DB_PATH)
 trades_db = TradesDB(DB_PATH)
+community_db = CommunityDB(COMMUNITY_DB_PATH)
+admin_db = AdminDB(ADMIN_DB_PATH)
 config_mgr = ConfigManager()
 publisher: Optional[Publisher] = None
 syncer: Optional[BotSyncer] = None
@@ -158,6 +165,8 @@ if not JWT_SECRET or len(JWT_SECRET) < 32:
     logger.warning("JWT_SECRET not set or too short; bridge-api auth disabled")
     JWT_SECRET = ""
 
+BRIDGE_ADMIN_PASSWORD = os.getenv("BRIDGE_ADMIN_PASSWORD", "")
+
 PUBLIC_PATHS = {"/health", "/", "/metrics", "/docs", "/openapi.json", "/redoc"}
 
 
@@ -194,6 +203,17 @@ async def auth_middleware(request: Request, call_next):
 
     if not JWT_SECRET:
         return await call_next(request)
+
+    # El bot / servicios internos se autentican con X-Admin-Password en
+    # rutas /api/v1/bridge/* (NUNCA en /api/v1/admin/*, que exige JWT+rol).
+    if path.startswith("/api/v1/bridge/"):
+        xadmin = request.headers.get("X-Admin-Password", "")
+        if BRIDGE_ADMIN_PASSWORD and xadmin and hmac.compare_digest(xadmin, BRIDGE_ADMIN_PASSWORD):
+            request.state.user_id = None
+            request.state.tenant_id = None
+            request.state.role = "service"
+            request.state.email = "bridge-service"
+            return await call_next(request)
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -1658,6 +1678,7 @@ def list_mt5_accounts(tenant_id: Optional[str] = None):
                     "profit": a.get("last_pnl"),
                     "open_positions": a.get("last_open_pos", 0),
                     "updated_at": a.get("last_snapshot_at"),
+                    "copy_enabled": a.get("copy_enabled", False),
                 })
             agg = data.get("aggregate", {})
             return {
@@ -1676,7 +1697,62 @@ def list_mt5_accounts(tenant_id: Optional[str] = None):
     except Exception as e:
         logger.error(f"account-manager proxy error: {e}")
 
-    # Fallback: leer del archivo legacy (compat con sistema viejo)
+
+@app.get("/api/v1/bridge/replicators")
+def list_replicators(tenant_id: Optional[str] = None):
+    """Solo cuentas con copy_enabled=true (modulo Copy Trading del frontend)."""
+    headers = {}
+    if tenant_id:
+        headers["X-Tenant-ID"] = tenant_id
+    elif v := os.getenv("DEFAULT_TENANT_ID"):
+        headers["X-Tenant-ID"] = v
+
+    try:
+        resp = requests.get(
+            f"http://localhost:8510/api/v1/accounts/replicators",
+            headers=headers,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            accounts_out = []
+            for a in data.get("accounts", []):
+                accounts_out.append({
+                    "id": a.get("id"),
+                    "login": a.get("login"),
+                    "alias": a.get("alias") or f"acc_{a.get('login')}",
+                    "name": a.get("name") or f"Account {a.get('login')}",
+                    "server": a.get("server"),
+                    "broker": a.get("broker"),
+                    "status": a.get("status"),
+                    "balance": a.get("last_balance"),
+                    "equity": a.get("last_equity"),
+                    "profit": a.get("last_pnl"),
+                    "open_positions": a.get("last_open_pos", 0),
+                    "updated_at": a.get("last_snapshot_at"),
+                    "copy_enabled": True,
+                })
+            agg = data.get("aggregate", {})
+            return {
+                "ok": True,
+                "count": len(accounts_out),
+                "accounts": accounts_out,
+                "aggregate": {
+                    "total_balance": round(agg.get("total_balance", 0), 2),
+                    "total_equity": round(agg.get("total_equity", 0), 2),
+                    "total_pnl": round(agg.get("total_pnl", 0), 2),
+                    "total_open_positions": agg.get("total_open_positions", 0),
+                },
+            }
+    except requests.exceptions.ConnectionError:
+        logger.warning("account-manager unavailable, falling back to legacy replicators")
+    except Exception as e:
+        logger.error(f"replicators proxy error: {e}")
+
+    return {"ok": True, "count": 0, "accounts": [], "aggregate": {"total_balance": 0, "total_equity": 0, "total_pnl": 0, "total_open_positions": 0}}
+
+
+# Fallback: leer del archivo legacy (compat con sistema viejo)
     base_dir = Path(MT5_DATA_DIR)
     accounts_file = base_dir / "accounts.json"
     accounts_cfg: list = []
@@ -2247,6 +2323,264 @@ async def price_symbol(symbol: str):
         "source": "mt5",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ============================================================
+# Community: encuestas y eventos económicos
+# ============================================================
+#
+# Capa "Bot/Comunidad". Persistencia en community.db (CommunityDB).
+# El bot publica votos/eventos; el frontend consulta y administra.
+# Sin auth adicional: misma política que /api/v1/bridge/copier/*.
+
+
+class SurveyCreate(BaseModel):
+    title: str
+    options: list[str] = Field(..., min_length=2)
+    channel_id: Optional[int] = None
+    created_by: Optional[int] = None
+    close_date: Optional[str] = None
+
+
+class SurveyVote(BaseModel):
+    user_id: int
+    chat_id: Optional[int] = None
+    option_selected: int
+
+
+class EventUpsert(BaseModel):
+    event_id: str
+    source: str = "investing"
+    currency: Optional[str] = None
+    indicator: str
+    announcement_dt: Optional[str] = None
+    previous: Optional[str] = None
+    forecast: Optional[str] = None
+    actual: Optional[str] = None
+    impact: int = 3
+    notify_pre: bool = False
+    notify_actual: bool = False
+
+
+@app.post("/api/v1/bridge/community/surveys")
+def community_create_survey(body: SurveyCreate):
+    """Crea una encuesta y la deja lista para publicarse en Telegram."""
+    if not body.title.strip():
+        raise HTTPException(400, "title required")
+    if len(body.options) < 2:
+        raise HTTPException(400, "at least 2 options required")
+    survey = community_db.create_survey(
+        title=body.title.strip(),
+        options=[o.strip() for o in body.options if o and o.strip()],
+        channel_id=body.channel_id,
+        created_by=body.created_by,
+        close_date=body.close_date,
+    )
+    return {"success": True, "survey": survey}
+
+
+@app.get("/api/v1/bridge/community/surveys")
+def community_list_surveys(status: Optional[str] = Query(default=None)):
+    """Lista encuestas. status: active | closed | all (default)."""
+    surveys = community_db.list_surveys(status=status)
+    return {"success": True, "surveys": surveys}
+
+
+@app.get("/api/v1/bridge/community/surveys/{survey_id}")
+def community_get_survey(survey_id: str):
+    survey = community_db.get_survey(survey_id)
+    if not survey:
+        raise HTTPException(404, "survey not found")
+    return {"success": True, "survey": survey}
+
+
+@app.post("/api/v1/bridge/community/surveys/{survey_id}/vote")
+def community_vote(survey_id: str, body: SurveyVote):
+    """Registra/actualiza el voto de un usuario (idempotente)."""
+    survey = community_db.get_survey(survey_id)
+    if not survey:
+        raise HTTPException(404, "survey not found")
+    if not survey.get("is_active"):
+        raise HTTPException(400, "survey closed")
+    n_options = len(survey.get("options", []))
+    if body.option_selected < 0 or body.option_selected >= n_options:
+        raise HTTPException(400, f"option_selected out of range (0..{n_options - 1})")
+    result = community_db.register_vote(
+        survey_id=survey_id,
+        user_id=body.user_id,
+        chat_id=body.chat_id,
+        option_selected=body.option_selected,
+    )
+    return {"success": True, "result": result}
+
+
+@app.post("/api/v1/bridge/community/surveys/{survey_id}/close")
+def community_close_survey(survey_id: str):
+    """Cierra una encuesta (deja de aceptar votos)."""
+    survey = community_db.get_survey(survey_id)
+    if not survey:
+        raise HTTPException(404, "survey not found")
+    community_db.set_survey_active(survey_id, 0)
+    return {"success": True}
+
+
+@app.get("/api/v1/bridge/community/events")
+def community_list_events(days: int = Query(default=7, ge=1, le=90),
+                          impact: Optional[int] = Query(default=None, ge=1, le=3),
+                          currency: Optional[str] = None):
+    """Lista eventos económicos persistidos (anuncios próximos/pasados)."""
+    events = community_db.get_events(days=days, impact=impact, currency=currency)
+    return {"success": True, "events": events}
+
+
+@app.get("/api/v1/bridge/community/events/pending-actual")
+def community_pending_actual(max_minutes: int = Query(default=120, ge=5, le=1440)):
+    """Eventos notificados antes sin dato real (para el loop del bot)."""
+    events = community_db.get_pending_actual(max_minutes=max_minutes)
+    return {"success": True, "events": events}
+
+
+@app.post("/api/v1/bridge/community/events")
+def community_upsert_event(body: EventUpsert):
+    """Upsert de un evento económico desde el scraper del bot."""
+    if not body.event_id.strip() or not body.indicator.strip():
+        raise HTTPException(400, "event_id and indicator required")
+    community_db.upsert_event(
+        event_id=body.event_id,
+        source=body.source,
+        currency=body.currency,
+        indicator=body.indicator,
+        announcement_dt=body.announcement_dt,
+        previous=body.previous,
+        forecast=body.forecast,
+        actual=body.actual,
+        impact=body.impact,
+        notify_pre=body.notify_pre,
+        notify_actual=body.notify_actual,
+    )
+    return {"success": True}
+
+
+@app.post("/api/v1/bridge/community/events/{event_id}/notify")
+def community_toggle_notify(event_id: str, enabled: bool = Query(default=True)):
+    """Habilita/deshabilita la notificación de un evento."""
+    ok = community_db.set_event_notify(event_id, 1 if enabled else 0)
+    if not ok:
+        raise HTTPException(404, "event not found")
+    return {"success": True, "notify_enabled": enabled}
+
+
+# ============================================================
+# Admin: gestión manual de suscriptores (Tenants & Billing)
+# ============================================================
+#
+# Cobro por transferencia (sin pasarela). El operador da de alta al
+# cliente cuando recibe el pago y el panel Admin muestra MRR/churn.
+# Persistencia en admin.db (AdminDB).
+
+
+class TenantCreate(BaseModel):
+    name: str
+    plan: str = Field(..., pattern="^(trimestral|semestral|anual)$")
+    email: Optional[str] = None
+    slug: Optional[str] = None
+    status: str = "trial"
+    price_usd: Optional[float] = None
+    price_ars: Optional[str] = None
+    started_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    max_users: int = 1
+    max_signals_per_day: int = 20
+
+
+class TenantUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    plan: Optional[str] = Field(default=None, pattern="^(trimestral|semestral|anual)$")
+    status: Optional[str] = Field(default=None, pattern="^(active|trial|suspended)$")
+    price_usd: Optional[float] = None
+    price_ars: Optional[str] = None
+    expires_at: Optional[str] = None
+    max_users: Optional[int] = None
+    max_signals_per_day: Optional[int] = None
+
+
+@app.get("/api/v1/admin/tenants")
+def admin_list_tenants(limit: int = Query(default=50, ge=1, le=500),
+                       offset: int = Query(default=0, ge=0),
+                       status: Optional[str] = Query(default=None)):
+    """Lista suscriptores manuales. Devuelve un array plano (AdminTenant[])."""
+    try:
+        tenants = admin_db.list_tenants(limit=limit, offset=offset, status=status)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return tenants
+
+
+@app.get("/api/v1/admin/stats")
+def admin_stats():
+    """KPIs: total, active subs, MRR, churn, plan breakdown."""
+    return admin_db.stats()
+
+
+@app.post("/api/v1/admin/tenants")
+def admin_create_tenant(body: TenantCreate):
+    """Alta manual de un suscriptor (al cobrar la transferencia)."""
+    if not body.name.strip():
+        raise HTTPException(400, "name required")
+    try:
+        tenant = admin_db.create_tenant(
+            name=body.name,
+            plan=body.plan,
+            email=body.email,
+            slug=body.slug,
+            status=body.status,
+            price_usd=body.price_usd,
+            price_ars=body.price_ars,
+            started_at=body.started_at,
+            expires_at=body.expires_at,
+            max_users=body.max_users,
+            max_signals_per_day=body.max_signals_per_day,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"success": True, "tenant": tenant}
+
+
+@app.patch("/api/v1/admin/tenants/{tenant_id}")
+def admin_update_tenant(tenant_id: str, body: TenantUpdate):
+    """Actualiza un suscriptor (activar/suspender/cambiar plan/vencimiento)."""
+    if not any([body.name, body.email, body.plan, body.status,
+                body.price_usd, body.price_ars, body.expires_at,
+                body.max_users, body.max_signals_per_day]):
+        raise HTTPException(400, "no fields to update")
+    try:
+        tenant = admin_db.update_tenant(
+            tenant_id=tenant_id,
+            name=body.name,
+            email=body.email,
+            plan=body.plan,
+            status=body.status,
+            price_usd=body.price_usd,
+            price_ars=body.price_ars,
+            expires_at=body.expires_at,
+            max_users=body.max_users,
+            max_signals_per_day=body.max_signals_per_day,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if not tenant:
+        raise HTTPException(404, "tenant not found")
+    return {"success": True, "tenant": tenant}
+
+
+@app.delete("/api/v1/admin/tenants/{tenant_id}")
+def admin_delete_tenant(tenant_id: str):
+    """Baja definitiva de un suscriptor."""
+    ok = admin_db.delete_tenant(tenant_id)
+    if not ok:
+        raise HTTPException(404, "tenant not found")
+    return {"success": True}
 
 
 # ============================================================

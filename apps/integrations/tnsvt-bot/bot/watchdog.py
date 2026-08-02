@@ -20,6 +20,9 @@ from pathlib import Path
 
 import requests
 
+from config import settings
+from bot.bridge_auth import bridge_headers
+
 logger = logging.getLogger("Bot.Watchdog")
 
 
@@ -45,7 +48,7 @@ def check_signal_copier(base_url: str, timeout: int = 5) -> dict:
     """Verifica que el signal_copier Python este vivo (connected=True)."""
     result = {"name": "signal_copier", "healthy": False, "detail": ""}
     try:
-        r = requests.get(f"{base_url}/api/v1/bridge/mt5/signal_copier_status", timeout=timeout)
+        r = requests.get(f"{base_url}/api/v1/bridge/mt5/signal_copier_status", headers=bridge_headers(), timeout=timeout)
         if r.status_code == 200:
             data = r.json()
             if data.get("ok") and data.get("data", {}).get("connected"):
@@ -67,7 +70,7 @@ def check_mt5_snapshot(base_url: str, max_age_seconds: int = 30, timeout: int = 
     """Verifica que el MT5 snapshot worker este escribiendo datos frescos."""
     result = {"name": "mt5_snapshot", "healthy": False, "detail": ""}
     try:
-        r = requests.get(f"{base_url}/api/v1/bridge/mt5/account", timeout=timeout)
+        r = requests.get(f"{base_url}/api/v1/bridge/mt5/account", headers=bridge_headers(), timeout=timeout)
         if r.status_code == 200:
             data = r.json().get("data", {})
             updated_at = data.get("updated_at", "")

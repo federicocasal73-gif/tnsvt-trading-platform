@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/tnsvt/signal-engine/internal/models"
 	"github.com/tnsvt/signal-engine/internal/repository"
 	"github.com/tnsvt/signal-engine/internal/service"
+	"github.com/tnsvt/shared-go/cors"
 )
 
 // ─── Middlewares (local) ─────────────────────────────────────
@@ -60,11 +62,7 @@ func AccessLog(log interface{ Info(string, ...any); Warn(string, ...any); Error(
 }
 
 func CORS() gin.HandlerFunc {
-	allowed := map[string]bool{
-		"http://localhost:3000": true,
-		"http://localhost:8501": true,
-		"tauri://localhost":     true,
-	}
+	allowed := cors.AllowedOrigins()
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if allowed[origin] {
@@ -146,7 +144,15 @@ func (h *SignalHandler) Submit(c *gin.Context) {
 		}
 	}
 	if req.TenantID == uuid.Nil {
-		req.TenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001") // Default tenant
+		if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+			if u, err := uuid.Parse(v); err == nil {
+				req.TenantID = u
+			}
+		}
+	}
+	if req.TenantID == uuid.Nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tenant_id required (body, X-Tenant-ID header, or DEFAULT_TENANT_ID env)"})
+		return
 	}
 
 	signal, err := h.service.SubmitSignal(c.Request.Context(), &req)
@@ -177,6 +183,90 @@ func (h *SignalHandler) Submit(c *gin.Context) {
 	if signal.Status == models.StatusRejected {
 		status = http.StatusUnprocessableEntity
 	}
+
+	c.JSON(status, signal)
+}
+
+// Manual POST /api/v1/signals/manual
+// Sprint 2.2: crea una señal desde el frontend o la API.
+// Body: {symbol, action, entry_price?, stop_loss, take_profits[], lot_size?, lot_mode?, risk_percent?, comment?, account_id?}
+// Devuelve 201 con la signal creada. Pasa por el mismo pipeline de validación
+// que /submit (deduplicación por hash, formato, persistencia, NATS).
+func (h *SignalHandler) Manual(c *gin.Context) {
+	var req models.SubmitSignalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": err.Error(),
+		})
+		return
+	}
+	// Forzar source="manual" para que se persista como tal
+	req.Source = "manual"
+
+	// Resolver tenant_id: X-Tenant-ID header > body > DEFAULT_TENANT_ID env
+	if req.TenantID == uuid.Nil {
+		tenantStr := c.GetHeader("X-Tenant-ID")
+		if tenantStr != "" {
+			if t, err := uuid.Parse(tenantStr); err == nil {
+				req.TenantID = t
+			}
+		}
+	}
+	if req.TenantID == uuid.Nil {
+		if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+			if u, err := uuid.Parse(v); err == nil {
+				req.TenantID = u
+			}
+		}
+	}
+	if req.TenantID == uuid.Nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "tenant_id required (body, X-Tenant-ID header, or DEFAULT_TENANT_ID env)",
+		})
+		return
+	}
+
+	// Validar que la action sea BUY/SELL (no CLOSE — close es para ejecutar close)
+	if req.Action != models.ActionBuy && req.Action != models.ActionSell {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "action debe ser BUY o SELL",
+			"details": fmt.Sprintf("action recibido: %s", req.Action),
+		})
+		return
+	}
+
+	signal, err := h.service.SubmitSignal(c.Request.Context(), &req)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrDuplicate):
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "duplicate signal",
+				"code":  "DUPLICATE",
+				"hint":  "ya existe una señal reciente con el mismo hash (símbolo + action + SL + TP + lot)",
+			})
+		case errors.Is(err, service.ErrInvalidFormat):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid signal format",
+				"details": err.Error(),
+			})
+		case errors.Is(err, service.ErrExpired):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "signal expired"})
+		default:
+			h.log.Error("Manual signal failed", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+
+	status := http.StatusCreated
+	if signal.Status == models.StatusRejected {
+		status = http.StatusUnprocessableEntity
+	}
+
+	h.log.Info("Manual signal created",
+		"signal_id", signal.ID, "symbol", signal.Symbol, "action", signal.Action,
+		"tenant", signal.TenantID, "user", req.UserID, "account", req.AccountID)
 
 	c.JSON(status, signal)
 }
@@ -302,6 +392,99 @@ func (h *SignalHandler) Stats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// Webhook POST /api/v1/signals/webhook (Sprint 2.3)
+//
+// Endpoint para que proveedores externos (TradingView, custom bots, scripts
+// propios) inyecten señales. Autenticación: header X-API-Key debe coincidir
+// con WEBHOOK_API_KEY (mismo que IngestAPIKeyMiddleware). Body: la misma
+// shape que /signals/manual más un campo "provider" (string) para audit.
+//
+// Idempotencia: el sistema de dedup por hash evita duplicados.
+// Rate limit: recomendado en el gateway (5 req/s por API key en producción).
+func (h *SignalHandler) Webhook(c *gin.Context) {
+	var req models.SubmitSignalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid webhook body",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Forzar source=webhook y tomar provider del header o body
+	req.Source = "webhook"
+	if hdrProvider := c.GetHeader("X-Webhook-Provider"); hdrProvider != "" {
+		req.WebhookProvider = hdrProvider
+	}
+	if req.WebhookProvider == "" {
+		req.WebhookProvider = "unknown"
+	}
+
+	// Resolver tenant
+	if req.TenantID == uuid.Nil {
+		tenantStr := c.GetHeader("X-Tenant-ID")
+		if tenantStr != "" {
+			if t, err := uuid.Parse(tenantStr); err == nil {
+				req.TenantID = t
+			}
+		}
+	}
+	if req.TenantID == uuid.Nil {
+		if v := os.Getenv("DEFAULT_TENANT_ID"); v != "" {
+			if u, err := uuid.Parse(v); err == nil {
+				req.TenantID = u
+			}
+		}
+	}
+	if req.TenantID == uuid.Nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "tenant_id required (body, X-Tenant-ID header, or DEFAULT_TENANT_ID env)",
+		})
+		return
+	}
+
+	// Validar action
+	if req.Action != models.ActionBuy && req.Action != models.ActionSell {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "action debe ser BUY o SELL",
+			"details": fmt.Sprintf("action recibido: %s", req.Action),
+		})
+		return
+	}
+
+	signal, err := h.service.SubmitSignal(c.Request.Context(), &req)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrDuplicate):
+			c.JSON(http.StatusOK, gin.H{
+				"status":   "duplicate",
+				"skipped":  true,
+				"provider": req.WebhookProvider,
+			})
+		case errors.Is(err, service.ErrInvalidFormat):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "invalid signal format",
+				"details": err.Error(),
+			})
+		default:
+			h.log.Error("Webhook signal failed", err, "provider", req.WebhookProvider)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+
+	status := http.StatusCreated
+	if signal.Status == models.StatusRejected {
+		status = http.StatusUnprocessableEntity
+	}
+
+	h.log.Info("Webhook signal accepted",
+		"signal_id", signal.ID, "symbol", signal.Symbol, "action", signal.Action,
+		"tenant", signal.TenantID, "provider", req.WebhookProvider)
+
+	c.JSON(status, signal)
 }
 
 // IngestTelegram POST /internal/ingest/telegram (webhook desde telegram-bridge)

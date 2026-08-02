@@ -69,6 +69,16 @@ func NewSignalService(
 // SubmitSignal recibe, valida, deduplica y publica una señal
 func (s *SignalService) SubmitSignal(ctx context.Context, req *models.SubmitSignalRequest) (*models.Signal, error) {
 	// ─── Construir Signal desde request ─────────────────────────
+	// Sprint 2: distinguir source manual / webhook / API para audit.
+	source := models.SourceAPI
+	switch req.Source {
+	case "manual", "frontend", "ui":
+		source = models.SourceManual
+	case "webhook":
+		source = models.SourceWebhook
+	case "telegram":
+		source = models.SourceTelegram
+	}
 	signal := &models.Signal{
 		ID:         uuid.New(),
 		TenantID:   req.TenantID,
@@ -82,9 +92,15 @@ func (s *SignalService) SubmitSignal(ctx context.Context, req *models.SubmitSign
 		LotMode:    req.LotMode,
 		RiskPercent: req.RiskPercent,
 		Comment:    req.Comment,
-		Source:     models.SourceAPI,
+		Source:     source,
 		Status:     models.StatusReceived,
 		ReceivedAt: time.Now(),
+	}
+	// SourceID: para trazabilidad de manual/webhook
+	if req.Source == "manual" {
+		signal.SourceID = fmt.Sprintf("manual:%s", time.Now().Format("2006-01-02T15:04:05.000"))
+	} else if req.Source == "webhook" {
+		signal.SourceID = fmt.Sprintf("webhook:%s:%s", req.WebhookProvider, time.Now().Format("2006-01-02T15:04:05.000"))
 	}
 
 	if req.ExpiresIn > 0 {
@@ -108,7 +124,7 @@ func (s *SignalService) SubmitSignal(ctx context.Context, req *models.SubmitSign
 		signal.RejectDetails = err.Error()
 		_ = s.repo.Create(ctx, signal)
 		s.publishEvent(ctx, "rejected", signal)
-		return signal, err
+		return signal, fmt.Errorf("%w: %s", ErrInvalidFormat, err.Error())
 	}
 
 	// ─── Marcar como validated ────────────────────────────────

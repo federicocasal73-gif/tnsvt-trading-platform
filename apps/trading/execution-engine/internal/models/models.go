@@ -94,6 +94,11 @@ type Execution struct {
 	PositionID *uuid.UUID `json:"position_id,omitempty"`
 	RiskLevel   string     `json:"risk_level,omitempty"`
 
+	// Magic number per-account (Sprint 1.2)
+	// Default 77000000 si el INSERT no especifica, pero el service siempre
+	// calcula MagicForAccount(account_id) antes de insertar.
+	MagicNumber int64    `json:"magic_number,omitempty"`
+
 	// Audit
 	RetryCount int       `json:"retry_count"`
 	CreatedAt  time.Time `json:"created_at"`

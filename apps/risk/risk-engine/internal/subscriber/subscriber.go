@@ -77,7 +77,9 @@ func (s *SignalSubscriber) handleMessage(msg *nats.Msg) {
 	}
 
 	if signal.TenantID == uuid.Nil {
-		signal.TenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+		s.log.Error("signal without tenant_id rejected", fmt.Errorf("missing tenant_id"),
+			"signal_id", signal.ID, "symbol", signal.Symbol)
+		return
 	}
 
 	s.log.Info("Evaluating signal from NATS",

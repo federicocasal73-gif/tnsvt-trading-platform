@@ -28,6 +28,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -81,7 +82,15 @@ func main() {
 
 	// ─── Services ───
 	jwtService := services.NewJWTService(cfg.Auth, log)
-	jwtService.SetSecret(cfg.Auth.JWTSecret)
+	// A1/A2: validar secret al startup. Si es débil/placeholder, abortar.
+	if !jwtService.IsConfigured() {
+		log.Error("Auth-service NO puede arrancar: JWT secret es débil o es el placeholder de dev. Configurar AUTH_JWT_SECRET con al menos 32 caracteres random. Hint: openssl rand -base64 48", fmt.Errorf("weak_jwt_secret"))
+		os.Exit(1)
+	}
+	if err := jwtService.SetSecret(cfg.Auth.JWTSecret); err != nil {
+		log.Error("SetSecret failed", err)
+		os.Exit(1)
+	}
 	authService := services.NewAuthService(repo, redisClient, jwtService, cfg.Auth, log)
 	jwtAdapter := &middleware.JWTServiceAdapter{Service: jwtService}
 
@@ -127,8 +136,11 @@ func main() {
 
 	// ─── Admin endpoints ───
 	adminHandler := handlers.NewAdminHandler(repo, log)
-	// En dev/demo aceptamos 3 roles. En producción acota a super_admin.
-	adminV1 := router.Group("/api/v1/admin", middleware.RequireAuth(jwtAdapter), middleware.RequireRole("super_admin", "admin", "tenant_admin"))
+	// A7 fix: admin endpoints solo para super_admin.
+	// tenant_admin y admin NO tienen acceso cross-tenant.
+	adminV1 := router.Group("/api/v1/admin",
+		middleware.RequireAuth(jwtAdapter),
+		middleware.RequireRole("super_admin"))
 	{
 		adminV1.GET("/tenants", adminHandler.ListTenants)
 		adminV1.GET("/stats", adminHandler.Stats)

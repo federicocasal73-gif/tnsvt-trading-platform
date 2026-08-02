@@ -1,0 +1,5 @@
+CORE SUBSCRIBER RECEIVED: {"test":"hello"}
+js.Publish err: nats: timeout
+core subscriber got it!
+js subscriber TIMEOUT
+done

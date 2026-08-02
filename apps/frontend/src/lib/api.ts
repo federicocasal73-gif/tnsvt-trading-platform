@@ -11,6 +11,7 @@ const _failCount = new Map<string, number>();
 const _openUntil = new Map<string, number>();
 const BREAKER_THRESHOLD = 3;
 const BREAKER_COOLDOWN_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 8_000;
 
 function _isOpen(path: string): boolean {
   const until = _openUntil.get(path);
@@ -44,17 +45,31 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const t = token();
   if (t) headers['Authorization'] = `Bearer ${t}`;
 
+  // Timeout por request: aborta el fetch si el bridge no responde en 8s.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const finalOpts: RequestInit = {
+    ...opts,
+    headers: { ...headers, ...((opts?.headers as Record<string, string>) || {}) },
+    signal: controller.signal,
+  };
+
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, { ...opts, headers: { ...headers, ...((opts?.headers as Record<string, string>) || {}) } });
-  } catch (e) {
+    res = await fetch(`${BASE}${path}`, finalOpts);
+  } catch (e: any) {
+    clearTimeout(timer);
     _recordFailure(path);
+    if (e?.name === 'AbortError') {
+      throw new Error(`Timeout (${REQUEST_TIMEOUT_MS / 1000}s) para ${path}`);
+    }
     throw e;
   }
+  clearTimeout(timer);
 
   console.debug(`[api] ${opts?.method || 'GET'} ${path} -> ${res.status}`);
 
-  const isAuthValidation = path === '/api/v1/auth/me' || path === '/api/v1/auth/refresh';
+  const isAuthValidation = path === '/auth/me' || path === '/auth/refresh';
   if (res.status === 401 && token() && isAuthValidation) {
     console.warn(`[api] 401 on auth validation ${path} - logging out`);
     localStorage.removeItem('tnsvt_token');
@@ -62,7 +77,7 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
     throw new Error('Unauthorized');
   }
   if (!res.ok) {
-    _recordFailure(path);
+    if (res.status >= 500) _recordFailure(path);
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
@@ -77,6 +92,13 @@ export const api = {
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   raw: (path: string) => `${BASE}${path}`,
   token,
+  // ─── Bridge Replicators (datos live de cuentas con copy_enabled=true) ──
+  bridgeReplicators: {
+    list: (tenantId?: string) =>
+      request<{ ok: boolean; count: number; accounts: any[]; aggregate: any }>(
+        `/bridge/replicators${tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : ''}`
+      ),
+  },
   // ─── MT5 Bridge ────────────────────────────────────────
   bridge: {
     metrics: () => request<Metrics>('/bridge/analytics/metrics'),
@@ -174,6 +196,16 @@ export const api = {
         '/bridge/risk/kill-switch',
         { method: 'POST', body: JSON.stringify({ reason }) },
       ),
+    accountKillSwitch: (accountId: string, reason = 'admin_manual') =>
+      request<{ ok: boolean; closed_positions: number; errors: string[]; account_id: string }>(
+        `/accounts/${accountId}/kill-switch`,
+        { method: 'POST', body: JSON.stringify({ reason }) },
+      ),
+    closeTicket: (ticket: string, accountId?: string) =>
+      request<{ ok: boolean; ticket: string; filled_price?: number; filled_qty?: number; detail?: string }>(
+        '/bridge/copier/close-ticket',
+        { method: 'POST', body: JSON.stringify({ ticket, account_id: accountId }) },
+      ),
     riskHistory: (limit = 50) =>
       request<{ count: number; items: RiskHistoryEvent[] }>(
         `/bridge/risk/history?limit=${limit}`,
@@ -184,12 +216,64 @@ export const api = {
         { method: 'POST' },
       ),
   },
+  // ─── Community (capa Bot/Comunidad: encuestas + calendario) ──────
+  community: {
+    surveys: (status?: 'active' | 'closed') =>
+      request<{ success: boolean; surveys: CommunitySurvey[] }>(
+        `/bridge/community/surveys${status ? `?status=${status}` : ''}`,
+      ),
+    survey: (id: string) =>
+      request<{ success: boolean; survey: CommunitySurvey }>(`/bridge/community/surveys/${id}`),
+    createSurvey: (data: { title: string; options: string[]; channel_id?: number | null; close_date?: string }) =>
+      request<{ success: boolean; survey: CommunitySurvey }>(
+        '/bridge/community/surveys',
+        { method: 'POST', body: JSON.stringify(data) },
+      ),
+    vote: (id: string, data: { user_id: number; chat_id?: number | null; option_selected: number }) =>
+      request<{ success: boolean; result: { status: string; vote_id: string } }>(
+        `/bridge/community/surveys/${id}/vote`,
+        { method: 'POST', body: JSON.stringify(data) },
+      ),
+    closeSurvey: (id: string) =>
+      request<{ success: boolean }>(`/bridge/community/surveys/${id}/close`, { method: 'POST' }),
+    events: (opts?: { days?: number; impact?: number; currency?: string }) => {
+      const params = new URLSearchParams();
+      if (opts?.days) params.set('days', String(opts.days));
+      if (opts?.impact) params.set('impact', String(opts.impact));
+      if (opts?.currency) params.set('currency', opts.currency);
+      const qs = params.toString();
+      return request<{ success: boolean; events: CommunityEvent[] }>(
+        `/bridge/community/events${qs ? `?${qs}` : ''}`,
+      );
+    },
+    pendingActual: (maxMinutes = 120) =>
+      request<{ success: boolean; events: CommunityEvent[] }>(
+        `/bridge/community/events/pending-actual?max_minutes=${maxMinutes}`,
+      ),
+    setEventNotify: (id: string, enabled: boolean) =>
+      request<{ success: boolean; notify_enabled: boolean }>(
+        `/bridge/community/events/${id}/notify?enabled=${enabled}`,
+        { method: 'POST' },
+      ),
+  },
   // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────
   admin: {
     tenants: (limit = 50, offset = 0) =>
       request<AdminTenant[]>(`/admin/tenants?limit=${limit}&offset=${offset}`),
     stats: () =>
       request<AdminStats>('/admin/stats'),
+    create: (payload: TenantPayload) =>
+      request<{ success: boolean; tenant: AdminTenant }>('/admin/tenants', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    update: (id: string, payload: Partial<TenantPayload>) =>
+      request<{ success: boolean; tenant: AdminTenant }>(`/admin/tenants/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    remove: (id: string) =>
+      request<{ success: boolean }>(`/admin/tenants/${id}`, { method: 'DELETE' }),
   },
   // ─── Brokers (mt5-connector) ─────────────────────────────────
   brokers: {
@@ -202,6 +286,124 @@ export const api = {
         '/brokers/positions/close',
         { method: 'POST', body: JSON.stringify({ account_id: accountId, ticket }) },
       ),
+  },
+  // ─── Accounts (account-manager :8510) ─────────────────────────
+  accounts: {
+    list: () => request<{
+      ok?: boolean;
+      accounts: Array<{
+        id: string;
+        login: number;
+        alias: string | null;
+        name: string | null;
+        server: string;
+        broker: string;
+        status: string;
+        balance: number | null;
+        equity: number | null;
+        profit: number | null;
+        open_positions: number;
+        updated_at: string | null;
+        copy_enabled: boolean;
+      }>;
+      aggregate: { total_balance: number; total_equity: number; total_pnl: number; total_open_positions: number; active_accounts: number };
+    }>('/accounts'),
+    listReplicators: () => request<{
+      ok?: boolean;
+      accounts: Array<{
+        id: string;
+        login: number;
+        alias: string | null;
+        name: string | null;
+        server: string;
+        broker: string;
+        status: string;
+        copy_enabled: boolean;
+        open_positions: number;
+      }>;
+      aggregate: { total_balance: number; total_equity: number; total_pnl: number; total_open_positions: number; active_accounts: number };
+    }>('/accounts/replicators'),
+    setCopyEnabled: (id: string, enabled: boolean) =>
+      request<{ id: string; copy_enabled: boolean }>(`/accounts/${id}`, {
+        method: 'PUT', body: JSON.stringify({ copy_enabled: enabled }),
+      }),
+    create: (data: { login: number; password: string; server: string; broker?: string; alias?: string; name?: string }) =>
+      request<{ id: string; login: number; server: string; broker: string; status: string; created_at: string }>('/accounts', {
+        method: 'POST', body: JSON.stringify(data),
+      }),
+    update: (id: string, data: { alias?: string; name?: string; status?: 'active' | 'paused' | 'disabled'; copy_enabled?: boolean }) =>
+      request<{ id: string; alias: string | null; name: string | null; status: string; copy_enabled?: boolean }>(`/accounts/${id}`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<{ status: string; id: string }>(`/accounts/${id}`, { method: 'DELETE' }),
+    changePassword: (id: string, newPassword: string) =>
+      request<{ status: string; id: string }>(`/accounts/${id}/change-password`, {
+        method: 'POST', body: JSON.stringify({ new_password: newPassword }),
+      }),
+    // Snapshot upload (internal: mt5-connector pushes live data here)
+    pushSnapshot: (id: string, snap: { balance: number; equity: number; margin?: number; free_margin?: number; profit: number; open_positions: number; connected: boolean }) =>
+      request<{ status: string }>(`/accounts/${id}/snapshot`, {
+        method: 'POST', body: JSON.stringify(snap),
+      }),
+  },
+  // ─── Signals (signal-engine :8003) ─────────────────────────
+  // Sprint 2.2 + 2.3: inyección manual y webhook.
+  signals: {
+    list: (limit = 50, offset = 0) =>
+      request<{ signals: any[]; total: number; limit: number; offset: number }>(`/signals?limit=${limit}&offset=${offset}`),
+    get: (id: string) =>
+      request<any>(`/signals/${id}`),
+    submit: (data: any) =>
+      request<any>('/signals', { method: 'POST', body: JSON.stringify(data) }),
+    // Sprint 2.2: para el botón "Crear señal" en Signals.tsx / admin
+    manual: (data: {
+      symbol: string;
+      action: 'BUY' | 'SELL';
+      entry_price?: number;
+      stop_loss: number;
+      take_profits: number[];
+      lot_size?: number;
+      lot_mode?: 'fixed' | 'proportional' | 'risk_based';
+      risk_percent?: number;
+      comment?: string;
+      account_id?: string;
+    }) =>
+      request<any>('/signals/manual', { method: 'POST', body: JSON.stringify(data) }),
+    // Sprint 2.3: para proveedores externos (TradingView, etc.) — el
+    // gateway ya inyecta X-API-Key desde la API key del provider.
+    webhook: (provider: string, data: any) =>
+      request<any>('/signals/webhook', {
+        method: 'POST',
+        headers: { 'X-Webhook-Provider': provider },
+        body: JSON.stringify(data),
+      }),
+    parsePreview: (text: string) =>
+      request<any>('/signals/parse', { method: 'POST', body: JSON.stringify({ text }) }),
+    stats: () => request<any>('/signals/stats'),
+  },
+  // ─── Copy Trading (Go service :8005) ─────────────────────────
+  copy: {
+    listGroups: (limit = 50, offset = 0) =>
+      request<{ groups: CopyGroup[]; total: number; limit: number; offset: number }>(`/copy/groups?limit=${limit}&offset=${offset}`),
+    createGroup: (data: { name: string; description?: string; filters?: { symbols?: string[]; actions?: string[]; min_confidence?: number } }) =>
+      request<CopyGroup>('/copy/groups', { method: 'POST', body: JSON.stringify(data) }),
+    getGroup: (id: string) => request<CopyGroup>(`/copy/groups/${id}`),
+    updateGroup: (id: string, data: Partial<CopyGroup>) =>
+      request<CopyGroup>(`/copy/groups/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteGroup: (id: string) => request<{ status: string; id: string }>(`/copy/groups/${id}`, { method: 'DELETE' }),
+
+    listAccounts: (groupId: string, limit = 50, offset = 0) =>
+      request<{ accounts: CopyAccount[]; total: number; limit: number; offset: number }>(`/copy/groups/${groupId}/accounts?limit=${limit}&offset=${offset}`),
+    createAccount: (groupId: string, data: { name: string; broker: string; account_id: string; lot_mode: 'fixed' | 'proportional' | 'risk_based'; lot_size?: number; lot_multiplier?: number; risk_percent?: number; invert_side?: boolean; symbol_suffix?: string; enabled?: boolean }) =>
+      request<CopyAccount>(`/copy/groups/${groupId}/accounts`, { method: 'POST', body: JSON.stringify(data) }),
+    getAccount: (id: string) => request<CopyAccount>(`/copy/accounts/${id}`),
+    updateAccount: (id: string, data: Partial<CopyAccount>) =>
+      request<CopyAccount>(`/copy/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+    listJobs: (limit = 50, offset = 0) =>
+      request<{ jobs: CopyJob[]; total: number; limit: number; offset: number }>(`/copy/jobs?limit=${limit}&offset=${offset}`),
+    getStats: () => request<{ total_jobs: number; successful_jobs: number; failed_jobs: number; success_rate: number; by_group: Record<string, number>; by_account: Record<string, number>; by_status: Record<string, number> }>('/copy/stats'),
   },
   // ─── Orchestrator (multi-symbol) ─────────────────────────────
   orchestrator: {
@@ -285,6 +487,22 @@ export interface UserProfile {
   notify_settings?: Record<string, unknown>;
 }
 
+// ─── Account Manager (cuenta MT5 registrada) ─────────────────
+export interface AccountManagerAccount {
+  id: string;
+  tenant_id: string;
+  login: number;
+  server: string;
+  broker: string;
+  alias?: string | null;
+  name?: string | null;
+  status: string;
+  copy_enabled: boolean;
+  open_positions?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Signal {
   id: string;
   symbol: string;
@@ -342,6 +560,48 @@ export interface CopyJob {
   applied_symbol: string;
   error_message?: string;
   created_at: string;
+}
+
+export interface CopyGroup {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description?: string;
+  filters: { symbols?: string[]; actions?: string[]; min_confidence?: number };
+  total_accounts: number;
+  success_rate: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CopyAccount {
+  id: string;
+  group_id: string;
+  name: string;
+  broker: string;
+  account_id: string;  // MT5 login numérico
+  lot_mode: 'fixed' | 'proportional' | 'risk_based';
+  lot_size: number;
+  lot_multiplier: number;
+  risk_percent: number;
+  override_sl: boolean;
+  override_sl_pips?: number;
+  override_tp: boolean;
+  override_tp_pips?: number;
+  invert_side: boolean;
+  symbol_suffix: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CopyStats {
+  total_groups: number;
+  total_accounts: number;
+  total_jobs: number;
+  success_rate: number;
+  jobs_24h: number;
+  jobs_24h_success: number;
 }
 
 export interface Stats {
@@ -586,15 +846,22 @@ export interface ScanResult {
 
 // ─── Admin (Sub-fase 3, K2) ─────────────────────────────────────────────
 
+export type TenantPlan = 'trimestral' | 'semestral' | 'anual';
+export type TenantStatus = 'active' | 'trial' | 'suspended';
+
 export interface AdminTenant {
   id: string;
   name: string;
-  slug: string;
-  schema: string;
-  status: 'active' | 'trial' | 'suspended';
-  plan: 'free' | 'starter' | 'pro' | 'enterprise';
+  slug: string | null;
+  email: string | null;
+  plan: TenantPlan;
+  status: TenantStatus;
+  price_usd: number | null;
+  price_ars: string | null;
   max_users: number;
   max_signals_per_day: number;
+  started_at: string | null;
+  expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -606,6 +873,18 @@ export interface AdminStats {
   churn_pct: number;
   by_plan: { plan: string; count: number }[];
   pricing_per_plan_usd: Record<string, number>;
+}
+
+export interface TenantPayload {
+  name: string;
+  plan: TenantPlan;
+  email?: string;
+  status?: TenantStatus;
+  price_usd?: number;
+  price_ars?: string;
+  expires_at?: string;
+  max_users?: number;
+  max_signals_per_day?: number;
 }
 
 // ─── Brokers (mt5-connector) ─────────────────────────────
@@ -919,4 +1198,34 @@ export interface AuthMeResponse {
   email: string;
   role: string;
   permissions: string[];
+}
+
+// ─── Community (capa Bot/Comunidad) ──────────────────────────────
+
+export interface CommunitySurvey {
+  id: string;
+  title: string;
+  options: string[];
+  channel_id: number | null;
+  created_by: number | null;
+  close_date: string | null;
+  is_active: number;
+  created_at: string;
+  votes: Array<{ option_selected: number; count: number }>;
+}
+
+export interface CommunityEvent {
+  id: string;
+  source: string;
+  currency: string | null;
+  indicator: string;
+  announcement_dt: string | null;
+  previous: string | null;
+  forecast: string | null;
+  actual: string | null;
+  impact: number;
+  notify_enabled: number;
+  notified_pre: number;
+  notified_actual: number;
+  created_at: string;
 }

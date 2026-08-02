@@ -1,13 +1,31 @@
 import { memo, useEffect, useState } from 'react';
-import { ArrowUp, ArrowDown, Zap, Filter, ChevronDown, ChevronRight, AlertTriangle, Shield, ShieldAlert, TrendingUp, Globe } from 'lucide-react';
+import { ArrowUp, ArrowDown, Zap, Filter, ChevronDown, ChevronRight, AlertTriangle, Shield, ShieldAlert, TrendingUp, Globe, Plus, X } from 'lucide-react';
 import { api, OrchestratorPublishedSignal, HorizonScore } from '../lib/api';
 import { cls, fmtUsd, fmtPct, fmtDate } from '../utils/format';
+import { useBridge } from '../state/BridgeProvider';
 
 export const SignalsPage = memo(function SignalsPage() {
+  const bridge = useBridge();
   const [signals, setSignals] = useState<OrchestratorPublishedSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [showManual, setShowManual] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitOk, setSubmitOk] = useState<string | null>(null);
+
+  // Form state
+  const [mSymbol, setMSymbol] = useState('');
+  const [mAction, setMAction] = useState<'BUY' | 'SELL'>('BUY');
+  const [mEntry, setMEntry] = useState('');
+  const [mSL, setMSL] = useState('');
+  const [mTPs, setMTPs] = useState(''); // CSV
+  const [mLotSize, setMLotSize] = useState('0.01');
+  const [mLotMode, setMLotMode] = useState<'fixed' | 'risk_based'>('fixed');
+  const [mRiskPct, setMRiskPct] = useState('1.0');
+  const [mComment, setMComment] = useState('');
+  const [mAccountId, setMAccountId] = useState('');
 
   const fetchAll = async () => {
     try {
@@ -28,6 +46,61 @@ export const SignalsPage = memo(function SignalsPage() {
     return () => clearInterval(id);
   }, []);
 
+  const submitManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitOk(null);
+    try {
+      const tps = mTPs
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map((s) => parseFloat(s));
+      if (tps.some((n) => Number.isNaN(n))) {
+        throw new Error('Take profits inválidos (deben ser números separados por coma)');
+      }
+      const sl = parseFloat(mSL);
+      if (Number.isNaN(sl) || sl <= 0) {
+        throw new Error('Stop Loss debe ser un número positivo');
+      }
+      const payload: any = {
+        symbol: mSymbol.toUpperCase(),
+        action: mAction,
+        stop_loss: sl,
+        take_profits: tps,
+        lot_mode: mLotMode,
+        comment: mComment || `manual from ${bridge.selectedLogin ? 'login ' + bridge.selectedLogin : 'web UI'}`,
+      };
+      const ep = parseFloat(mEntry);
+      if (!Number.isNaN(ep) && ep > 0) payload.entry_price = ep;
+      if (mLotMode === 'fixed') {
+        const ls = parseFloat(mLotSize);
+        if (!Number.isNaN(ls) && ls > 0) payload.lot_size = ls;
+      } else {
+        const rp = parseFloat(mRiskPct);
+        if (!Number.isNaN(rp) && rp > 0) payload.risk_percent = rp;
+      }
+      if (mAccountId) payload.account_id = mAccountId;
+
+      const result = await api.signals.manual(payload);
+      setSubmitOk(`✓ Señal creada: ${result.id || ''} ${result.symbol} ${result.action}`);
+      // Reset form (mantener account_id)
+      setMSymbol('');
+      setMEntry('');
+      setMSL('');
+      setMTPs('');
+      setMComment('');
+      // Refrescar lista después de 1s
+      setTimeout(() => fetchAll(), 1000);
+      setTimeout(() => setShowManual(false), 2500);
+    } catch (e: any) {
+      setSubmitError(e.message || String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const sorted = [...signals].sort((a, b) => {
     const ta = a.published_at ?? 0;
     const tb = b.published_at ?? 0;
@@ -46,7 +119,16 @@ export const SignalsPage = memo(function SignalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Signals</h2>
-        <span className="text-xs text-tnvs-muted">{signals.length} signals</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-tnvs-muted">{signals.length} signals</span>
+          <button
+            type="button"
+            onClick={() => setShowManual(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tnvs-win/20 hover:bg-tnvs-win/30 text-tnvs-win text-xs font-medium"
+          >
+            <Plus className="w-3.5 h-3.5" /> Crear señal
+          </button>
+        </div>
       </div>
       {loading && <div className="text-sm text-tnvs-muted">Loading…</div>}
       {error && (
@@ -233,6 +315,19 @@ export const SignalsPage = memo(function SignalsPage() {
           </div>
         </div>
       )}
+
+      {submitOk && (
+        <div className="px-3 py-2 rounded bg-tnvs-win/10 border border-tnvs-win/30 text-sm text-tnvs-win">
+          {submitOk}
+        </div>
+      )}
+
+      {showManual && (
+        <CreateSignalModal
+          onClose={() => setShowManual(false)}
+          onSuccess={() => { fetchAll(); setSubmitOk('✓ Señal creada'); setTimeout(() => setSubmitOk(null), 4000); }}
+        />
+      )}
     </div>
   );
 });
@@ -348,5 +443,234 @@ function MacroBadge({ riskOff, reasons }: { riskOff?: boolean; reasons?: string[
       <AlertTriangle className="h-3 w-3" />
       Risk-off
     </span>
+  );
+}
+
+// Sprint 2.2: modal "Crear señal" — trader la usa para inyectar ideas propias.
+function CreateSignalModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  // Hooks locales para evitar tocar el padre
+  const bridge = useBridge();
+  const [symbol, setSymbol] = useState('');
+  const [action, setAction] = useState<'BUY' | 'SELL'>('BUY');
+  const [entry, setEntry] = useState('');
+  const [sl, setSL] = useState('');
+  const [tps, setTPs] = useState('');
+  const [lotSize, setLotSize] = useState('0.01');
+  const [lotMode, setLotMode] = useState<'fixed' | 'risk_based'>('fixed');
+  const [riskPct, setRiskPct] = useState('1.0');
+  const [comment, setComment] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const tpsArr = tps
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map((s) => parseFloat(s));
+      if (tpsArr.length === 0) throw new Error('Al menos un Take Profit es requerido');
+      if (tpsArr.some((n) => Number.isNaN(n))) throw new Error('TPs inválidos');
+      const slNum = parseFloat(sl);
+      if (Number.isNaN(slNum) || slNum <= 0) throw new Error('Stop Loss inválido');
+      if (!symbol.trim()) throw new Error('Símbolo requerido');
+
+      const payload: any = {
+        symbol: symbol.toUpperCase(),
+        action,
+        stop_loss: slNum,
+        take_profits: tpsArr,
+        lot_mode: lotMode,
+        comment: comment || `manual desde UI`,
+      };
+      const ep = parseFloat(entry);
+      if (!Number.isNaN(ep) && ep > 0) payload.entry_price = ep;
+      if (lotMode === 'fixed') {
+        const ls = parseFloat(lotSize);
+        if (!Number.isNaN(ls) && ls > 0) payload.lot_size = ls;
+      } else {
+        const rp = parseFloat(riskPct);
+        if (!Number.isNaN(rp) && rp > 0) payload.risk_percent = rp;
+      }
+      if (accountId) payload.account_id = accountId;
+      else if (bridge.selectedLogin) {
+        // intentar matchear account_id a partir de selectedLogin
+        const a = bridge.accounts.find((acc) => acc.login === bridge.selectedLogin);
+        if (a?.id) payload.account_id = a.id;
+      }
+
+      const result = await api.signals.manual(payload);
+      alert(`✓ Señal creada: ${result.id?.substring(0, 8) || ''} ${result.symbol} ${result.action}`);
+      onSuccess();
+      onClose();
+    } catch (e: any) {
+      setError(e.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <form onSubmit={submit} className="bg-tnvs-surface border border-white/[0.08] rounded-lg p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Zap className="w-4 h-4 text-tnvs-win" /> Crear señal manual
+          </h3>
+          <button type="button" onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <p className="text-xs text-tnvs-muted">
+          Crea una señal que pasa por validación de formato, dedup, risk-engine y execution-engine.
+          Mismo pipeline que señales de Telegram.
+        </p>
+        {error && <div className="px-3 py-2 rounded bg-tnvs-loss/10 border border-tnvs-loss/30 text-sm text-tnvs-loss">{error}</div>}
+
+        <div className="grid grid-cols-3 gap-2">
+          <label className="block col-span-2">
+            <span className="text-xs text-tnvs-muted block mb-1">Símbolo *</span>
+            <input
+              type="text"
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              placeholder="XAUUSD, EURUSD, BTCUSD…"
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+              required
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-tnvs-muted block mb-1">Acción *</span>
+            <select
+              value={action}
+              onChange={(e) => setAction(e.target.value as 'BUY' | 'SELL')}
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm"
+            >
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="text-xs text-tnvs-muted block mb-1">Entry price (opcional)</span>
+            <input
+              type="number"
+              step="0.00001"
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
+              placeholder="ej: 2030.50"
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-tnvs-muted block mb-1">Stop Loss *</span>
+            <input
+              type="number"
+              step="0.00001"
+              value={sl}
+              onChange={(e) => setSL(e.target.value)}
+              placeholder="ej: 2025.00"
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+              required
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="text-xs text-tnvs-muted block mb-1">Take Profits (separar por coma) *</span>
+          <input
+            type="text"
+            value={tps}
+            onChange={(e) => setTPs(e.target.value)}
+            placeholder="ej: 2035.00, 2040.00, 2045.00"
+            className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+            required
+          />
+        </label>
+
+        <div className="grid grid-cols-3 gap-2">
+          <label className="block">
+            <span className="text-xs text-tnvs-muted block mb-1">Lot mode</span>
+            <select
+              value={lotMode}
+              onChange={(e) => setLotMode(e.target.value as 'fixed' | 'risk_based')}
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm"
+            >
+              <option value="fixed">fixed</option>
+              <option value="risk_based">% riesgo</option>
+            </select>
+          </label>
+          {lotMode === 'fixed' ? (
+            <label className="block col-span-2">
+              <span className="text-xs text-tnvs-muted block mb-1">Lot size</span>
+              <input
+                type="number"
+                step="0.01"
+                value={lotSize}
+                onChange={(e) => setLotSize(e.target.value)}
+                className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+              />
+            </label>
+          ) : (
+            <label className="block col-span-2">
+              <span className="text-xs text-tnvs-muted block mb-1">Risk %</span>
+              <input
+                type="number"
+                step="0.1"
+                value={riskPct}
+                onChange={(e) => setRiskPct(e.target.value)}
+                className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm font-mono"
+              />
+            </label>
+          )}
+        </div>
+
+        {bridge.accounts.length > 0 && (
+          <label className="block">
+            <span className="text-xs text-tnvs-muted block mb-1">Cuenta (opcional)</span>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm"
+            >
+              <option value="">(usar default)</option>
+              {bridge.accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.alias || a.name} ({a.login})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label className="block">
+          <span className="text-xs text-tnvs-muted block mb-1">Comentario (opcional)</span>
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="ej: setup H1, pullback a 50% fib"
+            className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm"
+          />
+        </label>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded text-xs text-tnvs-muted hover:bg-white/[0.05]">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={busy}
+            className="px-3 py-1.5 rounded bg-tnvs-win/20 hover:bg-tnvs-win/30 text-tnvs-win text-xs font-medium disabled:opacity-50"
+          >
+            {busy ? 'Creando…' : 'Crear señal'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

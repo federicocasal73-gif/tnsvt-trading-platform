@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Config contiene toda la configuración del servicio
@@ -30,6 +32,9 @@ type Config struct {
 
 	// Auth
 	Auth AuthConfig
+
+	// Tenants
+	Tenants TenantsConfig
 
 	// Service-specific
 	Custom map[string]string
@@ -92,6 +97,15 @@ type OllamaConfig struct {
 // URL retorna http://host:port
 func (o OllamaConfig) URL() string {
 	return fmt.Sprintf("http://%s:%d", o.Host, o.Port)
+}
+
+// TenantsConfig configuración de tenants
+type TenantsConfig struct {
+	// DefaultTenantID es el tenant que se usa cuando no se especifica
+	// un tenant_id explícito (header X-Tenant-ID, JWT claim, etc.).
+	// Se carga desde DEFAULT_TENANT_ID en el .env.
+	// Si está vacío, los handlers deben rechazar requests sin tenant.
+	DefaultTenantID uuid.UUID
 }
 
 // AuthConfig configuración autenticación
@@ -166,6 +180,15 @@ func Load(serviceName string) *Config {
 		LockoutDuration:       time.Duration(getEnvInt("LOCKOUT_DURATION_SECONDS", 60)) * time.Second,
 	}
 
+	cfg.Tenants = TenantsConfig{
+		DefaultTenantID: uuid.UUID{},
+	}
+	if v := getEnv("DEFAULT_TENANT_ID", ""); v != "" {
+		if u, err := uuid.Parse(v); err == nil {
+			cfg.Tenants.DefaultTenantID = u
+		}
+	}
+
 	// Cargar resto de variables en Custom para acceso específico del servicio
 	for _, env := range os.Environ() {
 		if idx := strings.Index(env, "="); idx > 0 {
@@ -222,6 +245,14 @@ func (c *Config) GetBool(key string, defaultValue bool) bool {
 
 // ─── Helpers ───
 
+// RequireTenantID retorna el tenant ID o un uuid.Nil si no está configurado.
+// Los servicios deben usar este helper para validar antes de procesar
+// un request/event. Si retorna uuid.Nil, el caller debe rechazar con error
+// en vez de usar un tenant hardcodeado.
+func RequireTenantID(c *Config) uuid.UUID {
+	return c.Tenants.DefaultTenantID
+}
+
 func getEnv(key, defaultValue string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -250,6 +281,7 @@ func isMapped(key string) bool {
 		"JWT_SECRET", "JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "JWT_REFRESH_TOKEN_EXPIRE_DAYS",
 		"JWT_ALGORITHM", "BCRYPT_ROUNDS", "SESSION_TIMEOUT_HOURS",
 		"MAX_LOGIN_ATTEMPTS", "LOCKOUT_DURATION_SECONDS",
+		"DEFAULT_TENANT_ID",
 	}
 	for _, m := range mapped {
 		if key == m {

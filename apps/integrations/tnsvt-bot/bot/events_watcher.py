@@ -17,15 +17,18 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from config import settings
+from bot.bridge_auth import bridge_headers
 from bot.handlers.trade_alerts import send_trade_open_alert, send_trade_close_alert, send_blocked_trade_alert
 
 logger = logging.getLogger("Bot.EventsWatcher")
 
 BRIDGE_URL = "http://localhost:8522"
 POLL_INTERVAL_SEC = 2
+EVENT_DEDUP_SECS = 600
 
 _last_ts: float = 0.0
 _initialized: bool = False
+_recently_published: dict = {}
 
 
 def _fmt_price(val) -> str:
@@ -220,6 +223,22 @@ async def _publish_event(context: ContextTypes.DEFAULT_TYPE, evt: dict) -> None:
         logger.warning("events_watcher: BOT_GROUP_ID no configurado, no publico nada")
         return
 
+    evt_type = evt.get("type", "")
+    dedup_key = (
+        evt_type,
+        evt.get("symbol", ""),
+        evt.get("action", ""),
+        evt.get("reason", "") if evt_type == "trade_blocked" else "",
+    )
+    now_ts = asyncio.get_event_loop().time()
+    last_ts = _recently_published.get(dedup_key)
+    if last_ts and (now_ts - last_ts) < EVENT_DEDUP_SECS:
+        logger.debug(
+            f"events_watcher: dedup {dedup_key} (age={now_ts - last_ts:.0f}s)"
+        )
+        return
+    _recently_published[dedup_key] = now_ts
+
     text = _format_event(evt)
     keyboard = _keyboard_for_event(evt)
 
@@ -271,6 +290,7 @@ async def _publish_event(context: ContextTypes.DEFAULT_TYPE, evt: dict) -> None:
     try:
         requests.post(
             f"{BRIDGE_URL}/api/v1/bridge/events/{evt.get('event_id')}/delivered",
+            headers=bridge_headers(),
             timeout=3,
         )
     except Exception as e:
@@ -284,6 +304,7 @@ async def _poll_once() -> list:
         r = requests.get(
             f"{BRIDGE_URL}/api/v1/bridge/events",
             params={"delim": _last_ts},
+            headers=bridge_headers(),
             timeout=5,
         )
         r.raise_for_status()

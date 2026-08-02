@@ -22,7 +22,12 @@
 //   /api/v1/ai/*            → ai-core:8200
 //   /api/v1/prices/*        → price-feed:8300
 //   /api/v1/notify/*        → telegram-bot-service:8503
-//   /api/v1/users/*         → user-service:8401
+//   /api/v1/bridge/*        → bridge-api:8522
+//   /api/v1/lst/*           → liquidity-engine:8050
+//   /api/v1/orchestrator/*  → orchestrator:8060
+//   /api/v1/mcp/*           → mcp-trading-server:8100
+//   /api/v1/news/*          → news-analyzer:8051
+//   /api/v1/macro/*         → macro-fetcher:8040
 //
 // Endpoints propios:
 //   GET    /health
@@ -31,8 +36,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -126,6 +133,10 @@ func main() {
 	// ─── API Routes (con JWT validation y proxy) ───
 	v1 := router.Group("/api/v1")
 
+	publicServices := map[string]bool{
+		"auth-service": true,
+	}
+
 	for _, svc := range servicesCfg {
 		pathPrefix := svc.PathPrefix
 		if pathPrefix == "" {
@@ -136,11 +147,51 @@ func main() {
 		stripped := strings.TrimPrefix(pathPrefix, "/api/v1")
 
 		svcCfg := svc
-		v1.Group(stripped).
-			Use(middleware.GlobalRateLimit(redisClient, svcCfg.RateLimit, time.Minute)).
-			Use(middleware.OptionalAuth(jwtValidator)).
-			Use(middleware.CircuitBreaker(registry, svcCfg.Name)).
-			Any("/*proxyPath", proxy.ReverseProxy(registry, svcCfg.Name, log, natsConn))
+		g := v1.Group(stripped)
+		g.Use(middleware.GlobalRateLimit(redisClient, svcCfg.RateLimit, time.Minute))
+
+		if publicServices[svcCfg.Name] {
+			g.Use(middleware.OptionalAuth(jwtValidator))
+		} else {
+			g.Use(middleware.RequireAuth(jwtValidator))
+		}
+
+		g.Use(middleware.CircuitBreaker(registry, svcCfg.Name))
+
+		handler := proxy.ReverseProxy(registry, svcCfg.Name, log, natsConn)
+		g.Any("/*proxyPath", handler)
+		g.Any("", handler)
+	}
+
+	// ─── Sprint 2.3: webhook endpoints con API key auth (no JWT) ───
+	// Estrategia: usamos un path DIFERENTE a /signals/* para evitar
+	// el conflicto con /*proxyPath del signal-engine. El path es
+	// /api/v1/integrations/signals/webhook — más explícito, y el frontend
+	// puede construir URLs desde la API client sin ambigüedad.
+	webhookKey := cfg.Get("WEBHOOK_API_KEY", "")
+	signalEngineURL := cfg.Get("SIGNAL_ENGINE_URL", "http://localhost:8003")
+	if webhookKey != "" {
+		wh := router.Group("/api/v1/integrations/signals")
+		wh.Use(middleware.IngestAPIKey(webhookKey))
+		wh.POST("/webhook", func(c *gin.Context) {
+			// Reenviar al signal-engine con autenticación service-to-service
+			body, _ := io.ReadAll(c.Request.Body)
+			req, _ := http.NewRequest("POST", signalEngineURL+"/api/v1/signals/webhook", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-API-Key", webhookKey)
+			if v := c.GetHeader("X-Webhook-Provider"); v != "" {
+				req.Header.Set("X-Webhook-Provider", v)
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				c.JSON(http.StatusBadGateway, gin.H{"error": "signal-engine unavailable"})
+				return
+			}
+			defer resp.Body.Close()
+			c.Status(resp.StatusCode)
+			io.Copy(c.Writer, resp.Body)
+		})
+		log.Info("webhook routes enabled (X-API-Key required for /api/v1/integrations/signals/webhook)")
 	}
 
 	// ─── Root catch-all ───

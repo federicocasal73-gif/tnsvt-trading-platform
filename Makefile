@@ -1,150 +1,76 @@
-# TNSVT V2 - Makefile
-# Comandos principales para gestionar el monorepo
+# TNSVT V2 — comandos frecuentes
 
-.PHONY: help up down logs status test build clean restart ps shell \
-        db-shell redis-cli nats-cli migrate seed backup restore \
-        lint format deps-update docs-build docs-serve
+## Tests
 
-# Variables
-COMPOSE_FILE = docker-compose.dev.yml
-DOCKER = docker compose -f $(COMPOSE_FILE)
+```bash
+# Unit tests (45 tests)
+python -m pytest apps/ai/liquidity-engine/tests apps/integrations/news-bridge/tests apps/integrations/lst-account-bootstrap/tests
 
-help: ## Mostrar ayuda
-	@echo "╔══════════════════════════════════════════════════════════════╗"
-	@echo "║                  TNSVT V2 - Comandos                        ║"
-	@echo "╚══════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo "Stack:"
-	@echo "  make up              - Levantar todo el stack (Docker Compose)"
-	@echo "  make down            - Detener todo"
-	@echo "  make restart         - Reiniciar todos los servicios"
-	@echo "  make logs            - Ver logs (follow)"
-	@echo "  make ps              - Ver estado de contenedores"
-	@echo ""
-	@echo "Servicios individuales:"
-	@echo "  make status          - Estado de servicios (script bash)"
-	@echo "  make shell SERVICE=x - Shell en un servicio"
-	@echo "  make logs-svc S=x    - Logs de un servicio específico"
-	@echo ""
-	@echo "Desarrollo:"
-	@echo "  make build           - Build imágenes Docker"
-	@echo "  make test            - Correr tests"
-	@echo "  make lint            - Linter"
-	@echo "  make format          - Formatear código"
-	@echo "  make deps-update     - Actualizar dependencias"
-	@echo ""
-	@echo "Database:"
-	@echo "  make db-shell        - Shell PostgreSQL"
-	@echo "  make migrate         - Correr migraciones"
-	@echo "  make seed            - Cargar datos de prueba"
-	@echo "  make backup          - Backup de DB"
-	@echo "  make restore F=file  - Restaurar backup"
-	@echo ""
-	@echo "Utilidades:"
-	@echo "  make redis-cli       - Conectar a Redis"
-	@echo "  make nats-cli        - Conectar a NATS"
-	@echo "  make clean           - Limpiar todo (volúmenes + contenedores)"
+# Integration checks (18 checks)
+python scripts/integration-check.py
 
-up: ## Levantar stack
-	@echo "▶ Levantando stack..."
-	$(DOCKER) up -d
-	@echo "✓ Stack levantado. Esperando 10s para health checks..."
-	@sleep 10
-	@echo ""
-	@make status
+# Go tests
+cd apps/trading/execution-engine && go test ./...
+cd apps/gateway/api-gateway && go build ./...
+cd apps/platform/account-manager && go build ./...
+```
 
-down: ## Detener stack
-	@echo "▶ Deteniendo stack..."
-	$(DOCKER) down
-	@echo "✓ Stack detenido"
+## Go-live
 
-restart: ## Reiniciar stack
-	@echo "▶ Reiniciando stack..."
-	$(DOCKER) restart
-	@echo "✓ Stack reiniciado"
+```powershell
+# Windows (PowerShell)
+.\scripts\pre-flight-check.ps1   # valida prerrequisitos
+.\scripts\go-live-lst.ps1        # arranca stack + smoke tests
+```
 
-logs: ## Ver logs
-	$(DOCKER) logs -f --tail=100
+```bash
+# Linux/WSL
+./scripts/pre-flight-check.sh
+./scripts/go-live-lst.sh
+```
 
-ps: ## Ver contenedores
-	$(DOCKER) ps
+## Cuenta LST manual (sin docker)
 
-status: ## Estado de servicios
-	@bash scripts/status.sh
+```bash
+# Levantar account-manager y registrar
+python scripts/register_lst_account.py
 
-shell: ## Shell en un servicio (make shell SERVICE=postgres)
-	$(DOCKER) exec -it $(SERVICE) /bin/sh
+# Devuelve UUID; poner en .env
+export LST_ACCOUNT_ID=<uuid>
+```
 
-logs-svc: ## Logs de un servicio (make logs-svc SERVICE=postgres)
-	$(DOCKER) logs -f --tail=200 $(SERVICE)
+## Inspeccionar estado
 
-build: ## Build imágenes
-	@echo "▶ Building imágenes..."
-	$(DOCKER) build --parallel
-	@echo "✓ Build completo"
+```bash
+# NATS: mensajes en tnsvt.lst.signal
+curl http://localhost:8222/jsz?streams=tnsvt
 
-test: ## Correr tests
-	@bash scripts/test-all.sh
+# NATS: mensajes en trading.signal.validated
+curl http://localhost:8222/jsz?streams=tnsvt
 
-lint: ## Linter
-	@echo "▶ Linting Go..."
-	@cd shared/go-common && go vet ./... && cd ../..
-	@echo "▶ Linting Python..."
-	@find apps -name "*.py" -not -path "*/venv/*" -exec python -m py_compile {} \;
-	@echo "✓ Lint completo"
+# Health checks
+curl http://localhost:8050/api/v1/lst/health
+curl http://localhost:8051/health
+curl http://localhost:8040/health
+curl http://localhost:8060/api/v1/orchestrator/health
+curl http://localhost:8510/health
+```
 
-format: ## Formatear código
-	@echo "▶ Formatting Go..."
-	@cd shared/go-common && gofmt -w . && cd ../..
-	@echo "▶ Formatting Python..."
-	@find apps -name "*.py" -not -path "*/venv/*" -exec black {} \; 2>/dev/null || true
-	@echo "✓ Format completo"
+## Logs
 
-deps-update: ## Actualizar dependencias
-	@echo "▶ Actualizando Go modules..."
-	@find apps shared -name "go.mod" -exec dirname {} \; | while read dir; do \
-		cd $$dir && go mod tidy && cd - > /dev/null; \
-	done
-	@echo "▶ Actualizando Python deps..."
-	@find apps -name "requirements.txt" -exec pip install -U -r {} \; 2>/dev/null || true
-	@echo "✓ Dependencias actualizadas"
+```bash
+docker logs -f tnsvt-liquidity-engine
+docker logs -f tnsvt-news-bridge
+docker logs -f tnsvt-lst-account-bootstrap
+docker logs -f tnsvt-execution-engine
+docker logs -f tnsvt-orchestrator
+```
 
-db-shell: ## Shell PostgreSQL
-	$(DOCKER) exec -it postgres psql -U tnsvt -d tnsvt
+## Frontend
 
-redis-cli: ## Redis CLI
-	$(DOCKER) exec -it redis redis-cli
-
-nats-cli: ## NATS CLI
-	$(DOCKER) exec -it nats nats sub ">"
-	@echo "Para más: make nats-cli-pub SUBJ=trading.signal"
-
-migrate: ## Correr migraciones
-	@echo "▶ Corriendo migraciones..."
-	@bash scripts/migrate.sh
-
-seed: ## Cargar datos de prueba
-	@echo "▶ Cargando datos..."
-	@bash scripts/seed.sh
-
-backup: ## Backup DB
-	@echo "▶ Backup PostgreSQL..."
-	@mkdir -p backups
-	$(DOCKER) exec postgres pg_dump -U tnsvt -d tnsvt > backups/backup_$$(date +%Y%m%d_%H%M%S).sql
-	@echo "✓ Backup guardado en backups/"
-
-restore: ## Restaurar backup (F=backups/file.sql)
-	@echo "▶ Restaurando $(F)..."
-	cat $(F) | $(DOCKER) exec -T postgres psql -U tnsvt -d tnsvt
-	@echo "✓ Restore completo"
-
-docs-build: ## Regenerar Word + PDF desde Markdown
-	@echo "▶ Regenerando documentos..."
-	@python convert_docs.py
-	@python convert_pdf.py
-	@echo "✓ Documentos regenerados"
-
-clean: ## Limpiar todo
-	@echo "▶ Limpiando..."
-	$(DOCKER) down -v --remove-orphans
-	@echo "✓ Limpieza completa"
+```powershell
+cd apps/frontend
+npm install
+npm run dev
+# http://localhost:5180
+```

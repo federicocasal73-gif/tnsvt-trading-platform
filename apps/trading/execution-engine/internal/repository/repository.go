@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/tnsvt/execution-engine/internal/models"
+	sharedtrading "github.com/tnsvt/shared-go/trading"
 )
 
 // ErrNotFound not found
@@ -96,6 +97,14 @@ func (r *pgRepo) RunMigrations(ctx context.Context) error {
 				  CREATE INDEX IF NOT EXISTS idx_executions_created ON trading.executions(created_at DESC);
 				  CREATE INDEX IF NOT EXISTS idx_executions_filled ON trading.executions(tenant_id, status) WHERE status = 'filled'`,
 		},
+		{
+			// Sprint 1.2: magic number per-account + account_id index for multi-tenant queries.
+			// Magic = 77000000 + hash(account_id) % 100000 (ver shared-go/trading).
+			name: "add_magic_number_per_account",
+			sql: `ALTER TABLE trading.executions ADD COLUMN IF NOT EXISTS magic_number BIGINT NOT NULL DEFAULT 77000000;
+				  CREATE INDEX IF NOT EXISTS idx_executions_account ON trading.executions(tenant_id, account_id);
+				  CREATE INDEX IF NOT EXISTS idx_executions_magic ON trading.executions(tenant_id, magic_number) WHERE status IN ('filled','routed')`,
+		},
 	}
 
 	for _, m := range migrations {
@@ -115,6 +124,10 @@ func (r *pgRepo) Create(ctx context.Context, e *models.Execution) error {
 	}
 	e.CreatedAt = time.Now()
 	e.UpdatedAt = time.Now()
+	// Default magic per-account si no fue seteado (compat con señales legacy)
+	if e.MagicNumber == 0 {
+		e.MagicNumber = sharedtrading.MagicForAccount(e.AccountID)
+	}
 
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO trading.executions (
@@ -122,19 +135,19 @@ func (r *pgRepo) Create(ctx context.Context, e *models.Execution) error {
 			symbol, side, order_type, quantity, price, stop_loss, take_profit, take_profits,
 			order_id, ticket, filled_price, filled_qty, commission,
 			status, error_message, submitted_at, filled_at, completed_at,
-			position_id, risk_level, retry_count, created_at, updated_at
+			position_id, risk_level, magic_number, retry_count, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6,
 			$7, $8, $9, $10, $11, $12, $13, $14,
 			$15, $16, $17, $18, $19,
 			$20, $21, $22, $23, $24,
-			$25, $26, $27, $28, $29
+			$25, $26, $27, $28, $29, $30
 		)`,
 		e.ID, e.TenantID, e.SignalID, e.UserID, e.Broker, e.AccountID,
 		e.Symbol, e.Side, e.OrderType, e.Quantity, e.Price, e.StopLoss, e.TakeProfit, e.TakeProfits,
 		nullString(e.OrderID), nullString(e.Ticket), e.FilledPrice, e.FilledQty, e.Commission,
 		e.Status, nullString(e.ErrorMessage), e.SubmittedAt, e.FilledAt, e.CompletedAt,
-		e.PositionID, nullString(e.RiskLevel), e.RetryCount, e.CreatedAt, e.UpdatedAt,
+		e.PositionID, nullString(e.RiskLevel), e.MagicNumber, e.RetryCount, e.CreatedAt, e.UpdatedAt,
 	)
 	return err
 }
@@ -159,7 +172,7 @@ func (r *pgRepo) scanSingleExecution(ctx context.Context, field string, value an
 		       symbol, side, order_type, quantity, price, stop_loss, take_profit, take_profits,
 		       order_id, ticket, filled_price, filled_qty, commission,
 		       status, error_message, submitted_at, filled_at, completed_at,
-		       position_id, risk_level, retry_count, created_at, updated_at
+		       position_id, risk_level, magic_number, retry_count, created_at, updated_at
 		FROM trading.executions WHERE %s = $1 LIMIT 1`, field)
 
 	err := r.pool.QueryRow(ctx, query, value).Scan(
@@ -167,7 +180,7 @@ func (r *pgRepo) scanSingleExecution(ctx context.Context, field string, value an
 		&e.Symbol, &e.Side, &e.OrderType, &e.Quantity, &price, &stopLoss, &takeProfit, &e.TakeProfits,
 		&orderID, &ticket, &filledPrice, &filledQty, &e.Commission,
 		&e.Status, &errorMessage, &submittedAt, &filledAt, &completedAt,
-		&positionID, &riskLevel, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
+		&positionID, &riskLevel, &e.MagicNumber, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
 	)
 
 	if err != nil {
@@ -273,7 +286,7 @@ func (r *pgRepo) List(ctx context.Context, tenantID *uuid.UUID, status *models.E
 		       symbol, side, order_type, quantity, price, stop_loss, take_profit, take_profits,
 		       order_id, ticket, filled_price, filled_qty, commission,
 		       status, error_message, submitted_at, filled_at, completed_at,
-		       position_id, risk_level, retry_count, created_at, updated_at
+		       position_id, risk_level, magic_number, retry_count, created_at, updated_at
 		FROM trading.executions %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`, whereSQL, len(args)-1, len(args))
@@ -297,7 +310,7 @@ func (r *pgRepo) List(ctx context.Context, tenantID *uuid.UUID, status *models.E
 			&e.Symbol, &e.Side, &e.OrderType, &e.Quantity, &price, &stopLoss, &takeProfit, &e.TakeProfits,
 			&orderID, &ticket, &filledPrice, &filledQty, &e.Commission,
 			&e.Status, &errorMessage, &submittedAt, &filledAt, &completedAt,
-			&positionID, &riskLevel, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
+			&positionID, &riskLevel, &e.MagicNumber, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -329,7 +342,7 @@ func (r *pgRepo) GetFilledExecutions(ctx context.Context, tenantID uuid.UUID) ([
 		       symbol, side, order_type, quantity, price, stop_loss, take_profit, take_profits,
 		       order_id, ticket, filled_price, filled_qty, commission,
 		       status, error_message, submitted_at, filled_at, completed_at,
-		       position_id, risk_level, retry_count, created_at, updated_at
+		       position_id, risk_level, magic_number, retry_count, created_at, updated_at
 		FROM trading.executions
 		WHERE tenant_id = $1 AND status = 'filled'
 		ORDER BY filled_at DESC NULLS LAST
@@ -352,7 +365,7 @@ func (r *pgRepo) GetFilledExecutions(ctx context.Context, tenantID uuid.UUID) ([
 			&e.Symbol, &e.Side, &e.OrderType, &e.Quantity, &price, &stopLoss, &takeProfit, &e.TakeProfits,
 			&orderID, &ticket, &filledPrice, &filledQty, &e.Commission,
 			&e.Status, &errorMessage, &submittedAt, &filledAt, &completedAt,
-			&positionID, &riskLevel, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
+			&positionID, &riskLevel, &e.MagicNumber, &e.RetryCount, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			continue
 		}

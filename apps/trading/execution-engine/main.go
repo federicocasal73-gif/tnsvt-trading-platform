@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -104,11 +105,25 @@ func main() {
 	riskEngineURL := cfg.Get("RISK_ENGINE_URL", "http://localhost:8006")
 
 	// ─── Service ───
+	lstAccount := cfg.Get("LST_ACCOUNT_ID", "")
+	if lstAccount == "" {
+		if path := cfg.Get("LST_ACCOUNT_ID_FILE", ""); path != "" {
+			if data, err := os.ReadFile(path); err == nil {
+				lstAccount = strings.TrimSpace(string(data))
+				if lstAccount != "" {
+					log.Info("LST account id loaded from file", "path", path, "prefix", lstAccount[:8]+"...")
+				}
+			} else {
+				log.Warn("LST_ACCOUNT_ID_FILE set but cannot read", "path", path, "error", err.Error())
+			}
+		}
+	}
 	execService := service.NewExecutionService(
 		repo, redisClient, natsConn, brokerFactory, riskEngineURL, log,
 		service.Config{
 			DefaultBroker:  models.BrokerName(cfg.Get("DEFAULT_BROKER", "mt5")),
 			DefaultAccount: cfg.Get("DEFAULT_ACCOUNT_ID", "default"),
+			LSTAccount:     lstAccount,
 			Timeout:        time.Duration(cfg.GetInt("EXECUTION_TIMEOUT_SECONDS", 30)) * time.Second,
 			RetryMax:       cfg.GetInt("EXECUTION_RETRY_MAX", 3),
 			RetryBackoff:   time.Duration(cfg.GetInt("EXECUTION_RETRY_BACKOFF", 2)) * time.Second,
