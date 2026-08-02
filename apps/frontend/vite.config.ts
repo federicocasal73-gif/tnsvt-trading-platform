@@ -27,21 +27,22 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       // ─── Específicos primero (orden importa: first-match-wins) ─────
-      // Bridge API directo. /api/v1/bridge/* → :8522/api/v1/bridge/*
-      // (la key debe matchear el path completo, NO un prefijo sin api/v1)
+      // Bridge API via gateway. /api/v1/bridge/* → gateway :8000 → bridge :8522
+      // El gateway valida el JWT y re-envía al bridge con el Authorization header.
       '/api/v1/bridge': {
-        target: bridgeTarget,
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path, // path ya viene con /api/v1/bridge, el bridge espera ese prefijo
+        rewrite: (path) => path,
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['cache-control'] = 'no-cache';
           });
         },
       },
-      // Admin endpoints (Tenants & Billing demo) -> bridge-api :8522.
+      // Admin endpoints (Tenants & Billing) → bridge directo :8522
+      // (el gateway no tiene ruta para /api/v1/admin)
       '/api/v1/admin': {
-        target: bridgeTarget,
+        target: 'http://localhost:8522',
         changeOrigin: true,
         rewrite: (path) => path,
         configure: (proxy) => {
@@ -56,9 +57,9 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path,
       },
-      // Live prices stream → bridge-api (MT5 real ticks, no gateway)
+      // Live prices stream → gateway :8000 → bridge :8522
       '/api/v1/prices': {
-        target: bridgeTarget,
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path,
         configure: (proxy) => {
