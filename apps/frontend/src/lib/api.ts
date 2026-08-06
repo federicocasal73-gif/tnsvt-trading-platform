@@ -1,7 +1,8 @@
 const BASE = '/api/v1';
+const TOKEN_KEY = 'tnsvt_token';
 
 function token(): string | null {
-  try { return localStorage.getItem('tnsvt_token'); } catch { return null; }
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 
 // Circuit breaker: por endpoint, contar fallos consecutivos.
@@ -36,53 +37,139 @@ function _recordFailure(path: string): void {
   }
 }
 
+// ─── Auto-refresh (single-flight) ─────────────────────────────────────
+// El access token vence a los 15 min. Cuando un request falla con 401 por
+// expiracion, renovamos la sesion con el refresh token una sola vez (aunque
+// varios requests fallen a la vez) y reintentamos. El backend ROTA el refresh
+// token en /auth/refresh, por lo que hay que persistir el NUEVO refresh token.
+const REFRESH_KEY = 'tnsvt_refresh';
+let _refreshPromise: Promise<string | null> | null = null;
+
+function _refresh(): Promise<string | null> {
+  if (_refreshPromise) return _refreshPromise;
+  const raw = localStorage.getItem(REFRESH_KEY);
+  if (!raw) return Promise.resolve(null);
+  _refreshPromise = _callRefresh(raw).finally(() => { _refreshPromise = null; });
+  return _refreshPromise;
+}
+
+async function _callRefresh(rawRefresh: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    // Llamada directa (sin pasar por request()) para evitar recursion.
+    const res = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rawRefresh }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    if (!data || !data.access_token) return null;
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+    return data.access_token;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Renovacion proactiva (usada por el AuthProvider para refrescar ANTES de
+// que el access token venza). Reutiliza el single-flight de _refresh().
+export function renewToken(): Promise<string | null> {
+  return _refresh();
+}
+
+// Codifica el exp del access token (epoch ms) para que el AuthProvider pueda
+// programar la renovacion proactiva. -1 si no hay token o es ilegible.
+export function accessTokenExpiryMs(): number {
+  const t = token();
+  if (!t) return -1;
+  try {
+    const b64 = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = (4 - (b64.length % 4)) % 4;
+    const payload = JSON.parse(atob(b64 + '='.repeat(pad)));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : -1;
+  } catch {
+    return -1;
+  }
+}
+
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   if (_isOpen(path)) {
     throw new Error(`Circuit open for ${path}`);
   }
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const t = token();
-  if (t) headers['Authorization'] = `Bearer ${t}`;
+  // Reintento unico: si el access token vencio (401), renovar sesion una vez
+  // y re-enviar. Evita cientos de 401 hasta que el usuario haga re-login.
+  let retried = false;
+  for (;;) {
+    const currentHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    const cur = token();
+    if (cur) currentHeaders['Authorization'] = `Bearer ${cur}`;
+    const curOpts: RequestInit = {
+      ...opts,
+      headers: { ...currentHeaders, ...((opts?.headers as Record<string, string>) || {}) },
+      signal: undefined,
+    };
 
-  // Timeout por request: aborta el fetch si el bridge no responde en 8s.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const finalOpts: RequestInit = {
-    ...opts,
-    headers: { ...headers, ...((opts?.headers as Record<string, string>) || {}) },
-    signal: controller.signal,
-  };
+    // Timeout por request: aborta el fetch si el bridge no responde en 8s.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    curOpts.signal = controller.signal;
 
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, finalOpts);
-  } catch (e: any) {
-    clearTimeout(timer);
-    _recordFailure(path);
-    if (e?.name === 'AbortError') {
-      throw new Error(`Timeout (${REQUEST_TIMEOUT_MS / 1000}s) para ${path}`);
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}${path}`, curOpts);
+    } catch (e: any) {
+      clearTimeout(timer);
+      _recordFailure(path);
+      if (e?.name === 'AbortError') {
+        throw new Error(`Timeout (${REQUEST_TIMEOUT_MS / 1000}s) para ${path}`);
+      }
+      throw e;
     }
-    throw e;
-  }
-  clearTimeout(timer);
+    clearTimeout(timer);
 
-  console.debug(`[api] ${opts?.method || 'GET'} ${path} -> ${res.status}`);
+    console.debug(`[api] ${opts?.method || 'GET'} ${path} -> ${res.status}`);
 
-  const isAuthValidation = path === '/auth/me' || path === '/auth/refresh';
-  if (res.status === 401 && token() && isAuthValidation) {
-    console.warn(`[api] 401 on auth validation ${path} - logging out`);
-    localStorage.removeItem('tnsvt_token');
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+    // 401 en cualquier endpoint (excepto /auth/refresh): renovar sesion y
+    // reintentar UNA vez con el access token nuevo.
+    if (res.status === 401 && path !== '/auth/refresh' && !retried && token()) {
+      const newToken = await _refresh();
+      if (newToken) {
+        retried = true;
+        continue;
+      }
+      // Refresh fallo (refresh token expirado/revocado): sesion muerta.
+      console.warn(`[api] 401 y refresh invalido en ${path} - logging out`);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+
+    // Segundo 401 tras el retry, o 401 en /auth/refresh: el token nuevo
+    // tampoco sirve → sesion invalida. No reintentar mas.
+    if (res.status === 401 && path === '/auth/me') {
+      console.warn(`[api] 401 en ${path} - logging out`);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+
+    if (!res.ok) {
+      if (res.status >= 500) _recordFailure(path);
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    _recordSuccess(path);
+    return res.json();
   }
-  if (!res.ok) {
-    if (res.status >= 500) _recordFailure(path);
-    const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error || `HTTP ${res.status}`);
-  }
-  _recordSuccess(path);
-  return res.json();
 }
 
 export const api = {

@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useState, useCallback, useEffect } from 'react';
-import { api } from './api';
+import { api, renewToken, accessTokenExpiryMs } from './api';
 
 const TOKEN_KEY = 'tnsvt_token';
 const REFRESH_KEY = 'tnsvt_refresh';
@@ -113,6 +113,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // llamara cada vez que se monta el provider (que pasa en cada navegacion
   // entre paginas del shell). El usuario tiene un boton explicito en Settings
   // para forzar refresh.
+
+  // Renovacion proactiva: agenda renovar el access token ~30s antes de que
+  // venza (15 min). Evita los cientos de 401 reactivos y el re-login manual.
+  useEffect(() => {
+    if (!api.token()) return;
+    const exp = accessTokenExpiryMs();
+    if (exp <= Date.now()) return; // ya vencido; el flujo reactivo lo resuelve
+    const SAFETY_MS = 30_000;
+    const delay = Math.max(0, exp - Date.now() - SAFETY_MS);
+    const t = setTimeout(() => {
+      renewToken();
+    }, Math.min(delay, 10 * 60 * 1000));
+    return () => clearTimeout(t);
+  }, [state.user, state.loading]);
 
   const login = useCallback(async (email: string, password: string) => {
     setState(s => ({ ...s, loading: true, error: null }));

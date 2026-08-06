@@ -27,7 +27,7 @@ performed across 4 phases (A → D). Every change is verifiable in the code.
 
 ### A1–A9 — `auth-service` (Go)
 - **A1** `SetSecret` now returns `error` — refuses <32-char secrets (was silent)
-- **A2** Fail-fast on service startup if `AUTH_JWT_SECRET` < 32 chars
+- **A2** Fail-fast on service startup if `JWT_SECRET` < 32 chars
 - **A3** `Setup2FA` no longer auto-enables — user must explicitly confirm with TOTP code
 - **A4** Real TOTP via `github.com/pquerna/otp` (was a stub returning `"123456"`)
 - **A5** `IncrementAndMaybeLock` is now atomic (was a TOCTOU race)
@@ -78,7 +78,10 @@ performed across 4 phases (A → D). Every change is verifiable in the code.
   only if not set
 
 ### B3 — `.env` files
-- New 64-char `JWT_SECRET`, 48-char `AUTH_JWT_SECRET`, 32-char `BRIDGE_API_KEY`
+- New 64-char `JWT_SECRET` (único secret de JWT en la stack), 32-char `BRIDGE_API_KEY`
+- `AUTH_JWT_SECRET` era un placeholder inerte: nadie lo lee para firmar/validar
+  (auth-service usa `JWT_SECRET` vía `GetJWTSecret()`). Eliminado de `.env`,
+  `scripts/start-services.ps1` y del mensaje de error de `auth-service/main.go`.
 - All secrets freshly generated with `secrets.choice(alphabet)`
 
 ### B4 — `apps/integrations/tnsvt-bot/.env` and `.env.example`

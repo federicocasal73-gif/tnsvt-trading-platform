@@ -182,6 +182,11 @@ For dev, any 32+ char string works. For production, generate with:
 openssl rand -base64 48
 ```
 
+> **Nota (2026-08-06):** `AUTH_JWT_SECRET` es inerte — ningún servicio lo lee.
+> El único secret de JWT de la stack es `JWT_SECRET` (auth-service lo firma vía
+> `config.GetJWTSecret()`; gateway y bridge validan con `getEnv("JWT_SECRET")`).
+> Eliminado de `.env`, `scripts/start-services.ps1` y docs.
+
 ---
 
 ## 10. Reset everything

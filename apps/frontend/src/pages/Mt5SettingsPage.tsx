@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { Save, RotateCcw, AlertTriangle, CheckCircle2, Activity, Zap, Wifi, WifiOff, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { api, BotConfig } from '../lib/api';
 import { useBridge } from '../state/BridgeProvider';
@@ -7,11 +6,6 @@ import { cls } from '../utils/format';
 import { Card, Page, Switch, NumberInput, PercentInput } from '../components/common';
 
 type Toast = { kind: 'ok' | 'err'; msg: string } | null;
-
-// Esta pagina es legacy: la configuracion de operativa/riesgo vive ahora en
-// Copy Trading. Redirigimos al usuario al tab correcto.
-// El componente real `Mt5SettingsPage` queda definido abajo (legacy) por si
-// alguien navega directo a la URL.
 
 const DEFAULTS = {
   lot_mode: 'FIXED' as 'FIXED' | 'PERCENTAGE',

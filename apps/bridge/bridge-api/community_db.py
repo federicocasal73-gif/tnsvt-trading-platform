@@ -171,11 +171,12 @@ class CommunityDB:
                 rows = conn.execute(
                     "SELECT * FROM surveys ORDER BY created_at DESC"
                 ).fetchall()
-        result = []
-        for r in rows:
-            item = dict(r)
-            item["options"] = _unjson(item.pop("options_json", "[]"))
-            result.append(item)
+            result = []
+            for r in rows:
+                item = dict(r)
+                item["options"] = _unjson(item.pop("options_json", "[]"))
+                item["votes"] = self._survey_votes(conn, r["id"])
+                result.append(item)
         return result
 
     def get_survey(self, survey_id: str) -> dict | None:

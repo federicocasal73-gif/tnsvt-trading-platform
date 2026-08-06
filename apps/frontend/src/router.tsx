@@ -25,6 +25,7 @@ import { PricingPage } from './pages/PricingPage';
 import { SignupWizard } from './pages/SignupWizard';
 import { AdminPage } from './pages/AdminPage';
 import { AccountsPage } from './pages/AccountsPage';
+import { Mt5SettingsPage } from './pages/Mt5SettingsPage';
 import { CopyTradingPage } from './pages/CopyTradingPage';
 import { CommunityPage } from './pages/Community';
 
@@ -44,11 +45,11 @@ export const ROUTES = [
   { path: '/mt5-dashboard', name: 'mt5-dashboard', label: 'MT5 Dashboard', icon: 'dashboard', scope: 'monitor' as const },
   { path: '/mt5-positions', name: 'mt5-positions', label: 'MT5 Positions', icon: 'positions', scope: 'monitor' as const },
   { path: '/mt5-channels', name: 'mt5-channels', label: 'MT5 Channels', icon: 'live', scope: 'operate' as const },
-  { path: '/mt5-settings', name: 'mt5-settings', label: 'MT5 Settings', icon: 'settings', scope: 'operate' as const, deprecated: true },
+  { path: '/mt5-settings', name: 'mt5-settings', label: 'MT5 Settings', icon: 'settings', scope: 'operate' as const },
   { path: '/mt5-control', name: 'mt5-control', label: 'MT5 Control', icon: 'bot', scope: 'operate' as const },
   { path: '/mt5-risk', name: 'mt5-risk', label: 'Risk Dashboard', icon: 'shield', scope: 'monitor' as const },
   { path: '/accounts', name: 'accounts', label: 'Cuentas MT5', icon: 'wallet', scope: 'operate' as const },
-  { path: '/copy-trading', name: 'copy-trading', label: 'Copy Trading', icon: 'copy', scope: 'operate' as const },
+  { path: '/copy-trading', name: 'copy-trading', label: 'MT5 Settings Copy', icon: 'copy', scope: 'operate' as const },
   { path: '/community', name: 'community', label: 'Comunidad', icon: 'community', scope: 'community' as const },
   { path: '/admin', name: 'admin', label: 'Admin', icon: 'settings', scope: 'admin' as const },
   { path: '/settings', name: 'settings', label: 'Settings', icon: 'settings', scope: 'admin' as const },
@@ -79,7 +80,7 @@ const router = createBrowserRouter([
       { path: 'mt5-dashboard', element: <Mt5DashboardPage /> },
       { path: 'mt5-positions', element: <Mt5PositionsPage /> },
       { path: 'mt5-channels', element: <Mt5ChannelsPage /> },
-      { path: 'mt5-settings', element: <Navigate to="/copy-trading?tab=settings" replace /> },
+      { path: 'mt5-settings', element: <Mt5SettingsPage /> },
       { path: 'mt5-control', element: <Mt5ControlPage /> },
       { path: 'mt5-risk', element: <Mt5RiskPage /> },
       { path: 'accounts', element: <AccountsPage /> },

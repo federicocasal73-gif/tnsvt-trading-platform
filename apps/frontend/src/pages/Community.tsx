@@ -99,8 +99,8 @@ function EventCard({ evt, onToggle }: { evt: CommunityEvent; onToggle: (e: Commu
 }
 
 function SurveyCard({ survey, onClose }: { survey: CommunitySurvey; onClose: (s: CommunitySurvey) => void }) {
-  const total = survey.votes.reduce((acc, v) => acc + v.count, 0);
-  const counts = new Map<number, number>(survey.votes.map(v => [v.option_selected, v.count]));
+  const total = (survey.votes ?? []).reduce((acc, v) => acc + v.count, 0);
+  const counts = new Map<number, number>((survey.votes ?? []).map(v => [v.option_selected, v.count]));
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2 mb-2">

@@ -95,6 +95,8 @@ postgres-data/
 redis-data/
 nats-data/
 ollama-data/
+# NATS JetStream runtime data (cambia en cada run; no commitear)
+data/nats/
 
 # ─── OS ─────────────────────────────────────────────────────────
 Thumbs.db
@@ -128,6 +130,7 @@ risk_state.json
 bot_state.json
 config/reload.trigger
 var/
+blocked_notif_dedup.json
 
 # Account credentials
 config/accounts.json

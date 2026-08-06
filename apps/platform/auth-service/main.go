@@ -84,7 +84,7 @@ func main() {
 	jwtService := services.NewJWTService(cfg.Auth, log)
 	// A1/A2: validar secret al startup. Si es débil/placeholder, abortar.
 	if !jwtService.IsConfigured() {
-		log.Error("Auth-service NO puede arrancar: JWT secret es débil o es el placeholder de dev. Configurar AUTH_JWT_SECRET con al menos 32 caracteres random. Hint: openssl rand -base64 48", fmt.Errorf("weak_jwt_secret"))
+		log.Error("Auth-service NO puede arrancar: JWT secret es débil o es el placeholder de dev. Configurar JWT_SECRET con al menos 32 caracteres random. Hint: openssl rand -base64 48", fmt.Errorf("weak_jwt_secret"))
 		os.Exit(1)
 	}
 	if err := jwtService.SetSecret(cfg.Auth.JWTSecret); err != nil {
