@@ -28,26 +28,15 @@ explícitas contra una única terminal (`MT5_PATH`).
 
 Endpoints en `apps/platform/account-manager` (puerto 8510).
 
-> **Estado 2026-08-06: reinicio de cuentas ("empezar de 0").** Todas las cuentas
-> se borraron del account-manager. La API confirma estado limpio:
-> `GET /api/v1/accounts` y `GET /api/v1/accounts/replicators` → `{"accounts":[]}`.
-> Las cuentas que existían (histórico, para re-registro):
+> **Estado 2026-08-07: reinicio de cuentas ("empezar de 0").** El account-manager
+> está limpio: `GET /api/v1/accounts` → `{"accounts":[]}`.
+> Las cuentas se registran vía el frontend (Accounts → Add Account) o
+> `scripts/register_lst_account.py` / `lst-account-bootstrap`.
 
-| Login | Broker | Alias | UUID |
-|-------|--------|-------|------|
-| `98891135` | TopOneTrader-MT5 | LST-Trading | `a16028a2-b2f8-4aa0-9a88-43547129fb2d` |
-| `130064507` | ZeroMarkets-1 | zeromarkets_main | `1fe3be0d-4e57-41e7-b9b1-46793407f867` |
-| `10011629660` | MetaQuotes-Demo | demo_main | `bfee8ca9-794f-4341-8155-fb79708521a5` |
+### 2.2 Terminales MT5
 
-> El account-manager `:8510` **no exige JWT** (solo `X-Tenant-ID`); la ruta por
-> el gateway `:8000` que usa el frontend sí está protegida con `RequireAuth`.
-
-### 2.2 Terminales MT5 corriendo ahora
-
-| PID | Login | Broker visible | Ruta ejecutable | Desde |
-|-----|-------|----------------|-----------------|-------|
-| 10020 | `10011629660` | MetaQuotes-Demo (XAUUSD) | `C:\Program Files\FTMO MetaTrader 5\terminal64.exe` | 29/7 |
-| 30640 | `98891135` | TopOneTrader-MT5 (XAUUSD.l) | `C:\Program Files\MetaTrader 5\terminal64.exe` | 2/8 |
+Las terminales MT5 se detectan automáticamente. Cada broker necesita su propia
+instalación de `terminal64.exe`. Ver sección 6 para el mapeo de brokers.
 
 ### 2.3 Instalaciones MT5 presentes en disco
 
@@ -59,11 +48,8 @@ C:\Program Files\MetaTrader 5\terminal64.exe
 C:\Program Files\MetaTrader 5 Terminal\terminal64.exe
 ```
 
-> **Hallazgo**: la terminal MetaQuotes-Demo corre desde
-> `FTMO MetaTrader 5\terminal64.exe`, NO desde `MetaTrader 5`. O sea que el
-> `mt5-connector` con `MT5_PATH` default (`C:\Program Files\FTMO MetaTrader 5\...`)
-> coincide con la terminal de MetaQuotes. Para TopOneTrader haría falta apuntar
-> a `C:\Program Files\MetaTrader 5\terminal64.exe`.
+> **Hallazgo**: la terminal de un broker puede estar en una ruta diferente a la
+> default del `mt5-connector`. Verificar `MT5_PATH` para cada broker.
 
 ---
 
@@ -157,9 +143,8 @@ C:\Program Files\MetaTrader 5 Terminal\terminal64.exe
 
 | Broker | terminal64.exe | mt5-connector | MT5_PATH a configurar |
 |--------|----------------|---------------|------------------------|
-| MetaQuotes-Demo | `C:\Program Files\FTMO MetaTrader 5\terminal64.exe` | 1 | (default, ya coincide) |
-| TopOneTrader-MT5 | `C:\Program Files\MetaTrader 5\terminal64.exe` | 2 | `C:\Program Files\MetaTrader 5\terminal64.exe` |
-| ZeroMarkets | *(instalar si aplica)* | 3 | path propio |
+| Broker-A | `C:\Program Files\BrokerA MT5\terminal64.exe` | 1 | (configurar) |
+| Broker-B | `C:\Program Files\BrokerB MT5\terminal64.exe` | 2 | (configurar) |
 
 ### Opciones de implementación (a decidir)
 

@@ -1,4 +1,4 @@
-# Plan de cableado LST / News / Macro / Risk Dashboard — TopOneTrader (modo nativo)
+# Plan de cableado LST / News / Macro / Risk Dashboard — YourBroker (modo nativo)
 
 Fecha: 2026-07-30 (versión final)
 Estado: **Implementado y validado end-to-end en modo nativo Windows (sin Docker)**.
@@ -6,7 +6,7 @@ Alcance: Cablear zonas liquidez → señal → ejecución MT5 (independiente del
 
 > **Versión anterior**: `2026-07-30-lst-wiring-exness-attempt.md` (cuenta Exness-MT5Trial11, descartada).
 
-> **No se reinicia el terminal FTMO**: copy signal sigue intacto. LST opera sobre la cuenta TopOneTrader 98891135 en el mismo `terminal64.exe` (`C:\Program Files\MetaTrader 5\terminal64.exe`). El `mt5-connector` cambia de cuenta via `mt5.login()` por request, sin reiniciar.
+> **No se reinicia el terminal FTMO**: copy signal sigue intacto. LST opera sobre la cuenta YourBroker 12345678 en el mismo `terminal64.exe` (`C:\Program Files\MetaTrader 5\terminal64.exe`). El `mt5-connector` cambia de cuenta via `mt5.login()` por request, sin reiniciar.
 
 ## Modo de operación: Nativo (no Docker)
 
@@ -18,14 +18,14 @@ Por incompatibilidad de Docker en el host, todo el stack corre como procesos nat
 
 ---
 
-## 1. Credenciales LST (TopOneTrader)
+## 1. Credenciales LST (YourBroker)
 
 ```
-LST_LOGIN=98891135
-LST_PASSWORD=)fxG$G(B4D
-LST_SERVER=TopOneTrader-MT5
-LST_BROKER=TopOneTrader
-LST_ALIAS=LST-Trading
+LST_LOGIN=12345678
+LST_PASSWORD=change_me
+LST_SERVER=YourBroker-MT5
+LST_BROKER=YourBroker
+LST_ALIAS=lst-main
 MT5_PATH=C:\Program Files\MetaTrader 5\terminal64.exe
 LST_TENANT_ID=00000000-0000-0000-0000-000000000001
 ```
@@ -34,7 +34,7 @@ LST_TENANT_ID=00000000-0000-0000-0000-000000000001
 
 - **Zona → señal**: zonas dan sesgo/dirección, `LSTEngine` valida y ajusta confianza.
 - **News → ejecución**: vía `news-bridge` que inyecta al `signal-engine` HTTP ingest.
-- **Ejecución LST**: una sola instancia de `execution-engine` con routing por `Source`. Si `Source` empieza con `orchestrator` o contiene `lst`, usa `LSTAccount` (TopOneTrader). Si no, usa `DefaultAccount` (FTMO).
+- **Ejecución LST**: una sola instancia de `execution-engine` con routing por `Source`. Si `Source` empieza con `orchestrator` o contiene `lst`, usa `LSTAccount` (YourBroker). Si no, usa `DefaultAccount` (FTMO).
 - **mt5-connector**: una sola instancia. Multi-cuenta vía `session.Manager` que llama `mt5.login(login, password, server)` por request.
 - **FTMO copy**: NO se toca. `DEFAULT_ACCOUNT_ID` apunta al UUID FTMO en `account-manager`.
 
@@ -42,8 +42,8 @@ LST_TENANT_ID=00000000-0000-0000-0000-000000000001
 
 ```
 MT5 Terminal (C:\Program Files\MetaTrader 5\terminal64.exe)
-  ├─ FTMO account 10011629660  (copy — sin cambios)
-  └─ TopOneTrader account 98891135  (LST — nueva)
+  ├─ FTMO account 11223344  (copy — sin cambios)
+  └─ YourBroker account 12345678  (LST — nueva)
 
 mt5-connector (1 instancia)
   └─ session.Manager (account-manager) → creds encriptadas
@@ -51,7 +51,7 @@ mt5-connector (1 instancia)
         └─ LST UUID (auto-registrada por lst-account-bootstrap)
 
 execution-engine (1 instancia)
-  ├─ resolveAccount(source) → LSTAccount (TopOneTrader) o DefaultAccount (FTMO)
+  ├─ resolveAccount(source) → LSTAccount (YourBroker) o DefaultAccount (FTMO)
   └─ LSTAccount desde $LST_ACCOUNT_ID_FILE (escrito por lst-account-bootstrap)
 
 lst-account-bootstrap (1 init-container)
@@ -61,7 +61,7 @@ signal flow:
   EA MQL5 → liquidity-engine (zones + LSTEngine) → NATS tnsvt.lst.signal
        → orchestrator → NATS trading.signal.validated
        → execution-engine → resolveAccount → mt5-connector
-       → session.Manager → mt5.login(TopOneTrader) → MT5
+       → session.Manager → mt5.login(YourBroker) → MT5
 
   Telegram/webhook/news → signal-engine → risk-engine → trading.signal.validated
        → execution-engine → resolveAccount → mt5-connector
@@ -87,7 +87,7 @@ signal flow:
 - `scripts/go-live-lst.ps1` + `scripts/go-live-lst.sh` — invocan pre-flight + go-live.
 - `scripts/pre-flight-check.ps1` + `scripts/pre-flight-check.sh` — valida Docker, .env, puertos, MT5.
 - `scripts/integration-check.py` — 18 checks end-to-end (schemas, NATS subjects, gateway routes).
-- `scripts/register_lst_account.py` — defaults TopOneTrader.
+- `scripts/register_lst_account.py` — defaults YourBroker.
 - `Makefile` — comandos frecuentes (tests, go-live, health checks, logs).
 - `docs/superpowers/plans/2026-07-30-lst-wiring.md` (este archivo).
 - `docs/superpowers/plans/2026-07-30-lst-wiring-exness-attempt.md` (versión previa preservada).
@@ -104,7 +104,7 @@ signal flow:
 - `apps/trading/execution-engine/internal/service/service.go` — `LSTAccount` + `resolveAccount` por source.
 - `apps/trading/execution-engine/main.go` — lee `LST_ACCOUNT_ID_FILE` (escrito por bootstrap) + import `strings`.
 - `docker-compose.dev.yml` — 33 servicios + volumen `tnsvt-secrets` + lst-account-bootstrap + LST_ACCOUNT_ID_FILE.
-- `.env.example` — bloque `LST_*` con TopOneTrader + `LST_ACCOUNT_ID_FILE`.
+- `.env.example` — bloque `LST_*` con YourBroker + `LST_ACCOUNT_ID_FILE`.
 
 ### Verificación (actualizado)
 - **45 tests Python passing**: 15 zones/lst engine + 13 news-bridge + 17 lst-account-bootstrap.
@@ -117,7 +117,7 @@ signal flow:
 
 ## 5. Pendiente de acción del usuario
 
-1. **Verificar FTMO intacto**: NO se modificó ninguna config de FTMO. El terminal `C:\Program Files\MetaTrader 5\terminal64.exe` sigue siendo el mismo. La cuenta 10011629660 sigue registrada en account-manager. La única operación nueva es: cuando llega una señal con `source` que empieza con `orchestrator`, el `mt5-connector` llama `mt5.login(98891135, ..., TopOneTrader-MT5)` antes de ejecutar, sin reiniciar el terminal.
+1. **Verificar FTMO intacto**: NO se modificó ninguna config de FTMO. El terminal `C:\Program Files\MetaTrader 5\terminal64.exe` sigue siendo el mismo. La cuenta 11223344 sigue registrada en account-manager. La única operación nueva es: cuando llega una señal con `source` que empieza con `orchestrator`, el `mt5-connector` llama `mt5.login(12345678, ..., YourBroker-MT5)` antes de ejecutar, sin reiniciar el terminal.
 
 2. **Go-live manual** (no se puede ejecutar Docker en este entorno):
    ```powershell
@@ -134,7 +134,7 @@ signal flow:
    - `curl http://localhost:8000/api/v1/macro/indicators` → macro
    - Frontend: `http://localhost:5180` → `/news`, `/macro`, `/signals`, `/positions`, `/history`, `/mt5-risk`
 
-4. **Instalar EA MQL5** en el terminal (TopOneTrader, pero comparte el `terminal64.exe` con FTMO):
+4. **Instalar EA MQL5** en el terminal (YourBroker, pero comparte el `terminal64.exe` con FTMO):
    - Copiar `apps/broker/mt5-liquidity/MQL5/LiquidityZones.mq5` + `MQL5/Includes/LiquidityStructures.mqh` a `MQL5/` del terminal.
    - MetaEditor → F7 (compilar).
    - Tools → Options → Expert Advisors → Allow WebRequest a `http://localhost:8050`.
@@ -143,7 +143,7 @@ signal flow:
 
 ## 6. Riesgos y mitigaciones
 
-- **TopOneTrader broker**: cuenta real (no trial). Si rechaza órdenes por lot mínimo o símbolo, ajustar `ORCH_RISK_PER_TRADE` y `ORCH_LOT_SIZE`. El orchestrator publica a `trading.signal.validated`, execution-engine resuelve cuenta por source, mt5-connector hace login a TopOneTrader antes de la orden.
+- **YourBroker broker**: cuenta real (no trial). Si rechaza órdenes por lot mínimo o símbolo, ajustar `ORCH_RISK_PER_TRADE` y `ORCH_LOT_SIZE`. El orchestrator publica a `trading.signal.validated`, execution-engine resuelve cuenta por source, mt5-connector hace login a YourBroker antes de la orden.
 - **mt5-connector session switch**: cambia de cuenta vía `mt5.login()` sin reiniciar terminal. Cache interno en `SetActive`/`GetActive` evita logins repetidos.
 - **News-bridge JetStream**: durable consumer `news-bridge`. Si arranca antes que `liquidity-engine`, falla `js.subscribe` y reintenta con backoff. El stream `tnsvt` se crea on-demand.
 - **EA no instalado**: las señales zonas no se generan hasta que el EA publique zonas a `/zones`. El LSTEngine microestructural sigue funcionando independientemente.
@@ -185,11 +185,11 @@ python scripts/smoke-pipeline.py
 .\scripts\stop-native.ps1
 ```
 
-## 9. TopOneTrader cuenta LST
+## 9. YourBroker cuenta LST
 
-- **Login**: 98891135
-- **Server**: TopOneTrader-MT5
-- **account_id (UUID en account-manager)**: `a16028a8-b2f8-4aa0-9a88-43547129fb2d`
+- **Login**: 12345678
+- **Server**: YourBroker-MT5
+- **account_id (UUID en account-manager)**: `00000000-0000-0000-0000-000000000001`
 - `LST_ACCOUNT_ID=...` en `.env` y `secrets/lst_account_id`.
 
 ## 10. Estado final verificado

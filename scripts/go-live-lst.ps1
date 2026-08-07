@@ -1,4 +1,4 @@
-# TNSVT V2 — go-live LST (TopOneTrader)
+# TNSVT V2 — go-live LST (YourBroker)
 # Levanta docker-compose, espera health, verifica rutas del gateway.
 
 $ErrorActionPreference = 'Stop'
@@ -53,7 +53,7 @@ foreach ($svc in $services) {
     }
 }
 
-Write-Host "[3/4] Esperando lst-account-bootstrap (registra TopOneTrader)..." -ForegroundColor Cyan
+Write-Host "[3/4] Esperando lst-account-bootstrap (registra cuenta LST)..." -ForegroundColor Cyan
 $lstId = $null
 for ($i = 1; $i -le 60; $i++) {
     $status = docker inspect tnsvt-lst-account-bootstrap --format='{{.State.Status}}' 2>$null

@@ -854,11 +854,11 @@ services:
     environment:
       ACCOUNT_MANAGER_URL: http://account-manager:8510
       LST_TENANT_ID: ${LST_TENANT_ID:-00000000-0000-0000-0000-000000000001}
-      LST_LOGIN: ${LST_LOGIN:-98891135}
-      LST_SERVER: ${LST_SERVER:-TopOneTrader-MT5}
+      LST_LOGIN: ${LST_LOGIN:-12345678}
+      LST_SERVER: ${LST_SERVER:-YourBroker-MT5}
       LST_PASSWORD: ${LST_PASSWORD:-}
-      LST_BROKER: ${LST_BROKER:-TopOneTrader}
-      LST_ALIAS: ${LST_ALIAS:-LST-Trading}
+      LST_BROKER: ${LST_BROKER:-YourBroker}
+      LST_ALIAS: ${LST_ALIAS:-lst-main}
       LST_ACCOUNT_ID_FILE: /var/run/tnsvt/secrets/lst_account_id
     volumes:
       - tnsvt-secrets:/var/run/tnsvt/secrets

@@ -13,7 +13,7 @@
 - liquidity-engine (LST signals) con 9/9 tests pasando
 - MT5 connector con endpoints `/rates`, `/orders`, `/health`, `/health/ready`
 - NATS JetStream en `nats://localhost:4222`, stream `tnsvt`
-- MT5 demo conectado: login `10011629660`, server `metaquotes-demo`
+- MT5 demo conectado: login `11223344`, server `metaquotes-demo`
 
 ### 🐛 Bugs corregidos durante verificación
 1. `mt5_bridge.py` — `TradePosition.commission` AttributeError → removido

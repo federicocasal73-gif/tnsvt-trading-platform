@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TNSVT V2 — go-live LST (TopOneTrader)
+# TNSVT V2 — go-live LST (YourBroker)
 
 set -euo pipefail
 

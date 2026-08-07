@@ -102,7 +102,7 @@ def main() -> int:
     server = os.getenv("LST_SERVER", "")
     password = os.getenv("LST_PASSWORD", "")
     broker = os.getenv("LST_BROKER", "mt5")
-    alias = os.getenv("LST_ALIAS", "LST-Trading")
+    alias = os.getenv("LST_ALIAS", "lst-main")
     out_file = os.getenv("LST_ACCOUNT_ID_FILE", "/var/run/tnsvt/secrets/lst_account_id")
 
     if not login_str or not server or not password:

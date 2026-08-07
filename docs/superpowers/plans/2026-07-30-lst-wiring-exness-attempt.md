@@ -34,7 +34,7 @@ Gaps detectados:
 
 Tareas:
 
-- Crear cuenta en account-manager `POST /api/v1/accounts` con login 198595155, server Exness-MT5Trial11, password Prueba1234@, broker Exness, alias "LST-Trading".
+- Crear cuenta en account-manager `POST /api/v1/accounts` con login 198595155, server Exness-MT5Trial11, password Prueba1234@, broker Exness, alias "lst-main".
 - Configurar `DEFAULT_ACCOUNT_ID` del execution-engine apuntando al UUID devuelto.
 - mt5-connector: `MT5_PATH` apuntando a la terminal64.exe de la cuenta LST (pendiente confirmar ruta al usuario).
 - `ACCOUNT_MANAGER_URL` + `ACCOUNT_MGR_SERVICE_TOKEN`.

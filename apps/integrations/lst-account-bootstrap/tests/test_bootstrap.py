@@ -92,17 +92,17 @@ def test_find_existing_account_match():
     body = {
         "accounts": [
             {"id": "uuid-1", "login": 123, "server": "X"},
-            {"id": "uuid-2", "login": 98891135, "server": "TopOneTrader-MT5"},
+            {"id": "uuid-2", "login": 12345678, "server": "YourBroker-MT5"},
         ]
     }
     with patch("main._get", return_value=(200, body)):
-        assert find_existing_account(BASE, HEADERS, TENANT, 98891135, "TopOneTrader-MT5") == "uuid-2"
+        assert find_existing_account(BASE, HEADERS, TENANT, 12345678, "YourBroker-MT5") == "uuid-2"
 
 
 def test_find_existing_account_no_match():
     body = {"accounts": [{"id": "uuid-1", "login": 999, "server": "X"}]}
     with patch("main._get", return_value=(200, body)):
-        assert find_existing_account(BASE, HEADERS, TENANT, 98891135, "TopOneTrader-MT5") is None
+        assert find_existing_account(BASE, HEADERS, TENANT, 12345678, "YourBroker-MT5") is None
 
 
 def test_find_existing_account_handles_non_dict():
@@ -111,9 +111,9 @@ def test_find_existing_account_handles_non_dict():
 
 
 def test_find_existing_account_handles_login_as_string():
-    body = {"accounts": [{"id": "uuid-2", "login": "98891135", "server": "TopOneTrader-MT5"}]}
+    body = {"accounts": [{"id": "uuid-2", "login": "12345678", "server": "YourBroker-MT5"}]}
     with patch("main._get", return_value=(200, body)):
-        assert find_existing_account(BASE, HEADERS, TENANT, 98891135, "TopOneTrader-MT5") == "uuid-2"
+        assert find_existing_account(BASE, HEADERS, TENANT, 12345678, "YourBroker-MT5") == "uuid-2"
 
 
 def test_main_missing_credentials_returns_1(monkeypatch):
@@ -135,8 +135,8 @@ def test_main_non_integer_login_returns_1(monkeypatch):
 
 
 def test_main_account_manager_unreachable_returns_1(monkeypatch):
-    monkeypatch.setenv("LST_LOGIN", "98891135")
-    monkeypatch.setenv("LST_SERVER", "TopOneTrader-MT5")
+    monkeypatch.setenv("LST_LOGIN", "12345678")
+    monkeypatch.setenv("LST_SERVER", "YourBroker-MT5")
     monkeypatch.setenv("LST_PASSWORD", "secret")
     monkeypatch.setenv("ACCOUNT_MANAGER_URL", BASE)
     monkeypatch.setenv("LST_TENANT_ID", TENANT)
@@ -152,11 +152,11 @@ def test_main_existing_account_writes_file(monkeypatch, capsys):
     try:
         body = {
             "accounts": [
-                {"id": "uuid-existing", "login": 98891135, "server": "TopOneTrader-MT5"}
+                {"id": "uuid-existing", "login": 12345678, "server": "YourBroker-MT5"}
             ]
         }
-        monkeypatch.setenv("LST_LOGIN", "98891135")
-        monkeypatch.setenv("LST_SERVER", "TopOneTrader-MT5")
+        monkeypatch.setenv("LST_LOGIN", "12345678")
+        monkeypatch.setenv("LST_SERVER", "YourBroker-MT5")
         monkeypatch.setenv("LST_PASSWORD", "secret")
         monkeypatch.setenv("ACCOUNT_MANAGER_URL", BASE)
         monkeypatch.setenv("LST_TENANT_ID", TENANT)
@@ -180,11 +180,11 @@ def test_main_creates_new_account(monkeypatch):
     fd, out_path = tempfile.mkstemp(prefix="lst_", suffix=".txt")
     os.close(fd)
     try:
-        monkeypatch.setenv("LST_LOGIN", "98891135")
-        monkeypatch.setenv("LST_SERVER", "TopOneTrader-MT5")
+        monkeypatch.setenv("LST_LOGIN", "12345678")
+        monkeypatch.setenv("LST_SERVER", "YourBroker-MT5")
         monkeypatch.setenv("LST_PASSWORD", ")fxG$G(B4D")
-        monkeypatch.setenv("LST_BROKER", "TopOneTrader")
-        monkeypatch.setenv("LST_ALIAS", "LST-Trading")
+        monkeypatch.setenv("LST_BROKER", "YourBroker")
+        monkeypatch.setenv("LST_ALIAS", "lst-main")
         monkeypatch.setenv("ACCOUNT_MANAGER_URL", BASE)
         monkeypatch.setenv("LST_TENANT_ID", TENANT)
         monkeypatch.setenv("LST_ACCOUNT_ID_FILE", out_path)
@@ -196,9 +196,9 @@ def test_main_creates_new_account(monkeypatch):
         with open(out_path) as f:
             assert f.read() == "uuid-new"
         sent_body = post_mock.call_args.args[1]
-        assert sent_body["login"] == 98891135
-        assert sent_body["server"] == "TopOneTrader-MT5"
-        assert sent_body["broker"] == "TopOneTrader"
+        assert sent_body["login"] == 12345678
+        assert sent_body["server"] == "YourBroker-MT5"
+        assert sent_body["broker"] == "YourBroker"
     finally:
         try:
             os.unlink(out_path)
@@ -211,8 +211,8 @@ def test_main_create_failure_returns_1(monkeypatch):
     fd, out_path = tempfile.mkstemp(prefix="lst_", suffix=".txt")
     os.close(fd)
     try:
-        monkeypatch.setenv("LST_LOGIN", "98891135")
-        monkeypatch.setenv("LST_SERVER", "TopOneTrader-MT5")
+        monkeypatch.setenv("LST_LOGIN", "12345678")
+        monkeypatch.setenv("LST_SERVER", "YourBroker-MT5")
         monkeypatch.setenv("LST_PASSWORD", "secret")
         monkeypatch.setenv("ACCOUNT_MANAGER_URL", BASE)
         monkeypatch.setenv("LST_TENANT_ID", TENANT)

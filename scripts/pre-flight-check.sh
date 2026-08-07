@@ -39,8 +39,8 @@ echo ""
 echo "[2/5] .env file"
 if [ -f "$ROOT/.env" ]; then
     check ".env exists" 1
-    grep -q "^LST_LOGIN=98891135" "$ROOT/.env" && check "LST_LOGIN=98891135" 1 || check "LST_LOGIN=98891135" 0
-    grep -q "^LST_SERVER=TopOneTrader-MT5" "$ROOT/.env" && check "LST_SERVER=TopOneTrader-MT5" 1 || check "LST_SERVER=TopOneTrader-MT5" 0
+    grep -q "^LST_LOGIN=12345678" "$ROOT/.env" && check "LST_LOGIN=12345678" 1 || check "LST_LOGIN=12345678" 0
+    grep -q "^LST_SERVER=YourBroker-MT5" "$ROOT/.env" && check "LST_SERVER=YourBroker-MT5" 1 || check "LST_SERVER=YourBroker-MT5" 0
     grep -qE "^LST_PASSWORD=.+" "$ROOT/.env" && check "LST_PASSWORD set" 1 || check "LST_PASSWORD set" 0
     grep -qE "^DEFAULT_TENANT_ID=[0-9a-f-]{36}" "$ROOT/.env" && check "DEFAULT_TENANT_ID is a valid UUID" 1 || check "DEFAULT_TENANT_ID is a valid UUID" 0
 else

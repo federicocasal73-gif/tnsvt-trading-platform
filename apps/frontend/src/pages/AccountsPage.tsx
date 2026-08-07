@@ -392,10 +392,10 @@ function AddAccountModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
         </Field>
         <Field label="Server" required>
-          <input type="text" value={server} onChange={(e) => setServer(e.target.value)} placeholder="ej: MetaQuotes-Demo" className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm" required />
+          <input type="text" value={server} onChange={(e) => setServer(e.target.value)} placeholder="ej: YourBroker-MT5" className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm" required />
         </Field>
         <Field label="Alias">
-          <input type="text" value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="ej: demo_main" className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm" />
+          <input type="text" value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="ej: mi_broker" className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm" />
         </Field>
         <Field label="Nombre">
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ej: Demo Principal" className="w-full px-2 py-1.5 rounded bg-white/[0.05] border border-white/[0.08] text-sm" />

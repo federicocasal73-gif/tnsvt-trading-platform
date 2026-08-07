@@ -72,7 +72,7 @@ Write-Host ("  Redis:          {0}" -f $(if ($rdSvc.Status -eq "Running") { "OK 
 Write-Host ("  NATS JetStream: {0}" -f $(if ($natsProc) { "OK PID=$($natsProc.Id)" } else { "STOPPED" }))
 
 Write-Host ""
-Write-Host "TopOneTrader LST:" -ForegroundColor Cyan
+Write-Host "LST Account:" -ForegroundColor Cyan
 $lstId = $env:LST_ACCOUNT_ID
 if (-not $lstId) {
     $envFile = Join-Path $repo ".env"

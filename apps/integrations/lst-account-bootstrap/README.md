@@ -21,7 +21,7 @@ Init container one-shot que registra la cuenta LST en account-manager.
 | `LST_PASSWORD` | (requerido) | Password de la cuenta |
 | `LST_SERVER` | (requerido) | Nombre del server MT5 |
 | `LST_BROKER` | `mt5` | Broker identifier |
-| `LST_ALIAS` | `LST-Trading` | Alias visible |
+| `LST_ALIAS` | `lst-main` | Alias visible |
 | `LST_ACCOUNT_ID_FILE` | `/var/run/tnsvt/secrets/lst_account_id` | Archivo destino del UUID |
 
 ## Contrato con execution-engine

@@ -42,8 +42,8 @@ Test-Item $hasEnv ".env existe en repo root" "(copy .env.example .env)"
 
 if ($hasEnv) {
     $envContent = Get-Content $envPath -Raw
-    Test-Item ($envContent -match "LST_LOGIN=98891135") "LST_LOGIN=98891135 (TopOneTrader)"
-    Test-Item ($envContent -match "LST_SERVER=TopOneTrader-MT5") "LST_SERVER=TopOneTrader-MT5"
+    Test-Item ($envContent -match "LST_LOGIN=12345678") "LST_LOGIN=12345678"
+    Test-Item ($envContent -match "LST_SERVER=YourBroker-MT5") "LST_SERVER=YourBroker-MT5"
     $pwdEmpty = $envContent -match "LST_PASSWORD=$"
     Test-Item (-not $pwdEmpty) "LST_PASSWORD no vacio"
     Test-Item ($envContent -match "DEFAULT_TENANT_ID=[0-9a-f-]{36}") "DEFAULT_TENANT_ID es UUID valido"

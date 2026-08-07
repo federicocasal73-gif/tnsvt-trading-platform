@@ -75,7 +75,7 @@ Script: `scripts/smoke-copy-separation.py`.
 [2] GET /bridge/mt5/accounts    → 3 cuentas, copy_enabled: [False, False, False]
 [3] GET /accounts/replicators  → 0 cuentas
 [4] PATCH copy_enabled=true    → 200 OK
-[5] GET /accounts/replicators  → 1 cuenta (LST-Trading copy_enabled=True)  ← FUNCIONA
+[5] GET /accounts/replicators  → 1 cuenta (lst-main copy_enabled=True)  ← FUNCIONA
 [6] GET /bridge/replicators     → 1 cuenta (live data)  ← FUNCIONA
 [7] PATCH copy_enabled=false   → 200 OK (rollback)
 [8] GET /accounts/replicators  → 0 cuentas  ← ROLLBACK OK

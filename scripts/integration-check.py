@@ -141,14 +141,14 @@ def test_execution_engine_reads_lst_account_file():
     print("[12] execution-engine reads LST_ACCOUNT_ID_FILE")
 
 
-def test_env_example_has_topone_trader():
+def test_env_example_has_lst_config():
     env = (ROOT / ".env.example").read_text(encoding="utf-8")
-    assert "98891135" in env
-    assert "TopOneTrader-MT5" in env
-    assert ")fxG$G(B4D" in env
+    assert "LST_LOGIN=" in env
+    assert "LST_SERVER=" in env
+    assert "LST_PASSWORD=" in env
+    assert "LST_ALIAS=" in env
     assert "C:\\Program Files\\MetaTrader 5" not in env
-    assert "FTMO MetaTrader 5" in env
-    print("[13] .env.example has TopOneTrader creds, MT5_PATH unchanged on FTMO")
+    print("[13] .env.example has LST config placeholders, no hardcoded MT5_PATH")
 
 
 def test_ftmo_account_id_env_used():

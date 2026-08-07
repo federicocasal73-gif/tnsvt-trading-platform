@@ -87,7 +87,7 @@ independently). Each instance runs for one symbol + timeframe.
 
 The chart name in `Experts` tab will show:
 ```
-[LiquidityZones] EA init on XAUUSD H1 | Account: 10011629660
+[LiquidityZones] EA init on XAUUSD H1 | Account: 12345678
 [LiquidityZones] Initialized: webhook=localhost:8050, swing_lookback=5, ...
 ```
 
@@ -115,7 +115,7 @@ POST `http://localhost:8050/zones`:
 
 ```json
 {
-  "account_id": "10011629660",
+  "account_id": "12345678",
   "symbol": "XAUUSD",
   "timeframe": "H1",
   "ts": 1785300000,
@@ -143,7 +143,7 @@ Response:
   "accepted": 24,
   "rejected": 0,
   "total": 24,
-  "stored_account_id": "10011629660",
+  "stored_account_id": "12345678",
   "stored_at": "2026-07-29T03:14:22.123456+00:00"
 }
 ```

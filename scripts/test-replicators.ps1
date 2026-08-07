@@ -25,7 +25,7 @@ try {
 }
 
 Write-Host ""
-Write-Host "[3] PATCH copy_enabled=true en demo_main"
+Write-Host "[3] PATCH copy_enabled=true en primera cuenta"
 $demo = $accounts | Where-Object { $_.alias -like "*demo*" } | Select-Object -First 1
 if ($demo) {
     Write-Host "  target: $($demo.alias) (id=$($demo.id))"
